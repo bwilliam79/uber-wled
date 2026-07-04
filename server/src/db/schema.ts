@@ -93,7 +93,16 @@ export function runMigrations(db: Database.Database): void {
       home_latitude REAL,
       home_longitude REAL,
       discovery_rescan_interval_minutes INTEGER NOT NULL DEFAULT 5,
-      schedule_import_disable_on_device_default INTEGER NOT NULL DEFAULT 0
+      schedule_import_disable_on_device_default INTEGER NOT NULL DEFAULT 0,
+      controller_status_poll_interval_minutes INTEGER NOT NULL DEFAULT 5
+    );
+
+    CREATE TABLE IF NOT EXISTS controller_status (
+      controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
+      reachable INTEGER NOT NULL,
+      info TEXT,
+      state TEXT,
+      polled_at TEXT NOT NULL
     );
   `);
 
@@ -104,5 +113,12 @@ export function runMigrations(db: Database.Database): void {
   const releaseCols = db.prepare('PRAGMA table_info(wled_releases)').all() as { name: string }[];
   if (!releaseCols.some((c) => c.name === 'prerelease')) {
     db.exec('ALTER TABLE wled_releases ADD COLUMN prerelease INTEGER NOT NULL DEFAULT 0');
+  }
+
+  // Idempotent column add for settings rows created before the controller
+  // status poll interval existed.
+  const settingsCols = db.prepare('PRAGMA table_info(settings)').all() as { name: string }[];
+  if (!settingsCols.some((c) => c.name === 'controller_status_poll_interval_minutes')) {
+    db.exec('ALTER TABLE settings ADD COLUMN controller_status_poll_interval_minutes INTEGER NOT NULL DEFAULT 5');
   }
 }
