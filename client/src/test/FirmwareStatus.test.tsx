@@ -10,6 +10,7 @@ describe('FirmwareStatus', () => {
       ok: true,
       json: async () => ({
         installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false,
         pinnedAssetPattern: null,
         candidateAssets: [
           { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
@@ -31,6 +32,7 @@ describe('FirmwareStatus', () => {
       ok: true,
       json: async () => ({
         installedVersion: '0.15.0', latestTag: 'v0.15.0', updateAvailable: false,
+        isPrerelease: false,
         pinnedAssetPattern: 'ESP02', candidateAssets: []
       })
     });
@@ -48,6 +50,7 @@ describe('FirmwareStatus', () => {
       ok: true,
       json: async () => ({
         installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false,
         pinnedAssetPattern: null,
         candidateAssets: [{ name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }]
       })
@@ -77,6 +80,7 @@ describe('FirmwareStatus', () => {
       ok: true,
       json: async () => ({
         installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false,
         pinnedAssetPattern: 'ESP02', candidateAssets: []
       })
     });
@@ -100,5 +104,14 @@ describe('FirmwareStatus', () => {
         expect.objectContaining({ method: 'POST' })
       )
     );
+  });
+
+  it('shows a pre-release indicator when the latest resolved release is a pre-release', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ installedVersion: '0.14.0', latestTag: 'v0.15.1-b3', updateAvailable: true, isPrerelease: true, pinnedAssetPattern: 'ESP32', candidateAssets: [] })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText(/pre-release/i)).toBeTruthy());
   });
 });
