@@ -67,5 +67,38 @@ describe('FirmwareStatus', () => {
         expect.objectContaining({ method: 'POST' })
       )
     );
+
+    const [, requestInit] = pinFetch.mock.calls[0];
+    expect(JSON.parse(requestInit.body)).toEqual({ assetPattern: 'ESP02' });
+  });
+
+  it('shows a one-click Update button when pinned, matched, and an update is available, and wires it to pushFirmwareUpdate', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        pinnedAssetPattern: 'ESP02', candidateAssets: []
+      })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<FirmwareStatus controllerId="c1" />);
+
+    await waitFor(() => expect(screen.getByText('Update')).toBeTruthy());
+
+    const updateFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true, installedVersion: '0.15.0' })
+    });
+    vi.stubGlobal('fetch', updateFetch);
+
+    fireEvent.click(screen.getByText('Update'));
+
+    await waitFor(() =>
+      expect(updateFetch).toHaveBeenCalledWith(
+        '/api/controllers/c1/firmware/update',
+        expect.objectContaining({ method: 'POST' })
+      )
+    );
   });
 });
