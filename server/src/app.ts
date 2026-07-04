@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'node:path';
 import type Database from 'better-sqlite3';
 import { createControllersRouter } from './controllers/routes.js';
+import { createSegmentsRouter } from './segments/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
@@ -12,6 +13,7 @@ export function createApp(db: Database.Database) {
   });
 
   app.use('/api/controllers', createControllersRouter(db));
+  app.use('/api/controllers/:controllerId/segments', createSegmentsRouter(db));
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {
