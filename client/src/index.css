@@ -418,3 +418,20 @@ button, input {
   flex-direction: column;
   gap: var(--space-xs);
 }
+
+/* ---------- Group members editor ---------- */
+
+.group-members-card {
+  margin-top: var(--space-md);
+}
+
+.group-members-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin-bottom: var(--space-sm);
+}
+
+.group-members-editor .controller-list {
+  margin-bottom: var(--space-md);
+}
