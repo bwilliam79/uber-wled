@@ -23,8 +23,8 @@ describe('ControllerList', () => {
     render(
       <ControllerList
         controllers={[
-          { id: '1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false },
-          { id: '2', name: 'Deck', host: '10.0.0.51', source: 'discovered', stale: true }
+          { id: '1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null },
+          { id: '2', name: 'Deck', host: '10.0.0.51', source: 'discovered', stale: true, pinnedAssetPattern: null }
         ]}
         onDelete={vi.fn()}
       />
