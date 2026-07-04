@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
+import { importSchedules } from './scheduleImport.js';
 
 export function createControllersRouter(db: Database.Database): Router {
   const router = Router();
@@ -22,6 +23,16 @@ export function createControllersRouter(db: Database.Database): Router {
   router.delete('/:id', (req, res) => {
     repo.remove(req.params.id);
     res.status(204).end();
+  });
+
+  router.post('/:id/import-schedules', async (req, res) => {
+    try {
+      const result = await importSchedules(db, req.params.id, { disableOnDevice: !!req.body?.disableOnDevice });
+      res.json(result);
+    } catch (err: any) {
+      const status = err.statusCode ?? 500;
+      res.status(status).json({ error: err.message });
+    }
   });
 
   return router;
