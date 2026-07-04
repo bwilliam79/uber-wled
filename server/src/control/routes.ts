@@ -5,13 +5,13 @@ import { createThemeRepository } from '../themes/repository.js';
 import { setState, applyPreset } from '../wled/client.js';
 import type { WledState, WledSegment } from '../wled/types.js';
 
-type ControlAction =
+export type ControlAction =
   | { type: 'power'; on: boolean }
   | { type: 'brightness'; value: number }
   | { type: 'preset'; presetId: number }
   | { type: 'theme'; themeId: string };
 
-interface Member {
+export interface Member {
   controllerId: string;
   wledSegId: number;
 }
@@ -38,40 +38,42 @@ async function applyToMember(
   }
 }
 
-export function createControlRouter(db: Database.Database): Router {
-  const router = Router();
+export async function applyToMembers(
+  db: Database.Database,
+  members: Member[],
+  action: ControlAction
+): Promise<{ controllerId: string; wledSegId: number; ok: boolean; error?: string }[]> {
   const controllers = createControllerRepository(db);
   const themes = createThemeRepository(db);
+  const resolveTheme = (id: string) => themes.get(id);
 
-  router.post('/apply', async (req, res) => {
-    const { members, action } = req.body as { members: Member[]; action: ControlAction };
-
-    const results = await Promise.all(
-      members.map(async (member) => {
-        const controller = controllers.list().find((c) => c.id === member.controllerId);
-        if (!controller) {
-          return { controllerId: member.controllerId, wledSegId: member.wledSegId, ok: false, error: 'controller not found' };
-        }
-        const resolveTheme = (id: string) => themes.get(id);
+  return Promise.all(
+    members.map(async (member) => {
+      const controller = controllers.list().find((c) => c.id === member.controllerId);
+      if (!controller) {
+        return { controllerId: member.controllerId, wledSegId: member.wledSegId, ok: false, error: 'controller not found' };
+      }
+      try {
+        await applyToMember(controller.host, member, action, resolveTheme);
+        return { controllerId: member.controllerId, wledSegId: member.wledSegId, ok: true };
+      } catch {
         try {
           await applyToMember(controller.host, member, action, resolveTheme);
           return { controllerId: member.controllerId, wledSegId: member.wledSegId, ok: true };
-        } catch (firstError) {
-          try {
-            await applyToMember(controller.host, member, action, resolveTheme);
-            return { controllerId: member.controllerId, wledSegId: member.wledSegId, ok: true };
-          } catch (secondError: any) {
-            return {
-              controllerId: member.controllerId,
-              wledSegId: member.wledSegId,
-              ok: false,
-              error: secondError.message ?? 'unknown error'
-            };
-          }
+        } catch (secondError: any) {
+          return { controllerId: member.controllerId, wledSegId: member.wledSegId, ok: false, error: secondError.message ?? 'unknown error' };
         }
-      })
-    );
+      }
+    })
+  );
+}
 
+export function createControlRouter(db: Database.Database): Router {
+  const router = Router();
+
+  router.post('/apply', async (req, res) => {
+    const { members, action } = req.body as { members: Member[]; action: ControlAction };
+    const results = await applyToMembers(db, members, action);
     res.json({ results });
   });
 
