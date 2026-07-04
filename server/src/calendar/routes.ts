@@ -27,6 +27,17 @@ export function findConflict(
   });
 }
 
+/**
+ * Checks whether `dateRule` resolves to a real date in at least one of the
+ * current year or next year. A rule like "5th Monday of February" may be
+ * impossible in some years (a 28-day February never has a 5th Monday) but
+ * valid in others, so we only reject it if it fails for both years checked
+ * — that's a strong signal the rule can never plausibly fire.
+ */
+function isResolvableSoon(dateRule: CalendarEvent['dateRule'], year: number): boolean {
+  return !!resolveDate(dateRule, year) || !!resolveDate(dateRule, year + 1);
+}
+
 export function createCalendarRouter(db: Database.Database): Router {
   const router = Router();
   const repo = createCalendarRepository(db);
@@ -51,6 +62,12 @@ export function createCalendarRouter(db: Database.Database): Router {
       actionPayload: body.actionPayload ?? null
     };
 
+    if (!isResolvableSoon(candidate.dateRule, thisYear())) {
+      return res.status(400).json({
+        error: 'dateRule does not resolve to a valid date in the current or next year (e.g. an nthWeekday occurrence that does not exist)'
+      });
+    }
+
     const conflict = findConflict(repo.list(), candidate, thisYear());
     if (conflict) {
       const conflictDate = resolveDate(conflict.dateRule, thisYear())!;
@@ -69,6 +86,13 @@ export function createCalendarRouter(db: Database.Database): Router {
     if (!existing) return res.status(404).json({ error: 'calendar event not found' });
 
     const candidate: CalendarEvent = { ...existing, ...req.body, id: existing.id };
+
+    if (!isResolvableSoon(candidate.dateRule, thisYear())) {
+      return res.status(400).json({
+        error: 'dateRule does not resolve to a valid date in the current or next year (e.g. an nthWeekday occurrence that does not exist)'
+      });
+    }
+
     const others = repo.list().filter((e) => e.id !== existing.id);
     const conflict = findConflict(others, candidate, thisYear());
     if (conflict) {
