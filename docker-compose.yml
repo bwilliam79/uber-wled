@@ -8,6 +8,6 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - PORT=3000
+      - PORT=${PORT:-8081}
       - DB_PATH=/app/data/uber-wled.db
     restart: unless-stopped
