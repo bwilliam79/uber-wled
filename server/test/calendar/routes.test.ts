@@ -87,6 +87,42 @@ describe('calendar routes', () => {
     expect(custom.status).toBe(201);
   });
 
+  it('rejects an nthWeekday dateRule that cannot resolve to a real date with 400 at creation time', async () => {
+    // The 5th Monday of February does not exist in any nearby year (February
+    // never has 29 Mondays' worth of headroom to reach a 5th Monday under the
+    // Gregorian calendar in the range this server cares about), so this must
+    // be rejected up front rather than silently persisted and never fire.
+    const res = await request(app).post('/api/calendar-events').send({
+      name: 'Impossible 5th Monday of February', category: 'custom',
+      dateRule: { kind: 'nthWeekday', month: 2, weekday: 1, n: 5 },
+      recursYearly: true, enabled: true, groupId: null,
+      triggerTime: { type: 'fixed', time: '19:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/dateRule/i);
+    expect((await request(app).get('/api/calendar-events')).body).toHaveLength(0);
+  });
+
+  it('rejects a PATCH that changes dateRule to an impossible nthWeekday occurrence', async () => {
+    const post = await request(app).post('/api/calendar-events').send({
+      name: 'Some Custom Event', category: 'custom',
+      dateRule: { kind: 'fixed', month: 3, day: 1 },
+      recursYearly: true, enabled: true, groupId: null,
+      triggerTime: { type: 'fixed', time: '19:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+    expect(post.status).toBe(201);
+
+    const patch = await request(app).patch(`/api/calendar-events/${post.body.id}`).send({
+      dateRule: { kind: 'nthWeekday', month: 2, weekday: 1, n: 5 }
+    });
+
+    expect(patch.status).toBe(400);
+    expect(patch.body.error).toMatch(/dateRule/i);
+  });
+
   it('deletes a calendar event', async () => {
     const post = await request(app).post('/api/calendar-events').send({
       name: 'X', category: 'custom',
