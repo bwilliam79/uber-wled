@@ -46,6 +46,24 @@ describe('candidateAssets', () => {
     const candidates = candidateAssets(release, 'esp32s3');
     expect(candidates.map((a) => a.name)).toEqual(['WLED_0.15.0_ESP32-S3.bin']);
   });
+
+  it('excludes S2/S3/C3 variant assets for plain esp32 so a plain board never gets a variant binary', () => {
+    const releaseWithAllVariants: WledRelease = {
+      tag: 'v0.15.0',
+      publishedAt: '2026-06-01T00:00:00Z',
+      fetchedAt: '2026-07-04T00:00:00Z',
+      assets: [
+        { name: 'WLED_0.15.0_ESP32.bin', downloadUrl: 'https://example.com/ESP32.bin' },
+        { name: 'WLED_0.15.0_ESP32-S2.bin', downloadUrl: 'https://example.com/ESP32-S2.bin' },
+        { name: 'WLED_0.15.0_ESP32-S3.bin', downloadUrl: 'https://example.com/ESP32-S3.bin' },
+        { name: 'WLED_0.15.0_ESP32-C3.bin', downloadUrl: 'https://example.com/ESP32-C3.bin' },
+        { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/ESP8266.bin' }
+      ]
+    };
+
+    const candidates = candidateAssets(releaseWithAllVariants, 'esp32');
+    expect(candidates.map((a) => a.name)).toEqual(['WLED_0.15.0_ESP32.bin']);
+  });
 });
 
 describe('resolvePinnedAsset', () => {
