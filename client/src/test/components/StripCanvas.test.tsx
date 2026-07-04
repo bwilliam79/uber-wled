@@ -21,4 +21,17 @@ describe('StripCanvas', () => {
     expect(screen.getByTestId('strip-s1').getAttribute('data-selected')).toBe('true');
     expect(screen.getByTestId('strip-s2').getAttribute('data-stale')).toBe('true');
   });
+
+  it('uses the provided live color for a strip stroke', () => {
+    render(
+      <StripCanvas
+        strips={strips}
+        selected={new Set()}
+        staleControllerIds={new Set()}
+        onSelectionChange={vi.fn()}
+        liveColors={new Map([['s1', 'rgb(200, 50, 25)']])}
+      />
+    );
+    expect(screen.getByTestId('strip-s1').getAttribute('stroke')).toBe('rgb(200, 50, 25)');
+  });
 });
