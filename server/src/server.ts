@@ -4,10 +4,10 @@ import { runDiscoveryCycle } from './discovery/service.js';
 import { SchedulerEngine } from './schedules/engine.js';
 import { applyToMembers } from './control/routes.js';
 import { seedHolidaysIfEmpty } from './calendar/repository.js';
+import { createSettingsRepository } from './settings/repository.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const DB_PATH = process.env.DB_PATH ?? './data/uber-wled.db';
-const DISCOVERY_INTERVAL_MS = 5 * 60_000;
 
 const db = createDb(DB_PATH);
 seedHolidaysIfEmpty(db);
@@ -17,8 +17,11 @@ app.listen(PORT, () => {
   console.log(`uber-wled server listening on port ${PORT}`);
 });
 
+const settings = createSettingsRepository(db);
+const intervalMinutes = settings.get().discoveryRescanIntervalMinutes;
+
 runDiscoveryCycle(db);
-setInterval(() => runDiscoveryCycle(db), DISCOVERY_INTERVAL_MS);
+setInterval(() => runDiscoveryCycle(db), Math.max(1, intervalMinutes) * 60_000);
 
 const scheduler = new SchedulerEngine(db, (members, action) => applyToMembers(db, members, action as any));
 scheduler.start();
