@@ -1,24 +1,23 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ControllerList } from '../components/ControllerList';
 
 afterEach(() => vi.unstubAllGlobals());
 
+const firmwareResponse = {
+  ok: true,
+  json: async () => ({
+    installedVersion: '0.14.0',
+    latestTag: 'v0.14.0',
+    updateAvailable: false,
+    pinnedAssetPattern: null,
+    candidateAssets: []
+  })
+};
+
 describe('ControllerList', () => {
   it("renders each controller's name and host", () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          installedVersion: '0.14.0',
-          latestTag: 'v0.14.0',
-          updateAvailable: false,
-          pinnedAssetPattern: null,
-          candidateAssets: []
-        })
-      })
-    );
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(firmwareResponse));
 
     render(
       <ControllerList
@@ -32,5 +31,70 @@ describe('ControllerList', () => {
     expect(screen.getByText('Porch')).toBeTruthy();
     expect(screen.getByText(/10\.0\.0\.50/)).toBeTruthy();
     expect(screen.getByText(/stale/i)).toBeTruthy();
+  });
+
+  it('imports schedules for a controller and shows the imported/skipped counts', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('import-schedules')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            imported: [{ id: 's1' }, { id: 's2' }],
+            skipped: [{ raw: {}, reason: 'unsupported trigger' }]
+          })
+        });
+      }
+      return Promise.resolve(firmwareResponse);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <ControllerList
+        controllers={[
+          { id: '1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null }
+        ]}
+        onDelete={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Import schedules'));
+
+    await waitFor(() => expect(screen.getByText(/Imported 2, skipped 1/)).toBeTruthy());
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/controllers/1/import-schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ disableOnDevice: false })
+    });
+  });
+
+  it('sends disableOnDevice: true when the checkbox is checked', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('import-schedules')) {
+        return Promise.resolve({ ok: true, json: async () => ({ imported: [], skipped: [] }) });
+      }
+      return Promise.resolve(firmwareResponse);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <ControllerList
+        controllers={[
+          { id: '1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null }
+        ]}
+        onDelete={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText(/disable on device/i));
+    fireEvent.click(screen.getByText('Import schedules'));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/controllers/1/import-schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disableOnDevice: true })
+      })
+    );
   });
 });
