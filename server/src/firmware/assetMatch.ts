@@ -13,11 +13,23 @@ export function chipArchTokens(arch: string): string[] {
   return [arch.toUpperCase()];
 }
 
+// Dashed ESP32 variant markers that must NOT match when the controller
+// reports the plain 'esp32' arch, since 'ESP32-S3'.includes('ESP32') is true
+// and would otherwise let a plain-ESP32 board match S2/S3/C3 firmware.
+const ESP32_VARIANT_EXCLUSIONS = ['ESP32-S2', 'ESP32-S3', 'ESP32-C3'];
+
 export function candidateAssets(release: WledRelease, arch: string): ReleaseAsset[] {
+  const normalized = arch.toLowerCase();
   const tokens = chipArchTokens(arch);
-  return release.assets.filter((asset) =>
-    tokens.some((token) => asset.name.toUpperCase().includes(token))
-  );
+  const isPlainEsp32 = normalized === 'esp32';
+
+  return release.assets.filter((asset) => {
+    const name = asset.name.toUpperCase();
+    if (isPlainEsp32 && ESP32_VARIANT_EXCLUSIONS.some((variant) => name.includes(variant))) {
+      return false;
+    }
+    return tokens.some((token) => name.includes(token));
+  });
 }
 
 export function resolvePinnedAsset(release: WledRelease, pinnedAssetPattern: string): ReleaseAsset | undefined {
