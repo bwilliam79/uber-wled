@@ -3,6 +3,7 @@ import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
 import { importSchedules } from './scheduleImport.js';
 import { createFirmwareRouter } from '../firmware/routes.js';
+import { assertValidHost } from './validateHost.js';
 
 export function createControllersRouter(db: Database.Database): Router {
   const router = Router();
@@ -16,6 +17,11 @@ export function createControllersRouter(db: Database.Database): Router {
     const { name, host } = req.body;
     if (!name || !host) {
       return res.status(400).json({ error: 'name and host are required' });
+    }
+    try {
+      assertValidHost(host);
+    } catch (err: any) {
+      return res.status(400).json({ error: err.message });
     }
     const created = repo.add({ name, host, source: 'manual' });
     res.status(201).json(created);

@@ -1,4 +1,5 @@
 import { getInfo } from '../wled/client.js';
+import { assertValidHost } from '../controllers/validateHost.js';
 
 export type OtaUpdateResult =
   | { ok: true; installedVersion: string }
@@ -33,6 +34,8 @@ export async function pushOtaUpdate(
   expectedTag: string,
   opts: { maxRetries?: number; retryDelayMs?: number } = {}
 ): Promise<OtaUpdateResult> {
+  assertValidHost(host);
+
   const form = new FormData();
   form.append(OTA_UPLOAD_FIELD_NAME, new Blob([assetBytes]), 'firmware.bin');
 

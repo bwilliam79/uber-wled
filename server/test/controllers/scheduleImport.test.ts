@@ -55,6 +55,12 @@ describe('importSchedules', () => {
     controllerId = createControllerRepository(db).add({ name: 'Porch', host: HOST, source: 'manual' }).id;
   });
 
+  it('throws a 404 error when the controller id does not exist', async () => {
+    await expect(importSchedules(db, 'does-not-exist', { disableOnDevice: false })).rejects.toMatchObject({
+      statusCode: 404
+    });
+  });
+
   it('imports valid presets into weekly schedules under an auto-created group, and reports skipped entries', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (url.endsWith('/presets.json')) {

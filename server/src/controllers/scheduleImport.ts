@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
 import { createGroupRepository } from '../groups/repository.js';
 import { createScheduleRepository, type Schedule } from '../schedules/repository.js';
+import { assertValidHost } from './validateHost.js';
 
 export interface RawWledPresetSchedule {
   presetId: number;
@@ -51,6 +52,7 @@ export function parsePresetSchedule(
 }
 
 async function fetchRawPresetSchedules(host: string): Promise<RawWledPresetSchedule[]> {
+  assertValidHost(host);
   const res = await fetch(`http://${host}/presets.json`);
   if (!res.ok) throw new Error(`WLED request failed: GET /presets.json -> ${res.status}`);
   const raw = (await res.json()) as Record<string, any>;
@@ -62,6 +64,7 @@ async function fetchRawPresetSchedules(host: string): Promise<RawWledPresetSched
 }
 
 async function clearScheduleOnDevice(host: string, presetId: number): Promise<void> {
+  assertValidHost(host);
   await fetch(`http://${host}/json/state`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -79,7 +82,11 @@ export async function importSchedules(
   const schedules = createScheduleRepository(db);
 
   const controller = controllers.list().find((c) => c.id === controllerId);
-  if (!controller) throw new Error(`controller ${controllerId} not found`);
+  if (!controller) {
+    const notFound = new Error(`controller ${controllerId} not found`);
+    (notFound as any).statusCode = 404;
+    throw notFound;
+  }
 
   let entries: RawWledPresetSchedule[];
   try {

@@ -1,12 +1,15 @@
 import type { WledInfo, WledState, WledSegment, WledPreset } from './types.js';
+import { assertValidHost } from '../controllers/validateHost.js';
 
 async function getJson<T>(host: string, path: string): Promise<T> {
+  assertValidHost(host);
   const res = await fetch(`http://${host}${path}`);
   if (!res.ok) throw new Error(`WLED request failed: GET ${path} -> ${res.status}`);
   return res.json() as Promise<T>;
 }
 
 async function postJson<T>(host: string, path: string, body: unknown): Promise<T> {
+  assertValidHost(host);
   const res = await fetch(`http://${host}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
