@@ -3528,6 +3528,154 @@ git push origin main
 
 ---
 
+### Task 15: Live per-strip color on the canvas
+
+Per an explicit user decision (overriding the "fixed color for v1" default noted in ambiguity #1), each strip on the Layout canvas renders in its segment's real live color — scaled by brightness, muted when the segment is off, and greyed when the controller is stale/unreachable. The canvas becomes a live status board. This layers on top of the `StripCanvas` (Task 7) and `LayoutSection` (Task 8) already built.
+
+**Files:**
+- Create: `client/src/lib/segmentColor.ts`
+- Modify: `client/src/components/StripCanvas.tsx` (accept `liveColors` prop, use it for stroke)
+- Modify: `client/src/components/LayoutSection.tsx` (poll live segment state per controller, build the color map, refresh on an interval and after each control action)
+- Create: `client/src/test/lib/segmentColor.test.ts`
+- Modify: `client/src/test/components/StripCanvas.test.tsx` (assert `liveColors` drives the stroke)
+
+**Interfaces:**
+- Consumes: `getSegmentsSnapshot(controllerId): Promise<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][] }[]>` (already exported from `client/src/api/client.ts`); `Strip` (Task 6).
+- Produces:
+  - `segmentToCssColor(seg: { on: boolean; bri: number; col: number[][] }): string` (from `client/src/lib/segmentColor.ts`) — off → `'#334155'`; on with a valid primary color → `rgb()` scaled by `bri/255`; on with empty `col` → `'rgb(148, 163, 184)'`.
+  - `StripCanvasProps` gains `liveColors?: Map<string, string>` (keyed by strip id). A strip's stroke is `liveColors?.get(strip.id)` when present and the controller is not stale; otherwise it keeps the Task 7 behavior (accent when normal, grey when stale).
+
+- [ ] **Step 1: Write the failing `segmentColor` test**
+
+`client/src/test/lib/segmentColor.test.ts`:
+```ts
+import { describe, it, expect } from 'vitest';
+import { segmentToCssColor } from '../../lib/segmentColor';
+
+describe('segmentToCssColor', () => {
+  it('returns a muted color when the segment is off', () => {
+    expect(segmentToCssColor({ on: false, bri: 255, col: [[255, 0, 0]] })).toBe('#334155');
+  });
+  it('scales the primary color by brightness when on', () => {
+    expect(segmentToCssColor({ on: true, bri: 128, col: [[200, 100, 50]] })).toBe('rgb(100, 50, 25)');
+  });
+  it('falls back to a neutral color when col is empty', () => {
+    expect(segmentToCssColor({ on: true, bri: 255, col: [] })).toBe('rgb(148, 163, 184)');
+  });
+});
+```
+
+- [ ] **Step 2: Run it, confirm it fails**
+
+Run: `cd client && npm test -- src/test/lib/segmentColor.test.ts`
+Expected: FAIL — module does not exist.
+
+- [ ] **Step 3: Create `client/src/lib/segmentColor.ts`**
+```ts
+export function segmentToCssColor(seg: { on: boolean; bri: number; col: number[][] }): string {
+  if (!seg.on) return '#334155';
+  const primary = seg.col[0];
+  if (!primary || primary.length < 3) return 'rgb(148, 163, 184)';
+  const scale = seg.bri / 255;
+  const [r, g, b] = primary;
+  return `rgb(${Math.round(r * scale)}, ${Math.round(g * scale)}, ${Math.round(b * scale)})`;
+}
+```
+
+- [ ] **Step 4: Run it, confirm it passes**
+
+Run: `cd client && npm test -- src/test/lib/segmentColor.test.ts`
+Expected: PASS (3 tests).
+
+- [ ] **Step 5: Add `liveColors` to `StripCanvas`**
+
+In `client/src/components/StripCanvas.tsx`: add `liveColors?: Map<string, string>` to `StripCanvasProps`, destructure it, and in the polyline render change the stroke so a live color wins when present and the controller isn't stale. The stroke expression becomes:
+```tsx
+// isStale and isSelected already computed in Task 7's map body
+const liveColor = liveColors?.get(s.id);
+const stroke = isStale ? '#475569' : (liveColor ?? (isSelected ? '#ff5ec8' : '#22c55e'));
+// ...use `stroke` in the <polyline stroke={stroke} ...> (keep the existing selected glow/stroke-width logic)
+```
+Keep everything else about the polyline (data-testid, data-selected, data-stale, selected stroke width/glow) unchanged.
+
+- [ ] **Step 6: Extend `StripCanvas.test.tsx` to assert the live color drives the stroke**
+
+Append to `client/src/test/components/StripCanvas.test.tsx`:
+```tsx
+  it('uses the provided live color for a strip stroke', () => {
+    render(
+      <StripCanvas
+        strips={strips}
+        selected={new Set()}
+        staleControllerIds={new Set()}
+        onSelectionChange={vi.fn()}
+        liveColors={new Map([['s1', 'rgb(200, 50, 25)']])}
+      />
+    );
+    expect(screen.getByTestId('strip-s1').getAttribute('stroke')).toBe('rgb(200, 50, 25)');
+  });
+```
+
+- [ ] **Step 7: Run the canvas test, confirm it passes**
+
+Run: `cd client && npm test -- src/test/components/StripCanvas.test.tsx`
+Expected: PASS (previous tests + the new live-color test).
+
+- [ ] **Step 8: Poll live colors in `LayoutSection` and pass them to the canvas**
+
+In `client/src/components/LayoutSection.tsx`, after strips are loaded, add a live-color effect that fetches each distinct controller's segments, maps each strip to its segment's color, and passes the resulting map to `StripCanvas`. It re-polls every 5 seconds and exposes a `refreshLiveColors()` the control-panel apply handler already calls after an action:
+```tsx
+import { getSegmentsSnapshot } from '../api/client';
+import { segmentToCssColor } from '../lib/segmentColor';
+// ...inside the component, given `strips: Strip[]` state:
+const [liveColors, setLiveColors] = useState<Map<string, string>>(new Map());
+
+const refreshLiveColors = useCallback(async () => {
+  const controllerIds = Array.from(new Set(strips.map((s) => s.controllerId)));
+  const next = new Map<string, string>();
+  await Promise.all(
+    controllerIds.map(async (cid) => {
+      try {
+        const segs = await getSegmentsSnapshot(cid);
+        for (const s of strips.filter((st) => st.controllerId === cid)) {
+          const seg = segs.find((sg) => sg.id === s.wledSegId);
+          if (seg) next.set(s.id, segmentToCssColor(seg));
+        }
+      } catch {
+        /* unreachable controller: leave its strips to the stale/greyed path */
+      }
+    })
+  );
+  setLiveColors(next);
+}, [strips]);
+
+useEffect(() => {
+  refreshLiveColors();
+  const t = setInterval(refreshLiveColors, 5000);
+  return () => clearInterval(t);
+}, [refreshLiveColors]);
+```
+Pass `liveColors={liveColors}` to the `<StripCanvas .../>`, and call `refreshLiveColors()` at the end of the control-panel apply handler so colors update immediately after an action. (Import `useCallback`/`useEffect`/`useState` as needed.)
+
+- [ ] **Step 9: Run the full client suite, confirm it passes**
+
+Run: `cd client && npm test`
+Expected: all PASS (adds `src/test/lib/segmentColor.test.ts`; `StripCanvas.test.tsx` gains one test).
+
+- [ ] **Step 10: Build the client, confirm no type errors**
+
+Run: `cd client && npm run build`
+Expected: `tsc -b && vite build` succeeds.
+
+- [ ] **Step 11: Commit and push**
+```bash
+git add client/src/lib/segmentColor.ts client/src/components/StripCanvas.tsx client/src/components/LayoutSection.tsx client/src/test/lib/segmentColor.test.ts client/src/test/components/StripCanvas.test.tsx
+git commit -m "Render live per-strip color on the layout canvas"
+git push origin main
+```
+
+---
+
 ## Self-Review
 
 **(1) Spec coverage — every section of the ui-overhaul spec maps to a task:**
