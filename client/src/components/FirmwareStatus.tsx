@@ -55,6 +55,7 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
       {status.updateAvailable && (
         <span className="badge badge-stale"> Update available ({status.latestTag})</span>
       )}
+      {status.isPrerelease && <span className="badge">pre-release</span>}
       {showPicker && (
         <AssetPickerModal
           assets={status.candidateAssets}
