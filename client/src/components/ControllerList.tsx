@@ -1,5 +1,6 @@
 import type { Controller } from '../api/client';
 import { LightbulbIcon, TrashIcon } from './icons';
+import { FirmwareStatus } from './FirmwareStatus';
 
 export function ControllerList({
   controllers,
@@ -31,6 +32,7 @@ export function ControllerList({
             <TrashIcon />
             Remove
           </button>
+          <FirmwareStatus controllerId={c.id} />
         </li>
       ))}
     </ul>

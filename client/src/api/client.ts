@@ -176,6 +176,29 @@ export const updateCalendarEvent = (id: string, patch: Partial<Omit<CalendarEven
 export const deleteCalendarEvent = (id: string) =>
   fetch(`/api/calendar-events/${id}`, { method: 'DELETE' });
 
+export interface FirmwareStatus {
+  installedVersion: string;
+  latestTag: string;
+  updateAvailable: boolean;
+  pinnedAssetPattern: string | null;
+  candidateAssets: { name: string; downloadUrl: string }[];
+}
+
+export const getFirmwareStatus = (controllerId: string) =>
+  getJson<FirmwareStatus>(`/api/controllers/${controllerId}/firmware`);
+
+export const pinFirmwareAsset = (controllerId: string, assetPattern: string) =>
+  fetch(`/api/controllers/${controllerId}/firmware/pin`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assetPattern })
+  });
+
+export const pushFirmwareUpdate = (controllerId: string) =>
+  sendJson<{ ok: boolean; installedVersion?: string; error?: string }>(
+    `/api/controllers/${controllerId}/firmware/update`, 'POST'
+  );
+
 export const getSegmentsSnapshot = (controllerId: string) =>
   getJson<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][] }[]>(
     `/api/controllers/${controllerId}/segments`
