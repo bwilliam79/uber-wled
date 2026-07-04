@@ -214,7 +214,7 @@ describe('HomeTile', () => {
       />
     );
     expect(screen.getByText('Kitchen')).toBeTruthy();
-    expect(screen.getByText('On')).toBeTruthy();
+    expect(screen.getByText('On now')).toBeTruthy();
     expect(screen.getByText('200 / 255')).toBeTruthy();
     expect(screen.queryByText('offline')).toBeNull();
   });
@@ -312,13 +312,19 @@ Expected: FAIL — `Cannot find module '../../components/HomeTile'`
 
 Create `client/src/components/HomeTile.tsx`:
 
+Note: the status-line labels for `on`/`off` are "On now"/"Off now" rather
+than bare "On"/"Off" — the tile always also renders "On"/"Off" *buttons*, so
+a bare-text status label would collide with the button text and make
+`getByText('On')`/`getByText('Off')` ambiguous. "Mixed" and "—" don't
+collide with anything and stay as-is.
+
 ```tsx
 import type { CustomTheme, ControlAction } from '../api/client';
 import type { TileMember, TileStatus } from '../lib/tileStatus';
 
 const POWER_LABEL: Record<TileStatus['power'], string> = {
-  on: 'On',
-  off: 'Off',
+  on: 'On now',
+  off: 'Off now',
   mixed: 'Mixed',
   unknown: '—'
 };
