@@ -54,27 +54,6 @@ export type ControlAction =
   | { type: 'preset'; presetId: number }
   | { type: 'theme'; themeId: string };
 
-export interface Floorplan {
-  id: string;
-  name: string;
-  imagePath: string;
-  cropX: number;
-  cropY: number;
-  cropWidth: number;
-  cropHeight: number;
-  rotation: number;
-  zoom: number;
-}
-
-export interface Placement {
-  id: string;
-  floorplanId: string;
-  controllerId: string;
-  wledSegId: number;
-  points: { x: number; y: number }[];
-  lengthMeters: number | null;
-}
-
 export type DateRule =
   | { kind: 'fixed'; month: number; day: number }
   | { kind: 'nthWeekday'; month: number; weekday: number; n: number }
@@ -186,6 +165,7 @@ export interface FirmwareStatus {
   installedVersion: string;
   latestTag: string;
   updateAvailable: boolean;
+  isPrerelease: boolean;
   pinnedAssetPattern: string | null;
   candidateAssets: { name: string; downloadUrl: string }[];
 }
@@ -210,29 +190,43 @@ export const getSegmentsSnapshot = (controllerId: string) =>
     `/api/controllers/${controllerId}/segments`
   );
 
-export const listFloorplans = () => getJson<Floorplan[]>('/api/floorplans');
-
-export async function uploadFloorplan(name: string, file: File): Promise<Floorplan> {
-  const form = new FormData();
-  form.append('name', name);
-  form.append('image', file);
-  const res = await fetch('/api/floorplans', { method: 'POST', body: form });
-  if (!res.ok) throw new Error('upload failed');
-  return res.json();
+export interface Strip {
+  id: string;
+  controllerId: string;
+  wledSegId: number;
+  points: { x: number; y: number }[];
+  label: string | null;
 }
 
-export const updateFloorplan = (id: string, patch: Partial<Omit<Floorplan, 'id' | 'imagePath'>>) =>
-  sendJson<Floorplan>(`/api/floorplans/${id}`, 'PATCH', patch);
+export interface RoomLabel {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+}
 
-export const listPlacements = (floorplanId: string) =>
-  getJson<Placement[]>(`/api/floorplans/${floorplanId}/placements`);
+export interface Settings {
+  includePrereleaseFirmware: boolean;
+  homeLatitude: number | null;
+  homeLongitude: number | null;
+  discoveryRescanIntervalMinutes: number;
+  scheduleImportDisableOnDeviceDefault: boolean;
+}
 
-export const addPlacement = (
-  floorplanId: string,
-  input: { controllerId: string; wledSegId: number; points: { x: number; y: number }[]; lengthMeters: number | null }
-) => sendJson<{ placement: Placement; recommendations: unknown[] }>(
-  `/api/floorplans/${floorplanId}/placements`, 'POST', input
-);
+export const listStrips = () => getJson<Strip[]>('/api/strips');
+export const addStrip = (input: { controllerId: string; wledSegId: number; points: { x: number; y: number }[]; label?: string | null }) =>
+  sendJson<{ strip: Strip; recommendations: unknown[] }>('/api/strips', 'POST', input);
+export const updateStrip = (id: string, patch: Partial<Omit<Strip, 'id'>>) =>
+  sendJson<Strip>(`/api/strips/${id}`, 'PATCH', patch);
+export const deleteStrip = (id: string) => fetch(`/api/strips/${id}`, { method: 'DELETE' });
 
-export const deletePlacement = (floorplanId: string, id: string) =>
-  fetch(`/api/floorplans/${floorplanId}/placements/${id}`, { method: 'DELETE' });
+export const listRoomLabels = () => getJson<RoomLabel[]>('/api/room-labels');
+export const addRoomLabel = (input: { name: string; x: number; y: number }) =>
+  sendJson<RoomLabel>('/api/room-labels', 'POST', input);
+export const updateRoomLabel = (id: string, patch: Partial<Omit<RoomLabel, 'id'>>) =>
+  sendJson<RoomLabel>(`/api/room-labels/${id}`, 'PATCH', patch);
+export const deleteRoomLabel = (id: string) => fetch(`/api/room-labels/${id}`, { method: 'DELETE' });
+
+export const getSettings = () => getJson<Settings>('/api/settings');
+export const updateSettings = (patch: Partial<Settings>) => sendJson<Settings>('/api/settings', 'PATCH', patch);
+export const rescanNow = () => sendJson<{ controllers: Controller[] }>('/api/settings/rescan', 'POST');
