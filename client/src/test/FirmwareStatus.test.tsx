@@ -24,7 +24,7 @@ describe('FirmwareStatus', () => {
     expect(screen.queryByText(/Checking firmware/i)).toBeNull();
   });
 
-  it('shows an "Update available" badge and asset picker when unpinned with an update available', async () => {
+  it('shows an "Update available" badge and a picker trigger when unpinned with an update available', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -42,6 +42,12 @@ describe('FirmwareStatus', () => {
     render(<FirmwareStatus controllerId="c1" />);
 
     await waitFor(() => expect(screen.getByText(/update available/i)).toBeTruthy());
+    // The picker itself stays closed until the user asks for it — with several
+    // unpinned controllers on the page at once, auto-opening every picker would
+    // stack that many full-screen modals on top of each other.
+    expect(screen.queryByText('WLED_0.15.0_ESP8266.bin')).toBeNull();
+
+    fireEvent.click(screen.getByText('Pick firmware asset'));
     expect(screen.getByText('WLED_0.15.0_ESP8266.bin')).toBeTruthy();
     expect(screen.getByText('WLED_0.15.0_ESP02.bin')).toBeTruthy();
   });
@@ -77,7 +83,9 @@ describe('FirmwareStatus', () => {
     vi.stubGlobal('fetch', getFetch);
 
     render(<FirmwareStatus controllerId="c1" />);
-    await waitFor(() => expect(screen.getByText('WLED_0.15.0_ESP02.bin')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Pick firmware asset')).toBeTruthy());
+    fireEvent.click(screen.getByText('Pick firmware asset'));
+    expect(screen.getByText('WLED_0.15.0_ESP02.bin')).toBeTruthy();
 
     const pinFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) });
     vi.stubGlobal('fetch', pinFetch);
