@@ -4,6 +4,7 @@ import { ControllersSection } from './ControllersSection';
 import { GroupManager } from './GroupManager';
 import { ThemeManager } from './ThemeManager';
 import { LayoutSection } from './LayoutSection';
+import { ScheduleSection } from './ScheduleSection';
 
 const DEFAULT_SECTION: SectionKey = 'layout';
 const KEYS = SECTIONS.map((s) => s.key);
@@ -36,6 +37,7 @@ export function AppShell() {
         {active === 'controllers' && <ControllersSection />}
         {active === 'groups' && <GroupManager />}
         {active === 'themes' && <ThemeManager />}
+        {active === 'schedule' && <ScheduleSection />}
       </main>
     </div>
   );

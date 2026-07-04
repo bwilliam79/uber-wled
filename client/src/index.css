@@ -790,3 +790,35 @@ button, input {
   background: var(--color-muted);
   color: var(--color-foreground-muted);
 }
+
+/* ---------- Schedule section ---------- */
+
+.schedule-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-lg);
+  align-items: start;
+  margin-bottom: var(--space-2xl);
+}
+
+.schedule-detail {
+  position: sticky;
+  top: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.schedule-detail-event {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+@media (max-width: 720px) {
+  .schedule-body {
+    grid-template-columns: 1fr;
+  }
+}
