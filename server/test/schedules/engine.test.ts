@@ -4,6 +4,7 @@ import { createControllerRepository } from '../../src/controllers/repository.js'
 import { createGroupRepository } from '../../src/groups/repository.js';
 import { createScheduleRepository } from '../../src/schedules/repository.js';
 import { SchedulerEngine, nextTriggerDate } from '../../src/schedules/engine.js';
+import { createCalendarRepository } from '../../src/calendar/repository.js';
 
 describe('nextTriggerDate', () => {
   it('computes the next cron-triggered date', () => {
@@ -125,5 +126,85 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
     // 2026-07-05 is a Sunday at the same time - must not fire
     await engine.checkAndFireDueSchedules(new Date('2026-07-05T18:30:00'));
     expect(applyFn).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SchedulerEngine calendar override-for-day', () => {
+  let db: ReturnType<typeof createDb>;
+  let sharedGroupId: string;
+  let unrelatedGroupId: string;
+  let porchControllerId: string;
+  let kitchenControllerId: string;
+  let applyFn: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    db = createDb(':memory:');
+    const controllers = createControllerRepository(db);
+    porchControllerId = controllers.add({ name: 'Porch', host: '10.0.0.51', source: 'manual' }).id;
+    kitchenControllerId = controllers.add({ name: 'Kitchen', host: '10.0.0.52', source: 'manual' }).id;
+    const groups = createGroupRepository(db);
+    sharedGroupId = groups.add({
+      name: 'Porch', members: [{ controllerId: porchControllerId, wledSegId: 0 }]
+    }).id;
+    unrelatedGroupId = groups.add({
+      name: 'Kitchen', members: [{ controllerId: kitchenControllerId, wledSegId: 0 }]
+    }).id;
+    applyFn = vi.fn().mockResolvedValue([]);
+  });
+
+  it("fires an enabled calendar event's own action when today matches its resolved date and trigger time", async () => {
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'July 4th', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 7, day: 4 },
+      recursYearly: true, enabled: true, groupId: sharedGroupId,
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'theme', actionPayload: { themeId: 'patriotic' }
+    });
+
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T18:00:00'));
+
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: 0 }],
+      { type: 'theme', themeId: 'patriotic' }
+    );
+  });
+
+  it('suppresses an unrelated-group schedule\'s trigger the same day is unaffected, but a shared-group schedule is skipped', async () => {
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'July 4th', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 7, day: 4 },
+      recursYearly: true, enabled: true, groupId: sharedGroupId,
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Porch weekly (should be suppressed)', triggerType: 'weekly', cronExpr: null,
+      daysOfWeek: [6], timeOfDay: '20:00', offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: sharedGroupId, actionType: 'power',
+      actionPayload: { on: false }, enabled: true
+    });
+    schedules.add({
+      name: 'Kitchen weekly (unaffected)', triggerType: 'weekly', cronExpr: null,
+      daysOfWeek: [6], timeOfDay: '20:00', offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: unrelatedGroupId, actionType: 'power',
+      actionPayload: { on: true }, enabled: true
+    });
+
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T20:00:00'));
+
+    expect(applyFn).not.toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: 0 }],
+      { type: 'power', on: false }
+    );
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: kitchenControllerId, wledSegId: 0 }],
+      { type: 'power', on: true }
+    );
   });
 });
