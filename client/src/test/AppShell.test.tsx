@@ -6,11 +6,13 @@ afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
 describe('AppShell', () => {
-  it('renders the Layout section by default and highlights its nav item', async () => {
+  it('opens on the Layout section by default and lists all seven sections', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
     render(<AppShell />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Layout/ })).toBeTruthy());
-    expect(screen.getByRole('button', { name: /Layout/ }).className).toContain('active');
+    await waitFor(() => expect(screen.getByRole('button', { name: /Layout/ }).className).toContain('active'));
+    for (const name of ['Layout', 'Controllers', 'Groups', 'Themes', 'Schedule', 'Firmware', 'Settings']) {
+      expect(screen.getByRole('button', { name: new RegExp(name) })).toBeTruthy();
+    }
   });
 
   it('switches to the Themes section when its nav item is clicked', async () => {
