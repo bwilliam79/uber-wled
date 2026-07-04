@@ -82,9 +82,12 @@ Each tile is a card (reusing the existing `.card` styling) showing:
 3. **Controls**:
    - Power toggle (On/Off), sends `{type: 'power', on}` to all of the
      tile's members via `applyControl`.
-   - Brightness slider (0–255), sends `{type: 'brightness', value}` on
-     change (debounced/on-release, matching the existing `ControlPanel`
-     slider behavior) to all members.
+   - Brightness slider (0–255), sends `{type: 'brightness', value}` on every
+     `change` event (fires continuously while dragging, not just on
+     release) to all members — matching `ControlPanel`'s existing slider
+     behavior exactly, which is *not* debounced either. A follow-up to add
+     debouncing/on-release firing would apply to both components, not just
+     this one.
    - Theme dropdown: a `<select>` listing saved Themes, applies immediately
      on change (`{type: 'theme', themeId}`) — no separate confirm button,
      consistent with "quick access" being the point of this page.
