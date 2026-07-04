@@ -5,6 +5,25 @@ import { FirmwareStatus } from '../components/FirmwareStatus';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('FirmwareStatus', () => {
+  it('shows "Controller offline" when the status reports the device unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        unreachable: true, installedVersion: null, latestTag: null,
+        updateAvailable: false, isPrerelease: false, pinnedAssetPattern: null, candidateAssets: []
+      })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText(/Controller offline/i)).toBeTruthy());
+  });
+
+  it('shows "Firmware status unavailable" instead of hanging when the status call fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText(/Firmware status unavailable/i)).toBeTruthy());
+    expect(screen.queryByText(/Checking firmware/i)).toBeNull();
+  });
+
   it('shows an "Update available" badge and asset picker when unpinned with an update available', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

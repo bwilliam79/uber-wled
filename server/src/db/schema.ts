@@ -4,7 +4,6 @@ export function runMigrations(db: Database.Database): void {
   db.exec(`
     DROP TABLE IF EXISTS placements;
     DROP TABLE IF EXISTS floorplans;
-    DROP TABLE IF EXISTS wled_releases;
 
     CREATE TABLE IF NOT EXISTS controllers (
       id TEXT PRIMARY KEY,
@@ -97,4 +96,13 @@ export function runMigrations(db: Database.Database): void {
       schedule_import_disable_on_device_default INTEGER NOT NULL DEFAULT 0
     );
   `);
+
+  // Idempotent column add for wled_releases caches created before the
+  // `prerelease` column existed. We no longer DROP the cache on startup
+  // (that wiped it every restart and forced a GitHub re-fetch); instead we
+  // preserve the cache and add the missing column once if needed.
+  const releaseCols = db.prepare('PRAGMA table_info(wled_releases)').all() as { name: string }[];
+  if (!releaseCols.some((c) => c.name === 'prerelease')) {
+    db.exec('ALTER TABLE wled_releases ADD COLUMN prerelease INTEGER NOT NULL DEFAULT 0');
+  }
 }

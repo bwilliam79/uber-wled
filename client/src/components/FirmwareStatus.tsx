@@ -15,12 +15,19 @@ function assetNameToPattern(assetName: string): string {
 
 export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   const [status, setStatus] = useState<FirmwareStatusData | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
   async function refresh() {
-    const data = await getFirmwareStatus(controllerId);
-    setStatus(data);
+    try {
+      const data = await getFirmwareStatus(controllerId);
+      setStatus(data);
+      setLoadError(false);
+    } catch {
+      // Don't hang on "Checking firmware…" forever if the status call fails.
+      setLoadError(true);
+    }
   }
 
   useEffect(() => {
@@ -44,7 +51,9 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
     }
   }
 
+  if (loadError) return <p className="firmware-status controller-meta">Firmware status unavailable</p>;
   if (!status) return <p className="firmware-status controller-meta">Checking firmware…</p>;
+  if (status.unreachable) return <p className="firmware-status controller-meta">Controller offline</p>;
 
   const showPicker = (status.candidateAssets ?? []).length > 0;
   const showUpdateButton = !showPicker && status.updateAvailable && !!status.pinnedAssetPattern;
