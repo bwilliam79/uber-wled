@@ -979,3 +979,33 @@ button, input {
   display: flex;
   gap: var(--space-sm);
 }
+
+/* ---------- Home tile ---------- */
+
+.home-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.home-tile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.home-tile-name {
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.home-tile-status {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.home-tile-buttons {
+  display: flex;
+  gap: var(--space-sm);
+}
