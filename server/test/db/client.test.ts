@@ -17,7 +17,8 @@ describe('createDb', () => {
       'groups',
       'placements',
       'schedules',
-      'themes'
+      'themes',
+      'wled_releases'
     ]);
   });
 });
