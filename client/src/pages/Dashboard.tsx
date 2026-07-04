@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { listControllers, deleteController, addController, type Controller } from '../api/client';
 import { ControllerList } from '../components/ControllerList';
+import { GroupManager } from '../components/GroupManager';
+import { ThemeManager } from '../components/ThemeManager';
+import { ScheduleManager } from '../components/ScheduleManager';
 import { LightbulbIcon, AlertIcon } from '../components/icons';
 
 export function Dashboard() {
@@ -74,6 +77,10 @@ export function Dashboard() {
           </div>
         </div>
       </section>
+
+      <GroupManager />
+      <ThemeManager />
+      <ScheduleManager />
     </div>
   );
 }
