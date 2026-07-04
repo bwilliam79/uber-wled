@@ -102,6 +102,7 @@ export function ThemeManager() {
               value={effect}
               onChange={(e) => setEffect(Number(e.target.value))}
             />
+            <span className="field-hint">WLED effect ID — see a controller's Effects list</span>
           </div>
           <div className="field">
             <label htmlFor="theme-palette">Palette</label>
@@ -113,6 +114,7 @@ export function ThemeManager() {
               value={palette}
               onChange={(e) => setPalette(Number(e.target.value))}
             />
+            <span className="field-hint">WLED palette ID — see a controller's Palettes list</span>
           </div>
           <div className="field">
             <label htmlFor="theme-brightness">Brightness</label>
