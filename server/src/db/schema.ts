@@ -2,6 +2,8 @@ import type Database from 'better-sqlite3';
 
 export function runMigrations(db: Database.Database): void {
   db.exec(`
+    DROP TABLE IF EXISTS placements;
+
     CREATE TABLE IF NOT EXISTS controllers (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -23,13 +25,12 @@ export function runMigrations(db: Database.Database): void {
       zoom REAL NOT NULL DEFAULT 1
     );
 
-    CREATE TABLE IF NOT EXISTS placements (
+    CREATE TABLE IF NOT EXISTS strips (
       id TEXT PRIMARY KEY,
-      floorplan_id TEXT NOT NULL REFERENCES floorplans(id),
       controller_id TEXT NOT NULL REFERENCES controllers(id),
       wled_seg_id INTEGER NOT NULL,
       points TEXT NOT NULL,
-      length_meters REAL
+      label TEXT
     );
 
     CREATE TABLE IF NOT EXISTS groups (

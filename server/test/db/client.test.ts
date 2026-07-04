@@ -15,8 +15,8 @@ describe('createDb', () => {
       'floorplans',
       'group_members',
       'groups',
-      'placements',
       'schedules',
+      'strips',
       'themes',
       'wled_releases'
     ]);
