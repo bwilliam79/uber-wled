@@ -1,5 +1,5 @@
 import { type ReactElement } from 'react';
-import { LightbulbIcon, GridIcon, UsersIcon, PaletteIcon } from './icons';
+import { LightbulbIcon, GridIcon, UsersIcon, PaletteIcon, CalendarIcon } from './icons';
 
 export type SectionKey = 'layout' | 'controllers' | 'groups' | 'themes' | 'schedule' | 'firmware' | 'settings';
 
@@ -11,7 +11,8 @@ export const SECTIONS: { key: SectionKey; label: string; Icon: IconComp }[] = [
   { key: 'layout', label: 'Layout', Icon: GridIcon },
   { key: 'controllers', label: 'Controllers', Icon: LightbulbIcon },
   { key: 'groups', label: 'Groups', Icon: UsersIcon },
-  { key: 'themes', label: 'Themes', Icon: PaletteIcon }
+  { key: 'themes', label: 'Themes', Icon: PaletteIcon },
+  { key: 'schedule', label: 'Schedule', Icon: CalendarIcon }
 ];
 
 export function Sidebar({
