@@ -1,6 +1,49 @@
-import type { Controller } from '../api/client';
+import { useState } from 'react';
+import { importSchedules, type Controller } from '../api/client';
 import { LightbulbIcon, TrashIcon } from './icons';
 import { FirmwareStatus } from './FirmwareStatus';
+
+function ImportSchedules({ controllerId }: { controllerId: string }) {
+  const [disableOnDevice, setDisableOnDevice] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
+
+  async function handleImport() {
+    setImporting(true);
+    setError(null);
+    try {
+      const res = await importSchedules(controllerId, disableOnDevice);
+      setResult({ imported: res.imported.length, skipped: res.skipped.length });
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  return (
+    <div className="import-schedules">
+      <label className="checkbox-field">
+        <input
+          type="checkbox"
+          checked={disableOnDevice}
+          onChange={(e) => setDisableOnDevice(e.target.checked)}
+        />
+        Disable on device
+      </label>
+      <button type="button" className="btn btn-secondary" onClick={handleImport} disabled={importing}>
+        {importing ? 'Importing…' : 'Import schedules'}
+      </button>
+      {result && (
+        <span className="controller-meta">
+          Imported {result.imported}, skipped {result.skipped}
+        </span>
+      )}
+      {error && <span className="error-banner">{error}</span>}
+    </div>
+  );
+}
 
 export function ControllerList({
   controllers,
@@ -33,6 +76,7 @@ export function ControllerList({
             Remove
           </button>
           <FirmwareStatus controllerId={c.id} />
+          <ImportSchedules controllerId={c.id} />
         </li>
       ))}
     </ul>
