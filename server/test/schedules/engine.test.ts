@@ -245,4 +245,27 @@ describe('SchedulerEngine calendar override-for-day', () => {
       { type: 'power', on: true }
     );
   });
+
+  it('skips a calendar event whose dateRule cannot resolve for the current year instead of crashing', async () => {
+    // Simulates a pre-existing bad record (e.g. inserted before creation-time
+    // validation existed, or written directly to the DB) whose nthWeekday
+    // rule requests an occurrence that doesn't exist this year. The engine
+    // must not throw when resolveDate returns null — it should just treat
+    // the event as not applicable today.
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'Impossible 5th Monday of February', category: 'custom',
+      dateRule: { kind: 'nthWeekday', month: 2, weekday: 1, n: 5 },
+      recursYearly: true, enabled: true, groupId: sharedGroupId,
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+
+    const engine = new SchedulerEngine(db, applyFn);
+    await expect(
+      engine.checkAndFireDueSchedules(new Date('2026-02-23T18:00:00'))
+    ).resolves.not.toThrow();
+
+    expect(applyFn).not.toHaveBeenCalled();
+  });
 });

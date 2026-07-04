@@ -27,6 +27,11 @@ describe('resolveDate', () => {
     expect(resolveDate(rule, 2023)).toEqual({ month: 5, day: 29 });
   });
 
+  it('returns null for an impossible nth-weekday occurrence (5th Monday of February 2026, which only has 4 Mondays)', () => {
+    const rule: DateRule = { kind: 'nthWeekday', month: 2, weekday: 1, n: 5 };
+    expect(resolveDate(rule, 2026)).toBeNull();
+  });
+
   it('resolves Easter Sunday itself via easterOffset 0 (known date: 2024-03-31)', () => {
     const rule: DateRule = { kind: 'easterOffset', offsetDays: 0 };
     expect(resolveDate(rule, 2024)).toEqual({ month: 3, day: 31 });

@@ -5,12 +5,16 @@ export type DateRule =
   | { kind: 'easterOffset'; offsetDays: number }
   | { kind: 'oneOff'; year: number; month: number; day: number };
 
-function nthWeekdayOfMonth(year: number, month: number, weekday: number, n: number): number {
+function nthWeekdayOfMonth(year: number, month: number, weekday: number, n: number): number | null {
   // month is 1-12
   const firstOfMonth = new Date(year, month - 1, 1);
   const firstWeekday = firstOfMonth.getDay();
   const dayOffset = (weekday - firstWeekday + 7) % 7;
-  return 1 + dayOffset + (n - 1) * 7;
+  const day = 1 + dayOffset + (n - 1) * 7;
+  const daysInMonth = new Date(year, month, 0).getDate();
+  // The requested occurrence (e.g. the 5th Monday) doesn't necessarily exist
+  // in every month/year — a month with only four Mondays has no 5th one.
+  return day <= daysInMonth ? day : null;
 }
 
 function lastWeekdayOfMonth(year: number, month: number, weekday: number): number {
@@ -46,8 +50,10 @@ export function resolveDate(rule: DateRule, year: number): { month: number; day:
   switch (rule.kind) {
     case 'fixed':
       return { month: rule.month, day: rule.day };
-    case 'nthWeekday':
-      return { month: rule.month, day: nthWeekdayOfMonth(year, rule.month, rule.weekday, rule.n) };
+    case 'nthWeekday': {
+      const day = nthWeekdayOfMonth(year, rule.month, rule.weekday, rule.n);
+      return day === null ? null : { month: rule.month, day };
+    }
     case 'lastWeekday':
       return { month: rule.month, day: lastWeekdayOfMonth(year, rule.month, rule.weekday) };
     case 'easterOffset': {
