@@ -40,7 +40,16 @@ export function SettingsSection() {
     }
   }
 
-  if (!settings) return <section className="section"><h2>Settings</h2><p className="empty-state">Loading…</p></section>;
+  if (!settings) {
+    return (
+      <section className="section">
+        <h2>Settings</h2>
+        {error
+          ? <div className="error-banner" role="alert">{error}</div>
+          : <p className="empty-state">Loading…</p>}
+      </section>
+    );
+  }
 
   return (
     <section className="section">

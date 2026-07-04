@@ -62,7 +62,7 @@ export function StripCanvas({ strips, selected, staleControllerIds, onSelectionC
       onMouseUp={handleUp}
       onMouseLeave={() => setMarquee(null)}
     >
-      <rect x={0} y={0} width={100} height={100} fill="transparent" onMouseDown={handleBackgroundDown} />
+      <rect data-testid="canvas-bg" x={0} y={0} width={100} height={100} fill="transparent" onMouseDown={handleBackgroundDown} />
       {strips.map((s) => {
         const isSelected = selected.has(s.id);
         const isStale = staleControllerIds.has(s.controllerId);
@@ -76,7 +76,7 @@ export function StripCanvas({ strips, selected, staleControllerIds, onSelectionC
             data-stale={isStale ? 'true' : 'false'}
             className={`strip${isSelected ? ' selected' : ''}${isStale ? ' stale' : ''}`}
             points={s.points.map((pt) => `${pt.x},${pt.y}`).join(' ')}
-            stroke={stroke}
+            style={{ stroke }}
             fill="none"
             onClick={(e) => {
               e.stopPropagation();
