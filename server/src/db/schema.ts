@@ -3,6 +3,7 @@ import type Database from 'better-sqlite3';
 export function runMigrations(db: Database.Database): void {
   db.exec(`
     DROP TABLE IF EXISTS placements;
+    DROP TABLE IF EXISTS floorplans;
 
     CREATE TABLE IF NOT EXISTS controllers (
       id TEXT PRIMARY KEY,
@@ -11,18 +12,6 @@ export function runMigrations(db: Database.Database): void {
       source TEXT NOT NULL CHECK (source IN ('discovered','manual')),
       stale INTEGER NOT NULL DEFAULT 0,
       pinned_asset_pattern TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS floorplans (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      image_path TEXT NOT NULL,
-      crop_x REAL NOT NULL DEFAULT 0,
-      crop_y REAL NOT NULL DEFAULT 0,
-      crop_width REAL NOT NULL DEFAULT 1,
-      crop_height REAL NOT NULL DEFAULT 1,
-      rotation REAL NOT NULL DEFAULT 0,
-      zoom REAL NOT NULL DEFAULT 1
     );
 
     CREATE TABLE IF NOT EXISTS strips (
