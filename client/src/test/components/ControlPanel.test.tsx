@@ -17,6 +17,21 @@ describe('ControlPanel', () => {
     expect(onApply).toHaveBeenCalledWith({ type: 'brightness', value: 150 });
   });
 
+  it('calls onApply with the correct power action for On and Off', () => {
+    const onApply = vi.fn();
+    render(
+      <ControlPanel
+        selectedMembers={[{ controllerId: 'c1', wledSegId: 0 }]}
+        themes={[]}
+        onApply={onApply}
+      />
+    );
+    fireEvent.click(screen.getByText('On'));
+    expect(onApply).toHaveBeenCalledWith({ type: 'power', on: true });
+    fireEvent.click(screen.getByText('Off'));
+    expect(onApply).toHaveBeenCalledWith({ type: 'power', on: false });
+  });
+
   it('calls onApply with a theme action when a theme is chosen', () => {
     const onApply = vi.fn();
     render(
