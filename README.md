@@ -1,39 +1,49 @@
 # uber-wled
 
 A self-hosted, LAN-only web app that acts as a unified controller for
-multiple [WLED](https://kno.wled.ge/) devices around a house. One dashboard
-instead of per-device WLED web UIs — a visual floorplan of where every light
-run physically is, multi-select control across controllers, grouping,
-themes, scheduling (weekly + a holiday/custom-event calendar), and firmware
-update management.
+multiple [WLED](https://kno.wled.ge/) devices around a house. One app with a
+left-sidebar layout instead of per-device WLED web UIs — a visual canvas of
+where every light strip physically is (drawn by you, no floorplan image
+needed), multi-select control right on that canvas, grouping, themes,
+scheduling with a real month calendar, and firmware update management.
 
 Full design rationale lives in [docs/superpowers/specs/](docs/superpowers/specs/);
-the implementation plan lives in [docs/superpowers/plans/](docs/superpowers/plans/).
+the implementation plans live in [docs/superpowers/plans/](docs/superpowers/plans/).
 
 ## Status
 
-Feature-complete for the initial design. Working end-to-end against real
-WLED hardware:
+Working end-to-end against real WLED hardware. The app is organized as a
+left-sidebar shell with seven sections — **Layout, Controllers, Groups,
+Themes, Schedule, Firmware, Settings** — opening on Layout by default.
 
-- **Controller discovery**: automatic via mDNS (re-scanned every 5 minutes)
-  merged with manually-added controllers by IP/hostname; auto-discovered
-  controllers that disappear are marked stale, never silently deleted.
+- **Layout canvas (the hero)**: an imageless dark canvas of your house. Draw
+  each LED strip as a multi-point path (traces corners/rooflines), drag to
+  arrange, and drop loose room labels for grouping. Each strip binds to a
+  real controller + WLED segment and renders in its **live color** (polled
+  every 5s, muted when off, greyed when its controller is offline). The
+  canvas doubles as the control surface: click or box-select strips and a
+  docked panel applies power / brightness / preset / theme immediately.
+- **Controller discovery**: automatic via mDNS (interval configurable in
+  Settings) merged with manually-added controllers by IP/hostname;
+  auto-discovered controllers that disappear are marked stale, never
+  silently deleted.
 - **Segments**: read live from each controller's native WLED segments;
   editable/creatable through the app, written back to the device.
-- **Floorplan editor**: upload a floorplan image, crop/rotate/zoom it, draw
-  each light segment as a multi-point path tracing its real physical run.
-- **Segment split recommendations**: drawing two placements onto the same
+- **Segment split recommendations**: drawing two strips onto the same
   physical WLED segment surfaces a suggestion to split it on the device.
-- **Groups**: named sets of segments/controllers (spatial or logical),
-  editable from the Groups panel — used as the target for control actions,
-  schedules, and calendar events.
-- **Control**: multi-select segments/controllers and apply power,
-  brightness, a WLED preset, or a custom theme in one action; per-controller
-  failures are isolated and retried once, never fail the whole batch.
+- **Groups**: named sets of controller+segment members, editable from the
+  Groups section — the target for control actions, schedules, and calendar
+  events.
+- **Control**: apply power, brightness, a WLED preset, or a custom theme to
+  a whole selection in one action; per-controller failures are isolated and
+  retried once, never fail the whole batch.
 - **Themes**: custom effect/palette/color/brightness combos, independent of
   any device's own presets.
-- **Scheduling**: weekly (day-of-week + time) or cron-based schedules,
-  targeting a Group.
+- **Schedule (month calendar)**: a real month-grid calendar is the hero of
+  the Schedule section — holidays and custom events show as chips on their
+  dates, a side panel shows the selected day's detail plus your weekly
+  recurring schedules. Schedules are weekly (day-of-week + time) or
+  cron-based, targeting a Group.
 - **Calendar**: a pre-seeded US holiday list (federal + common decorating
   occasions), all disabled by default until you assign a theme and enable
   them, plus custom one-off or yearly-recurring events (birthdays,
@@ -41,19 +51,26 @@ WLED hardware:
   overlapping weekly/cron schedules for that day; a holiday and a custom
   event can't silently collide on the same date (rejected with a clear
   conflict error instead).
-- **Preview before saving**: schedule/calendar-event editors can preview a
-  theme live against the real lights, then revert to the exact prior state
-  on approve or discard.
-- **WLED schedule import**: one-time best-effort import of a controller's
-  existing time-based presets into an uber-wled weekly schedule, with an
-  option to clear the schedule on the device afterward.
-- **Firmware updates**: checks WLED's GitHub releases against each
-  controller's installed version and chip architecture; the first update
+- **Firmware updates**: the Firmware section lists every controller with its
+  installed vs. latest **stable** version (pre-release/nightly builds are
+  filtered out by default; opt in via a Settings toggle). The first update
   for a given controller shows you the matching release-asset candidates to
   pick from (this is the "pin once" step that solves picking the wrong
   binary for boards with unusual flash-size variants), then remembers your
   choice for every future update on that controller. Pushes the update via
   WLED's own OTA HTTP endpoint and polls for the new version afterward.
+  Offline controllers show "Controller offline" rather than hanging.
+- **Settings**: global configuration that used to have no home — include
+  pre-release firmware builds (default off), home latitude/longitude for
+  sunset/sunrise-relative scheduling, the discovery re-scan interval + a
+  manual "Re-scan now", and the default "disable on device" for WLED
+  schedule import.
+- **WLED schedule import**: one-time best-effort import of a controller's
+  existing time-based presets into an uber-wled weekly schedule, with an
+  option to clear the schedule on the device afterward.
+- **Preview before saving**: schedule/calendar-event editors preview a theme
+  live against the real lights, then revert to the exact prior state on
+  approve or discard.
 
 ## Architecture
 
@@ -91,8 +108,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 24 files / 124 tests
-cd client && npm test   # 10 files / 27 tests
+cd server && npm test   # 25 files / 127 tests
+cd client && npm test   # 19 files / 56 tests
 ```
 
 ## Running the whole app locally via Docker
@@ -103,9 +120,9 @@ docker compose up --build
 ```
 
 The app will be reachable at `http://localhost:<PORT>` (default `8081`).
-SQLite data and uploaded floorplan images persist in `./data/`, which is
-gitignored and mounted into the container — nothing personal (your home
-layout, controller IPs, etc.) is ever committed to this repo.
+SQLite data persists in `./data/`, which is gitignored and mounted into the
+container — nothing personal (your home layout, controller IPs, etc.) is
+ever committed to this repo.
 
 ## Deployment
 
@@ -124,39 +141,40 @@ committed) that isn't already taken by another service on that host.
 
 ## Using the app
 
-- **Controllers**: discovered automatically every 5 minutes, or add one
-  manually by name + IP/hostname. A stale badge means a previously-seen
-  discovered controller hasn't responded recently — it's kept, not deleted,
-  in case it comes back online.
-- **Floorplans**: upload an image, then open it to crop/rotate/zoom and
-  start drawing segments. This part of the app is expected to take more
-  iteration than the rest to feel right — freehand path drawing is
+- **Layout**: the default screen. Click "Draw strip" to trace a strip on the
+  canvas and bind it to a controller + segment; drag strips and room labels
+  to arrange. Click or box-select strips to control them from the docked
+  panel. Strips render in their live color. This screen is expected to take
+  more iteration than the rest to feel right — freehand path drawing is
   inherently harder to nail on the first pass than a CRUD screen.
+- **Controllers**: discovered automatically (interval set in Settings), or
+  add one manually by name + IP/hostname. A stale badge means a
+  previously-seen discovered controller hasn't responded recently — it's
+  kept, not deleted, in case it comes back online.
 - **Groups**: create a group, then add members (pick a controller + a WLED
-  segment id) from the Groups panel — a group only actually does anything
-  once it has members.
-- **Themes**: build a custom effect/palette/color/brightness combo from the
-  Themes panel; these become selectable anywhere a WLED preset would be
-  (control panel, schedules, calendar events).
-- **Schedules & calendar**: build a weekly schedule or a custom calendar
-  event from the Schedule manager; preview the look live before saving, and
+  segment id) — a group only actually does anything once it has members.
+- **Themes**: build a custom effect/palette/color/brightness combo; these
+  become selectable anywhere a WLED preset would be (control panel,
+  schedules, calendar events).
+- **Schedule**: the month calendar is the hero. Click a day to see its
+  detail; "+ Event" adds a custom calendar event; weekly recurring schedules
+  live in the side panel. Preview a theme live before saving —
   approve/discard reverts the lights to exactly how they were.
-- **Firmware**: each controller in the list shows installed vs. latest WLED
-  version. The first update prompts you to pick the correct release asset
-  for your board; every update after that for the same controller reuses
-  that choice automatically.
+- **Firmware**: each controller shows installed vs. latest stable version.
+  The first update prompts you to pick the correct release asset for your
+  board; every update after that reuses that choice automatically.
+- **Settings**: pre-release firmware toggle, home lat/long, discovery
+  interval + "Re-scan now", and the schedule-import default.
 
 ## Known limitations / follow-up items
 
-- The floorplan editor's crop/rotate/zoom is stored as metadata but the
-  actual client-side cropping UI is a fast-follow, not yet built.
+- The Layout canvas is the screen most likely to need hands-on refinement —
+  freehand path drawing and spatial arrangement take iteration to feel right.
 - The WLED OTA upload's exact multipart field name is implemented against
   the best available documentation but should be verified against a real
   device before relying on it for a controller you can't easily re-flash by
   hand if it's wrong — see the TODO in `server/src/firmware/otaPush.ts`.
 - Segment split recommendations require a live call to the affected
-  controller at placement-creation time (a deliberate trade-off to make the
-  feature actually work, rather than the originally-planned "always
-  instant, sometimes wrong" version) — creating a placement while its
-  controller is offline still succeeds, it just skips the recommendation
-  check for that request.
+  controller when you draw a strip (a deliberate trade-off to make the
+  feature actually work) — drawing a strip while its controller is offline
+  still succeeds, it just skips the recommendation check for that request.
