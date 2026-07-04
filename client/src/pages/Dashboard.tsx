@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { listControllers, deleteController, addController, type Controller } from '../api/client';
 import { ControllerList } from '../components/ControllerList';
+import { LightbulbIcon, AlertIcon } from '../components/icons';
 
 export function Dashboard() {
   const [controllers, setControllers] = useState<Controller[]>([]);
@@ -19,6 +20,7 @@ export function Dashboard() {
       setControllers((prev) => [...prev, created]);
       setName('');
       setHost('');
+      setError(null);
     } catch (e: any) {
       setError(e.message);
     }
@@ -30,16 +32,48 @@ export function Dashboard() {
   }
 
   return (
-    <div style={{ fontFamily: 'sans-serif', maxWidth: 640, margin: '2rem auto' }}>
-      <h1>uber-wled</h1>
-      <h2>Controllers</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <ControllerList controllers={controllers} onDelete={handleDelete} />
-      <div style={{ marginTop: '1rem' }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-        <input value={host} onChange={(e) => setHost(e.target.value)} placeholder="Host/IP" />
-        <button onClick={handleAdd}>Add controller</button>
-      </div>
+    <div>
+      <header className="page-header">
+        <LightbulbIcon className="logo-mark" />
+        <h1>uber-wled</h1>
+      </header>
+
+      <section className="section">
+        <h2>Controllers</h2>
+        <div className="card">
+          {error && (
+            <div className="error-banner">
+              <AlertIcon /> {error}
+            </div>
+          )}
+          <ControllerList controllers={controllers} onDelete={handleDelete} />
+          <div className="add-controller-form">
+            <div className="field">
+              <label htmlFor="controller-name">Name</label>
+              <input
+                id="controller-name"
+                className="input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Front Porch"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="controller-host">Host / IP</label>
+              <input
+                id="controller-host"
+                className="input"
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+                placeholder="10.0.0.50"
+              />
+            </div>
+            <button type="button" className="btn btn-primary" onClick={handleAdd}>
+              Add controller
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
