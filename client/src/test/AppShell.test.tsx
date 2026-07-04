@@ -6,11 +6,11 @@ afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
 describe('AppShell', () => {
-  it('renders the Controllers section by default and highlights its nav item', async () => {
+  it('renders the Layout section by default and highlights its nav item', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
     render(<AppShell />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Controllers/ })).toBeTruthy());
-    expect(screen.getByRole('button', { name: /Controllers/ }).className).toContain('active');
+    await waitFor(() => expect(screen.getByRole('button', { name: /Layout/ })).toBeTruthy());
+    expect(screen.getByRole('button', { name: /Layout/ }).className).toContain('active');
   });
 
   it('switches to the Themes section when its nav item is clicked', async () => {

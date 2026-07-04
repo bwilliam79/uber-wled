@@ -1,5 +1,5 @@
 import { type ReactElement } from 'react';
-import { LightbulbIcon, UsersIcon, PaletteIcon } from './icons';
+import { LightbulbIcon, GridIcon, UsersIcon, PaletteIcon } from './icons';
 
 export type SectionKey = 'layout' | 'controllers' | 'groups' | 'themes' | 'schedule' | 'firmware' | 'settings';
 
@@ -8,6 +8,7 @@ type IconComp = (p: { className?: string }) => ReactElement;
 // Later tasks add layout/schedule/firmware/settings entries. Order here is the
 // order shown in the rail.
 export const SECTIONS: { key: SectionKey; label: string; Icon: IconComp }[] = [
+  { key: 'layout', label: 'Layout', Icon: GridIcon },
   { key: 'controllers', label: 'Controllers', Icon: LightbulbIcon },
   { key: 'groups', label: 'Groups', Icon: UsersIcon },
   { key: 'themes', label: 'Themes', Icon: PaletteIcon }

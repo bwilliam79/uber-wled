@@ -29,4 +29,10 @@ describe('ControlPanel', () => {
     fireEvent.click(screen.getByText('Sunset'));
     expect(onApply).toHaveBeenCalledWith({ type: 'theme', themeId: 't1' });
   });
+
+  it('shows a neutral empty state and disables controls when nothing is selected', () => {
+    render(<ControlPanel selectedMembers={[]} themes={[]} onApply={vi.fn()} />);
+    expect(screen.getByText(/Select a strip to control it/)).toBeTruthy();
+    expect((screen.getByLabelText(/brightness/i) as HTMLInputElement).disabled).toBe(true);
+  });
 });
