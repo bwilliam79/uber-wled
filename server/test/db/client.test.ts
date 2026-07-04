@@ -16,6 +16,7 @@ describe('createDb', () => {
       'groups',
       'room_labels',
       'schedules',
+      'settings',
       'strips',
       'themes',
       'wled_releases'

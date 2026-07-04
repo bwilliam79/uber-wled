@@ -1,0 +1,65 @@
+import type Database from 'better-sqlite3';
+
+export interface Settings {
+  includePrereleaseFirmware: boolean;
+  homeLatitude: number | null;
+  homeLongitude: number | null;
+  discoveryRescanIntervalMinutes: number;
+  scheduleImportDisableOnDeviceDefault: boolean;
+}
+
+const DEFAULTS: Settings = {
+  includePrereleaseFirmware: false,
+  homeLatitude: null,
+  homeLongitude: null,
+  discoveryRescanIntervalMinutes: 5,
+  scheduleImportDisableOnDeviceDefault: false
+};
+
+function fromRow(row: any): Settings {
+  return {
+    includePrereleaseFirmware: !!row.include_prerelease_firmware,
+    homeLatitude: row.home_latitude,
+    homeLongitude: row.home_longitude,
+    discoveryRescanIntervalMinutes: row.discovery_rescan_interval_minutes,
+    scheduleImportDisableOnDeviceDefault: !!row.schedule_import_disable_on_device_default
+  };
+}
+
+export function createSettingsRepository(db: Database.Database) {
+  function ensureRow(): Settings {
+    const row = db.prepare('SELECT * FROM settings WHERE id = 1').get();
+    if (row) return fromRow(row);
+    db.prepare(
+      `INSERT INTO settings (id, include_prerelease_firmware, home_latitude, home_longitude, discovery_rescan_interval_minutes, schedule_import_disable_on_device_default)
+       VALUES (1, ?, ?, ?, ?, ?)`
+    ).run(
+      DEFAULTS.includePrereleaseFirmware ? 1 : 0,
+      DEFAULTS.homeLatitude,
+      DEFAULTS.homeLongitude,
+      DEFAULTS.discoveryRescanIntervalMinutes,
+      DEFAULTS.scheduleImportDisableOnDeviceDefault ? 1 : 0
+    );
+    return { ...DEFAULTS };
+  }
+
+  return {
+    get(): Settings {
+      return ensureRow();
+    },
+    update(patch: Partial<Settings>): Settings {
+      const next = { ...ensureRow(), ...patch };
+      db.prepare(
+        `UPDATE settings SET include_prerelease_firmware = ?, home_latitude = ?, home_longitude = ?,
+          discovery_rescan_interval_minutes = ?, schedule_import_disable_on_device_default = ? WHERE id = 1`
+      ).run(
+        next.includePrereleaseFirmware ? 1 : 0,
+        next.homeLatitude,
+        next.homeLongitude,
+        next.discoveryRescanIntervalMinutes,
+        next.scheduleImportDisableOnDeviceDefault ? 1 : 0
+      );
+      return next;
+    }
+  };
+}
