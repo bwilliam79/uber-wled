@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  listControllers, deleteController, addController, listFloorplans,
+  listControllers, deleteController, addController, listFloorplans, uploadFloorplan,
   listCalendarEvents, updateCalendarEvent, deleteCalendarEvent, listGroups, listThemes,
   type Controller, type Floorplan, type CalendarEvent, type Group, type CustomTheme
 } from '../api/client';
@@ -23,6 +23,10 @@ export function Dashboard() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [calendarGroups, setCalendarGroups] = useState<Group[]>([]);
   const [calendarThemes, setCalendarThemes] = useState<CustomTheme[]>([]);
+  const [floorplanName, setFloorplanName] = useState('');
+  const [floorplanFile, setFloorplanFile] = useState<File | null>(null);
+  const [floorplanError, setFloorplanError] = useState<string | null>(null);
+  const [uploadingFloorplan, setUploadingFloorplan] = useState(false);
 
   useEffect(() => {
     listControllers().then(setControllers).catch((e) => setError(e.message));
@@ -61,6 +65,22 @@ export function Dashboard() {
   async function handleDelete(id: string) {
     await deleteController(id);
     setControllers((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  async function handleUploadFloorplan() {
+    if (!floorplanName || !floorplanFile) return;
+    setUploadingFloorplan(true);
+    try {
+      const created = await uploadFloorplan(floorplanName, floorplanFile);
+      setFloorplans((prev) => [...prev, created]);
+      setFloorplanName('');
+      setFloorplanFile(null);
+      setFloorplanError(null);
+    } catch (e: unknown) {
+      setFloorplanError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setUploadingFloorplan(false);
+    }
   }
 
   if (openFloorplanId) {
@@ -125,6 +145,11 @@ export function Dashboard() {
       <section className="section">
         <h2>Floorplans</h2>
         <div className="card">
+          {floorplanError && (
+            <div className="error-banner">
+              <AlertIcon /> {floorplanError}
+            </div>
+          )}
           {floorplans.length === 0 ? (
             <p className="empty-state">No floorplans yet.</p>
           ) : (
@@ -145,6 +170,36 @@ export function Dashboard() {
               ))}
             </ul>
           )}
+          <div className="upload-floorplan-form">
+            <div className="field">
+              <label htmlFor="floorplan-name">Name</label>
+              <input
+                id="floorplan-name"
+                className="input"
+                value={floorplanName}
+                onChange={(e) => setFloorplanName(e.target.value)}
+                placeholder="Front Yard"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="floorplan-image">Image</label>
+              <input
+                id="floorplan-image"
+                className="input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFloorplanFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleUploadFloorplan}
+              disabled={!floorplanName || !floorplanFile || uploadingFloorplan}
+            >
+              {uploadingFloorplan ? 'Uploading…' : 'Upload'}
+            </button>
+          </div>
         </div>
       </section>
 
