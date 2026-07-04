@@ -13,10 +13,14 @@ the implementation plans live in [docs/superpowers/plans/](docs/superpowers/plan
 ## Status
 
 Working end-to-end against real WLED hardware. The app is organized as a
-left-sidebar shell with seven sections — **Layout, Controllers, Groups,
-Themes, Schedule, Firmware, Settings** — opening on Layout by default.
+left-sidebar shell with eight sections — **Home, Layout, Controllers,
+Groups, Themes, Schedule, Firmware, Settings** — opening on Home by default.
 
-- **Layout canvas (the hero)**: an imageless dark canvas of your house. Draw
+- **Home**: the everyday control surface and default screen. One tile per
+  Group (room or scene) plus one per ungrouped controller, each with live
+  on/off + brightness, power/brightness controls, and a quick theme-apply
+  dropdown.
+- **Layout canvas**: an imageless dark canvas of your house. Draw
   each LED strip as a multi-point path (traces corners/rooflines), drag to
   arrange, and drop loose room labels for grouping. Each strip binds to a
   real controller + WLED segment and renders in its **live color** (polled
@@ -150,7 +154,13 @@ committed) that isn't already taken by another service on that host.
 
 ## Using the app
 
-- **Layout**: the default screen. Click "Draw strip" to trace a strip on the
+- **Home**: the default screen. One tile per Group (a Group doubles as a
+  room or scene for this purpose) plus one tile per controller not yet in
+  any Group. Each tile shows live on/off + brightness (or "Mixed" if its
+  members disagree, or an offline badge if a member is unreachable) and lets
+  you toggle power, adjust brightness, or apply a saved Theme — all without
+  leaving the page.
+- **Layout**: the spatial setup screen. Click "Draw strip" to trace a strip on the
   canvas and bind it to a controller + segment; drag strips and room labels
   to arrange. Click or box-select strips to control them from the docked
   panel. Strips render in their live color. This screen is expected to take
