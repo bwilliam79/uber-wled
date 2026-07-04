@@ -48,4 +48,20 @@ describe('floorplans routes', () => {
     expect(patch.body.rotation).toBe(90);
     expect(patch.body.zoom).toBe(1.5);
   });
+
+  it('rejects an upload with no image file attached', async () => {
+    const post = await request(app)
+      .post('/api/floorplans')
+      .field('name', 'Main Floor');
+    expect(post.status).toBe(400);
+    expect(post.body.error).toBeTruthy();
+  });
+
+  it('returns 404 when patching a nonexistent floorplan id', async () => {
+    const patch = await request(app)
+      .patch('/api/floorplans/does-not-exist')
+      .send({ cropX: 0.1, rotation: 90, zoom: 1.5 });
+    expect(patch.status).toBe(404);
+    expect(patch.body.error).toBeTruthy();
+  });
 });
