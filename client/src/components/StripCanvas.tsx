@@ -9,6 +9,7 @@ export interface StripCanvasProps {
   staleControllerIds: Set<string>;
   onSelectionChange: (next: Set<string>) => void;
   onMoveStrip?: (id: string, dx: number, dy: number) => void;
+  liveColors?: Map<string, string>;
   children?: React.ReactNode;
 }
 
@@ -20,7 +21,7 @@ function toCanvas(e: { clientX: number; clientY: number }, svg: SVGSVGElement) {
   };
 }
 
-export function StripCanvas({ strips, selected, staleControllerIds, onSelectionChange, children }: StripCanvasProps) {
+export function StripCanvas({ strips, selected, staleControllerIds, onSelectionChange, liveColors, children }: StripCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [marquee, setMarquee] = useState<Box | null>(null);
 
@@ -65,6 +66,8 @@ export function StripCanvas({ strips, selected, staleControllerIds, onSelectionC
       {strips.map((s) => {
         const isSelected = selected.has(s.id);
         const isStale = staleControllerIds.has(s.controllerId);
+        const liveColor = liveColors?.get(s.id);
+        const stroke = isStale ? '#475569' : (liveColor ?? (isSelected ? '#ff5ec8' : '#22c55e'));
         return (
           <polyline
             key={s.id}
@@ -73,6 +76,7 @@ export function StripCanvas({ strips, selected, staleControllerIds, onSelectionC
             data-stale={isStale ? 'true' : 'false'}
             className={`strip${isSelected ? ' selected' : ''}${isStale ? ' stale' : ''}`}
             points={s.points.map((pt) => `${pt.x},${pt.y}`).join(' ')}
+            stroke={stroke}
             fill="none"
             onClick={(e) => {
               e.stopPropagation();

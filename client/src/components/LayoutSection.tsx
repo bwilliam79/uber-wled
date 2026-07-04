@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  listStrips, addStrip, listControllers, listThemes, applyControl,
+  listStrips, addStrip, listControllers, listThemes, applyControl, getSegmentsSnapshot,
   type Strip, type Controller, type CustomTheme, type ControlAction
 } from '../api/client';
 import { listRoomLabels, addRoomLabel, updateRoomLabel, type RoomLabel } from '../api/client';
+import { segmentToCssColor } from '../lib/segmentColor';
 import { StripCanvas } from './StripCanvas';
 import { StripPathEditor } from './StripPathEditor';
 import { ControlPanel } from './ControlPanel';
@@ -17,6 +18,7 @@ export function LayoutSection() {
   const [drawing, setDrawing] = useState(false);
   const [labels, setLabels] = useState<RoomLabel[]>([]);
   const [newLabel, setNewLabel] = useState('');
+  const [liveColors, setLiveColors] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     listStrips().then(setStrips);
@@ -24,6 +26,31 @@ export function LayoutSection() {
     listThemes().then(setThemes);
     listRoomLabels().then(setLabels);
   }, []);
+
+  const refreshLiveColors = useCallback(async () => {
+    const controllerIds = Array.from(new Set(strips.map((s) => s.controllerId)));
+    const next = new Map<string, string>();
+    await Promise.all(
+      controllerIds.map(async (cid) => {
+        try {
+          const segs = await getSegmentsSnapshot(cid);
+          for (const s of strips.filter((st) => st.controllerId === cid)) {
+            const seg = segs.find((sg) => sg.id === s.wledSegId);
+            if (seg) next.set(s.id, segmentToCssColor(seg));
+          }
+        } catch {
+          /* unreachable controller: leave its strips to the stale/greyed path */
+        }
+      })
+    );
+    setLiveColors(next);
+  }, [strips]);
+
+  useEffect(() => {
+    refreshLiveColors();
+    const t = setInterval(refreshLiveColors, 5000);
+    return () => clearInterval(t);
+  }, [refreshLiveColors]);
 
   const staleControllerIds = new Set(controllers.filter((c) => c.stale).map((c) => c.id));
 
@@ -37,6 +64,7 @@ export function LayoutSection() {
 
   async function handleApply(action: ControlAction) {
     await applyControl(selectedMembers, action);
+    refreshLiveColors();
   }
 
   async function handleAddLabel() {
@@ -76,6 +104,7 @@ export function LayoutSection() {
               selected={selected}
               staleControllerIds={staleControllerIds}
               onSelectionChange={setSelected}
+              liveColors={liveColors}
             >
               <RoomLabelLayer labels={labels} onMove={handleMoveLabel} />
             </StripCanvas>
