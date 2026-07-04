@@ -25,7 +25,8 @@ describe('SettingsSection', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/settings', expect.objectContaining({ method: 'PATCH' })));
     // Verify the toggled value is actually sent, not just that a PATCH happened.
     const patchCall = fetchMock.mock.calls.find(([, init]) => (init?.method ?? 'GET') === 'PATCH');
-    expect(JSON.parse(patchCall[1].body).includePrereleaseFirmware).toBe(true);
+    expect(patchCall).toBeTruthy();
+    expect(JSON.parse(patchCall![1].body).includePrereleaseFirmware).toBe(true);
   });
 
   it('surfaces an error instead of hanging on "Loading…" when the initial load fails', async () => {

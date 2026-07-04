@@ -17,10 +17,40 @@ export function createFirmwareRouter(db: Database.Database): Router {
     if (!controller) return res.status(404).json({ error: 'controller not found' });
 
     const includePrerelease = settings.get().includePrereleaseFirmware;
-    const [info, release] = await Promise.all([
-      getInfo(controller.host),
-      fetchLatestRelease(db, { includePrerelease })
-    ]);
+
+    let info;
+    try {
+      info = await getInfo(controller.host);
+    } catch {
+      // Controller is unreachable (offline/stale). Respond with an offline
+      // status instead of leaving the request hanging (Express 4 does not
+      // catch async rejections, so an unhandled throw here never responds).
+      return res.json({
+        unreachable: true,
+        installedVersion: null,
+        latestTag: null,
+        updateAvailable: false,
+        isPrerelease: false,
+        pinnedAssetPattern: controller.pinnedAssetPattern,
+        candidateAssets: []
+      });
+    }
+
+    let release;
+    try {
+      release = await fetchLatestRelease(db, { includePrerelease });
+    } catch {
+      // GitHub unreachable and no cached releases — report the installed
+      // version only, without an available-update comparison.
+      return res.json({
+        installedVersion: info.ver,
+        latestTag: null,
+        updateAvailable: false,
+        isPrerelease: false,
+        pinnedAssetPattern: controller.pinnedAssetPattern,
+        candidateAssets: []
+      });
+    }
 
     let assets: ReleaseAsset[] = [];
     if (!controller.pinnedAssetPattern) {

@@ -343,28 +343,6 @@ button, input {
   }
 }
 
-/* ---------- Floorplan canvas ---------- */
-
-.floorplan-canvas {
-  width: 100%;
-  background: var(--color-background);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-md);
-}
-
-.segment-path-editor {
-  margin-bottom: var(--space-lg);
-}
-
-.segment-path-editor-canvas {
-  width: 100%;
-  background: var(--color-background);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-sm);
-}
-
 /* ---------- Control panel ---------- */
 
 .control-panel {
@@ -442,21 +420,6 @@ button, input {
   width: 16px;
   height: 16px;
   accent-color: var(--color-accent);
-}
-
-/* ---------- Floorplan upload ---------- */
-
-.upload-floorplan-form {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: flex-end;
-  flex-wrap: wrap;
-  margin-top: var(--space-md);
-}
-
-.upload-floorplan-form .field {
-  flex: 1;
-  min-width: 160px;
 }
 
 /* ---------- Group members editor ---------- */

@@ -30,6 +30,11 @@ describe('CalendarEventForm', () => {
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    // Verify the entered name/date are actually sent — not just that a POST happened.
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.name).toBe('Anniversary');
+    expect(body.dateRule).toEqual({ kind: 'fixed', month: 9, day: 12 });
   });
 
   it('shows the conflicting event name when the server returns 409', async () => {

@@ -162,12 +162,13 @@ export const deleteCalendarEvent = (id: string) =>
   fetch(`/api/calendar-events/${id}`, { method: 'DELETE' });
 
 export interface FirmwareStatus {
-  installedVersion: string;
-  latestTag: string;
+  installedVersion: string | null;
+  latestTag: string | null;
   updateAvailable: boolean;
   isPrerelease: boolean;
   pinnedAssetPattern: string | null;
   candidateAssets: { name: string; downloadUrl: string }[];
+  unreachable?: boolean;
 }
 
 export const getFirmwareStatus = (controllerId: string) =>

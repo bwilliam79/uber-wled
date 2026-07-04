@@ -33,6 +33,21 @@ describe('firmware routes', () => {
     app.use('/api/controllers/:id/firmware', createFirmwareRouter(db));
   });
 
+  it('reports an unreachable status (200) instead of hanging when the controller is offline', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes('api.github.com')) return { ok: true, json: async () => GITHUB_RESPONSE } as Response;
+      if (url.endsWith('/json/info')) throw new Error('ECONNREFUSED');
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await request(app).get(`/api/controllers/${controllerId}/firmware`);
+    expect(res.status).toBe(200);
+    expect(res.body.unreachable).toBe(true);
+    expect(res.body.installedVersion).toBeNull();
+    expect(res.body.updateAvailable).toBe(false);
+  });
+
   it('reports update availability and candidate assets when unpinned', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (url.includes('api.github.com')) return { ok: true, json: async () => GITHUB_RESPONSE } as Response;

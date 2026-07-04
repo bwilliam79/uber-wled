@@ -11,4 +11,7 @@ describe('segmentToCssColor', () => {
   it('falls back to a neutral color when col is empty', () => {
     expect(segmentToCssColor({ on: true, bri: 255, col: [] })).toBe('rgb(148, 163, 184)');
   });
+  it('falls back to neutral when the primary color has fewer than 3 channels (partial WLED response)', () => {
+    expect(segmentToCssColor({ on: true, bri: 255, col: [[255]] })).toBe('rgb(148, 163, 184)');
+  });
 });
