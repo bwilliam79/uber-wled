@@ -12,7 +12,6 @@ describe('createDb', () => {
     expect(tables).toEqual([
       'calendar_events',
       'controllers',
-      'floorplans',
       'group_members',
       'groups',
       'schedules',

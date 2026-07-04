@@ -3,7 +3,6 @@ import path from 'node:path';
 import type Database from 'better-sqlite3';
 import { createControllersRouter } from './controllers/routes.js';
 import { createSegmentsRouter } from './segments/routes.js';
-import { createFloorplansRouter } from './floorplans/routes.js';
 import { createStripsRouter } from './strips/routes.js';
 import { createGroupsRouter } from './groups/routes.js';
 import { createThemesRouter } from './themes/routes.js';
@@ -22,8 +21,6 @@ export function createApp(db: Database.Database) {
   app.use('/api/controllers', createControllersRouter(db));
   app.use('/api/controllers/:controllerId/segments', createSegmentsRouter(db));
 
-  const UPLOAD_DIR = process.env.UPLOAD_DIR ?? './data/floorplans';
-  app.use('/api/floorplans', createFloorplansRouter(db, UPLOAD_DIR));
   app.use('/api/strips', createStripsRouter(db));
   app.use('/api/groups', createGroupsRouter(db));
   app.use('/api/themes', createThemesRouter(db));
