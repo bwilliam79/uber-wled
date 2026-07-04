@@ -92,6 +92,9 @@ export function ScheduleSection({
 
         <aside className="schedule-detail card">
           <h3>{selectedDay === null ? 'Select a day' : `Day ${selectedDay}`}</h3>
+          {selectedDay === null && (
+            <p className="empty-state">Click a date on the calendar to view or add events for that day.</p>
+          )}
           {selectedDay !== null && dayEvents.length === 0 && <p className="empty-state">No events on this day.</p>}
           {dayEvents.map((e) => (
             <div key={e.id} className="schedule-detail-event">

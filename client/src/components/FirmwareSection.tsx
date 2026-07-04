@@ -24,7 +24,7 @@ export function FirmwareSection() {
               <li key={c.id} className="controller-row">
                 <LightbulbIcon className="controller-icon" />
                 <div className="controller-info">
-                  <span className="controller-name">{c.name}</span>
+                  <span className="controller-name" title={c.name}>{c.name}</span>
                   <span className="controller-meta">{c.host}</span>
                 </div>
                 {c.stale && <span className="badge badge-stale">stale</span>}

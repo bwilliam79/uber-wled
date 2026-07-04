@@ -18,6 +18,7 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   const [loadError, setLoadError] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [pickerDismissed, setPickerDismissed] = useState(false);
 
   async function refresh() {
     try {
@@ -55,8 +56,10 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   if (!status) return <p className="firmware-status controller-meta">Checking firmware…</p>;
   if (status.unreachable) return <p className="firmware-status controller-meta">Controller offline</p>;
 
-  const showPicker = (status.candidateAssets ?? []).length > 0;
-  const showUpdateButton = !showPicker && status.updateAvailable && !!status.pinnedAssetPattern;
+  const hasCandidates = (status.candidateAssets ?? []).length > 0;
+  const showPicker = hasCandidates && !pickerDismissed;
+  const showReopenPickerButton = hasCandidates && pickerDismissed;
+  const showUpdateButton = !hasCandidates && status.updateAvailable && !!status.pinnedAssetPattern;
 
   return (
     <div className="firmware-status">
@@ -65,11 +68,16 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         <span className="badge badge-stale"> Update available ({status.latestTag})</span>
       )}
       {status.isPrerelease && <span className="badge">pre-release</span>}
+      {showReopenPickerButton && (
+        <button type="button" className="btn btn-secondary" onClick={() => setPickerDismissed(false)}>
+          Pick firmware asset
+        </button>
+      )}
       {showPicker && (
         <AssetPickerModal
           assets={status.candidateAssets}
           onPick={handlePick}
-          onCancel={() => {}}
+          onCancel={() => setPickerDismissed(true)}
         />
       )}
       {showUpdateButton && (
