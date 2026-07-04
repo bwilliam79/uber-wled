@@ -1,0 +1,13 @@
+services:
+  uber-wled:
+    build: .
+    # host networking is required so mDNS multicast discovery can see WLED
+    # devices on the LAN; if unavailable on your platform, add controllers
+    # manually via IP instead.
+    network_mode: "host"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=3000
+      - DB_PATH=/app/data/uber-wled.db
+    restart: unless-stopped

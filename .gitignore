@@ -4,3 +4,4 @@ dist/
 .env
 .superpowers/
 data/
+.DS_Store
