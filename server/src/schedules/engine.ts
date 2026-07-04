@@ -90,10 +90,24 @@ type ApplyFn = (
 export class SchedulerEngine {
   private lastFired = new Map<string, Date>();
   private timer: ReturnType<typeof setInterval> | undefined;
+  // Tail of a serial queue of checkAndFireDueSchedules() calls. Each new
+  // invocation chains onto whatever is currently in flight so that no two
+  // invocations ever execute their read-await-write sequence concurrently.
+  // This matters because start()'s setInterval callback does not await the
+  // returned promise, so a slow applyFn (e.g. an offline WLED controller
+  // that times out on every retry) could otherwise cause the next tick to
+  // start before the previous one finishes updating lastFired.
+  private queue: Promise<void> = Promise.resolve();
 
   constructor(private db: Database.Database, private applyFn: ApplyFn) {}
 
-  async checkAndFireDueSchedules(now: Date): Promise<void> {
+  checkAndFireDueSchedules(now: Date): Promise<void> {
+    const run = this.queue.catch(() => {}).then(() => this.runCheckAndFireDueSchedules(now));
+    this.queue = run.catch(() => {});
+    return run;
+  }
+
+  private async runCheckAndFireDueSchedules(now: Date): Promise<void> {
     const schedules = createScheduleRepository(this.db);
     const groups = createGroupRepository(this.db);
     const calendar = createCalendarRepository(this.db);
@@ -105,14 +119,19 @@ export class SchedulerEngine {
       if (!event.groupId || !event.actionType) continue;
       if (!triggerTimeDue(event.triggerTime, now)) continue;
 
-      const alreadyFired = this.lastFired.get(`calendar:${event.id}`);
+      const key = `calendar:${event.id}`;
+      const alreadyFired = this.lastFired.get(key);
       if (alreadyFired && sameMinute(alreadyFired, now)) continue;
 
       const group = groups.list().find((g) => g.id === event.groupId);
       if (!group) continue;
 
+      // Claim this key for the current minute BEFORE awaiting applyFn, so a
+      // concurrent/overlapping invocation sees the up-to-date claim
+      // immediately instead of the stale pre-await value and does not fire
+      // the same event twice for the same minute.
+      this.lastFired.set(key, now);
       await this.applyFn(group.members, { type: event.actionType, ...(event.actionPayload as object) });
-      this.lastFired.set(`calendar:${event.id}`, now);
     }
 
     // Suppressed member set: every member of every group targeted by an
@@ -146,13 +165,19 @@ export class SchedulerEngine {
         continue;
       }
 
-      await this.applyFn(group.members, { type: schedule.actionType, ...(schedule.actionPayload as object) });
+      // Claim before awaiting (see comment above) so an overlapping
+      // invocation cannot also fire this schedule for the same minute.
       this.lastFired.set(schedule.id, now);
+      await this.applyFn(group.members, { type: schedule.actionType, ...(schedule.actionPayload as object) });
     }
   }
 
   start(): void {
-    this.timer = setInterval(() => this.checkAndFireDueSchedules(new Date()), 60_000);
+    this.timer = setInterval(() => {
+      this.checkAndFireDueSchedules(new Date()).catch((err) => {
+        console.error('SchedulerEngine tick failed:', err);
+      });
+    }, 60_000);
   }
 
   stop(): void {
