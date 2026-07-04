@@ -5,3 +5,4 @@ dist/
 .superpowers/
 data/
 .DS_Store
+.playwright-mcp/
