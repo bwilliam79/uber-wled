@@ -4,17 +4,18 @@ import { fetchLatestRelease } from '../../src/firmware/githubClient.js';
 
 const GITHUB_RESPONSE = [
   {
-    tag_name: 'v0.15.0',
-    published_at: '2026-06-01T00:00:00Z',
+    tag_name: 'v0.15.1-b3', prerelease: true, published_at: '2026-06-15T00:00:00Z',
+    assets: [{ name: 'WLED_0.15.1-b3_ESP32.bin', browser_download_url: 'https://example.com/beta-ESP32.bin' }]
+  },
+  {
+    tag_name: 'v0.15.0', prerelease: false, published_at: '2026-06-01T00:00:00Z',
     assets: [
       { name: 'WLED_0.15.0_ESP8266.bin', browser_download_url: 'https://example.com/ESP8266.bin' },
       { name: 'WLED_0.15.0_ESP32.bin', browser_download_url: 'https://example.com/ESP32.bin' }
     ]
   },
   {
-    tag_name: 'v0.14.0',
-    published_at: '2026-01-01T00:00:00Z',
-    assets: []
+    tag_name: 'v0.14.0', prerelease: false, published_at: '2026-01-01T00:00:00Z', assets: []
   }
 ];
 
@@ -81,5 +82,19 @@ describe('fetchLatestRelease', () => {
     vi.stubGlobal('fetch', failingFetch);
 
     await expect(fetchLatestRelease(db)).rejects.toThrow('rate limited');
+  });
+
+  it('selects the newest stable release by default, skipping pre-releases', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => GITHUB_RESPONSE }));
+    const release = await fetchLatestRelease(db);
+    expect(release.tag).toBe('v0.15.0');
+    expect(release.prerelease).toBe(false);
+  });
+
+  it('selects the newest release including pre-releases when includePrerelease is true', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => GITHUB_RESPONSE }));
+    const release = await fetchLatestRelease(db, { includePrerelease: true });
+    expect(release.tag).toBe('v0.15.1-b3');
+    expect(release.prerelease).toBe(true);
   });
 });

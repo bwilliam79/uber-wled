@@ -8,6 +8,7 @@ export interface ReleaseAsset {
 export interface WledRelease {
   tag: string;
   publishedAt: string;
+  prerelease: boolean;
   assets: ReleaseAsset[];
   fetchedAt: string;
 }
@@ -19,6 +20,7 @@ function fromRow(row: any): WledRelease {
   return {
     tag: row.tag,
     publishedAt: row.published_at,
+    prerelease: !!row.prerelease,
     assets: JSON.parse(row.assets),
     fetchedAt: row.fetched_at
   };
@@ -26,53 +28,62 @@ function fromRow(row: any): WledRelease {
 
 export function createReleaseCache(db: Database.Database) {
   return {
-    getLatest(): WledRelease | undefined {
-      const row = db.prepare('SELECT * FROM wled_releases ORDER BY fetched_at DESC LIMIT 1').get();
-      return row ? fromRow(row) : undefined;
+    list(): WledRelease[] {
+      return db.prepare('SELECT * FROM wled_releases ORDER BY published_at DESC').all().map(fromRow);
     },
-    save(release: WledRelease): void {
-      db.prepare(
-        `INSERT INTO wled_releases (tag, published_at, assets, fetched_at)
-         VALUES (?, ?, ?, ?)
-         ON CONFLICT(tag) DO UPDATE SET published_at = excluded.published_at, assets = excluded.assets, fetched_at = excluded.fetched_at`
-      ).run(release.tag, release.publishedAt, JSON.stringify(release.assets), release.fetchedAt);
+    saveAll(releases: WledRelease[]): void {
+      const stmt = db.prepare(
+        `INSERT INTO wled_releases (tag, published_at, prerelease, assets, fetched_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(tag) DO UPDATE SET published_at = excluded.published_at, prerelease = excluded.prerelease, assets = excluded.assets, fetched_at = excluded.fetched_at`
+      );
+      const tx = db.transaction((rows: WledRelease[]) => {
+        for (const r of rows) stmt.run(r.tag, r.publishedAt, r.prerelease ? 1 : 0, JSON.stringify(r.assets), r.fetchedAt);
+      });
+      tx(releases);
     }
   };
 }
 
-async function fetchFromGithub(): Promise<WledRelease> {
+async function fetchFromGithub(): Promise<WledRelease[]> {
   const res = await fetch(GITHUB_RELEASES_URL);
   if (!res.ok) throw new Error(`GitHub releases request failed: ${res.status}`);
   const releases = (await res.json()) as any[];
-  const newest = releases[0];
-  return {
-    tag: newest.tag_name,
-    publishedAt: newest.published_at,
-    assets: (newest.assets ?? []).map((a: any) => ({ name: a.name, downloadUrl: a.browser_download_url })),
-    fetchedAt: new Date().toISOString()
-  };
+  const fetchedAt = new Date().toISOString();
+  return releases.map((r) => ({
+    tag: r.tag_name,
+    publishedAt: r.published_at,
+    prerelease: !!r.prerelease,
+    assets: (r.assets ?? []).map((a: any) => ({ name: a.name, downloadUrl: a.browser_download_url })),
+    fetchedAt
+  }));
+}
+
+function selectLatest(releases: WledRelease[], includePrerelease: boolean): WledRelease {
+  const eligible = includePrerelease ? releases : releases.filter((r) => !r.prerelease);
+  const pool = eligible.length > 0 ? eligible : releases;
+  return pool[0];
 }
 
 export async function fetchLatestRelease(
   db: Database.Database,
-  opts: { forceRefresh?: boolean } = {}
+  opts: { forceRefresh?: boolean; includePrerelease?: boolean } = {}
 ): Promise<WledRelease> {
   const cache = createReleaseCache(db);
-  const cached = cache.getLatest();
-
-  const cacheIsFresh =
-    !!cached && Date.now() - new Date(cached.fetchedAt).getTime() < CACHE_MAX_AGE_MS;
+  const cached = cache.list();
+  const newestFetchedAt = cached[0]?.fetchedAt;
+  const cacheIsFresh = !!newestFetchedAt && Date.now() - new Date(newestFetchedAt).getTime() < CACHE_MAX_AGE_MS;
 
   if (cacheIsFresh && !opts.forceRefresh) {
-    return cached!;
+    return selectLatest(cached, !!opts.includePrerelease);
   }
 
   try {
-    const release = await fetchFromGithub();
-    cache.save(release);
-    return release;
+    const fresh = await fetchFromGithub();
+    cache.saveAll(fresh);
+    return selectLatest(cache.list(), !!opts.includePrerelease);
   } catch (err) {
-    if (cached) return cached;
+    if (cached.length > 0) return selectLatest(cached, !!opts.includePrerelease);
     throw err;
   }
 }
