@@ -99,15 +99,24 @@ export function LayoutSection() {
           {drawing ? (
             <StripPathEditor controllers={controllers} onComplete={handleComplete} onCancel={() => setDrawing(false)} />
           ) : (
-            <StripCanvas
-              strips={strips}
-              selected={selected}
-              staleControllerIds={staleControllerIds}
-              onSelectionChange={setSelected}
-              liveColors={liveColors}
-            >
-              <RoomLabelLayer labels={labels} onMove={handleMoveLabel} />
-            </StripCanvas>
+            <>
+              <StripCanvas
+                strips={strips}
+                selected={selected}
+                staleControllerIds={staleControllerIds}
+                onSelectionChange={setSelected}
+                liveColors={liveColors}
+              >
+                <RoomLabelLayer labels={labels} onMove={handleMoveLabel} />
+              </StripCanvas>
+              {strips.length === 0 && (
+                <p className="layout-canvas-hint">
+                  {controllers.length === 0
+                    ? 'Add a controller in Controllers, then come back here to draw your first strip.'
+                    : 'Click "Draw strip" above to trace your first LED strip onto the canvas.'}
+                </p>
+              )}
+            </>
           )}
         </div>
         <ControlPanel selectedMembers={selectedMembers} themes={themes} onApply={handleApply} />

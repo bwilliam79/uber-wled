@@ -57,68 +57,75 @@ export function WeeklyScheduleForm({
   }
 
   return (
-    <div className="add-controller-form">
+    <div className="schedule-form">
       <h4>New weekly schedule</h4>
-      <div className="field">
-        <label htmlFor="weekly-schedule-name">Name</label>
-        <input
-          id="weekly-schedule-name"
-          className="input"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Schedule name"
-        />
+      <div className="schedule-form-fields">
+        <div className="field field-grow">
+          <label htmlFor="weekly-schedule-name">Name</label>
+          <input
+            id="weekly-schedule-name"
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Schedule name"
+          />
+        </div>
+        <div className="field">
+          <label id="weekly-schedule-days-label">Days</label>
+          <div className="day-toggle-group" role="group" aria-labelledby="weekly-schedule-days-label">
+            {DAY_LABELS.map((label, day) => (
+              <label key={day} className={`day-toggle${days.has(day) ? ' active' : ''}`}>
+                <input type="checkbox" aria-label={label} checked={days.has(day)} onChange={() => toggleDay(day)} />
+                {label}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <label htmlFor="weekly-schedule-time">Time of day</label>
+          <input
+            id="weekly-schedule-time"
+            aria-label="time of day"
+            className="input"
+            type="time"
+            value={timeOfDay}
+            onChange={(e) => setTimeOfDay(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="weekly-schedule-group">Group</label>
+          <select id="weekly-schedule-group" aria-label="group" className="input" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+            {groups.map((g) => (
+              <option key={g.id} value={g.id}>{g.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="field">
+          <label htmlFor="weekly-schedule-theme">Theme</label>
+          <select id="weekly-schedule-theme" aria-label="theme" className="input" value={themeId} onChange={(e) => setThemeId(e.target.value)}>
+            {themes.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
       </div>
-      <div className="field">
-        {DAY_LABELS.map((label, day) => (
-          <label key={day}>
-            <input type="checkbox" aria-label={label} checked={days.has(day)} onChange={() => toggleDay(day)} />
-            {label}
-          </label>
-        ))}
-      </div>
-      <div className="field">
-        <label htmlFor="weekly-schedule-time">Time of day</label>
-        <input
-          id="weekly-schedule-time"
-          aria-label="time of day"
-          className="input"
-          type="time"
-          value={timeOfDay}
-          onChange={(e) => setTimeOfDay(e.target.value)}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="weekly-schedule-group">Group</label>
-        <select id="weekly-schedule-group" aria-label="group" className="input" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>{g.name}</option>
-          ))}
-        </select>
-      </div>
-      <div className="field">
-        <label htmlFor="weekly-schedule-theme">Theme</label>
-        <select id="weekly-schedule-theme" aria-label="theme" className="input" value={themeId} onChange={(e) => setThemeId(e.target.value)}>
-          {themes.map((t) => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
-      </div>
-      {!previewing && (
-        <button type="button" className="btn btn-primary" onClick={handlePreview}>
-          Preview
-        </button>
-      )}
-      {previewing && (
-        <>
-          <button type="button" className="btn btn-primary" onClick={onApprove}>
-            Approve
+      <div className="schedule-form-actions">
+        {!previewing && (
+          <button type="button" className="btn btn-primary" onClick={handlePreview}>
+            Preview
           </button>
-          <button type="button" className="btn btn-secondary" onClick={onDiscard}>
-            Discard
-          </button>
-        </>
-      )}
+        )}
+        {previewing && (
+          <>
+            <button type="button" className="btn btn-primary" onClick={onApprove}>
+              Approve
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={onDiscard}>
+              Discard
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

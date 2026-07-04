@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+
 export function AssetPickerModal({
   assets,
   onPick,
@@ -7,21 +9,34 @@ export function AssetPickerModal({
   onPick: (assetName: string) => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onCancel();
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onCancel]);
+
   return (
-    <div role="dialog" className="asset-picker-modal">
-      <h4>Pick the correct firmware asset for this controller</h4>
-      <ul className="asset-picker-list">
-        {assets.map((a) => (
-          <li key={a.name}>
-            <button type="button" className="btn btn-secondary" onClick={() => onPick(a.name)}>
-              {a.name}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button type="button" className="btn btn-secondary" onClick={onCancel}>
-        Cancel
-      </button>
+    <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
+      <div role="dialog" aria-modal="true" aria-labelledby="asset-picker-heading" className="asset-picker-modal">
+        <h4 id="asset-picker-heading">Pick the correct firmware asset for this controller</h4>
+        <p className="controller-meta">
+          Ambiguous chip family — choose the exact asset for this device. This is remembered for future updates.
+        </p>
+        <ul className="asset-picker-list">
+          {assets.map((a) => (
+            <li key={a.name}>
+              <button type="button" className="btn btn-secondary asset-picker-option" onClick={() => onPick(a.name)}>
+                {a.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button type="button" className="btn btn-secondary" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
