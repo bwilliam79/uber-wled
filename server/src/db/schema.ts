@@ -85,5 +85,14 @@ export function runMigrations(db: Database.Database): void {
       assets TEXT NOT NULL,
       fetched_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      include_prerelease_firmware INTEGER NOT NULL DEFAULT 0,
+      home_latitude REAL,
+      home_longitude REAL,
+      discovery_rescan_interval_minutes INTEGER NOT NULL DEFAULT 5,
+      schedule_import_disable_on_device_default INTEGER NOT NULL DEFAULT 0
+    );
   `);
 }
