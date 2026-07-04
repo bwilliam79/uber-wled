@@ -114,6 +114,22 @@ export function SettingsSection() {
           Default "disable on device" when importing WLED schedules
         </label>
 
+        <div className="field">
+          <label htmlFor="settings-status-poll-interval">Controller status poll interval (minutes)</label>
+          <input
+            id="settings-status-poll-interval"
+            aria-label="Controller status poll interval (minutes)"
+            className="input"
+            type="number"
+            min={1}
+            value={settings.controllerStatusPollIntervalMinutes}
+            onChange={(e) => patch('controllerStatusPollIntervalMinutes', Number(e.target.value))}
+          />
+          <span className="field-hint">
+            How often each controller's current state (power, brightness, effect, segments) is read and cached
+          </span>
+        </div>
+
         <div className="settings-actions">
           <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving}>
             {saving ? 'Saving…' : 'Save settings'}

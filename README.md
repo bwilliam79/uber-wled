@@ -62,9 +62,18 @@ Themes, Schedule, Firmware, Settings** — opening on Layout by default.
   Offline controllers show "Controller offline" rather than hanging.
 - **Settings**: global configuration that used to have no home — include
   pre-release firmware builds (default off), home latitude/longitude for
-  sunset/sunrise-relative scheduling, the discovery re-scan interval + a
-  manual "Re-scan now", and the default "disable on device" for WLED
-  schedule import.
+  sunset/sunrise-relative scheduling, the discovery re-scan interval, the
+  controller status poll interval, a manual "Re-scan now", and the default
+  "disable on device" for WLED schedule import.
+- **Controller status polling**: a background job reads each controller's
+  current info + state (name, firmware version, power/brightness/effect,
+  segments) on an interval (configurable in Settings, default 5 minutes) and
+  caches the latest snapshot per controller, exposed via
+  `GET /api/controllers/:id/status`. This runs independently of — and is not
+  a replacement for — the Layout page's own 5-second live-color polling used
+  while actively editing the canvas; it exists so other parts of the UI can
+  read a controller's current config cheaply without a live device round
+  trip.
 - **WLED schedule import**: one-time best-effort import of a controller's
   existing time-based presets into an uber-wled weekly schedule, with an
   option to clear the schedule on the device afterward.
