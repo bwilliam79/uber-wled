@@ -3,12 +3,14 @@ import { createDb } from './db/client.js';
 import { runDiscoveryCycle } from './discovery/service.js';
 import { SchedulerEngine } from './schedules/engine.js';
 import { applyToMembers } from './control/routes.js';
+import { seedHolidaysIfEmpty } from './calendar/repository.js';
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 const DB_PATH = process.env.DB_PATH ?? './data/uber-wled.db';
 const DISCOVERY_INTERVAL_MS = 5 * 60_000;
 
 const db = createDb(DB_PATH);
+seedHolidaysIfEmpty(db);
 const app = createApp(db);
 
 app.listen(PORT, () => {

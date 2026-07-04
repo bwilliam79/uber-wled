@@ -9,6 +9,7 @@ import { createGroupsRouter } from './groups/routes.js';
 import { createThemesRouter } from './themes/routes.js';
 import { createControlRouter } from './control/routes.js';
 import { createSchedulesRouter } from './schedules/routes.js';
+import { createCalendarRouter } from './calendar/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
@@ -28,6 +29,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/themes', createThemesRouter(db));
   app.use('/api/control', createControlRouter(db));
   app.use('/api/schedules', createSchedulesRouter(db));
+  app.use('/api/calendar-events', createCalendarRouter(db));
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {
