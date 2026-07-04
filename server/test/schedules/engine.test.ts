@@ -92,6 +92,44 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
     expect(applyFn).toHaveBeenCalledTimes(1); // not double-fired for the same minute
   });
 
+  it('does not double-fire when two ticks overlap because applyFn is slow (race condition regression)', async () => {
+    // Regression test for a check-then-act race: start() invokes
+    // checkAndFireDueSchedules() from setInterval without awaiting it, so if
+    // applyFn takes longer than the tick interval (e.g. a controller is
+    // offline and every HTTP call times out), a second invocation could
+    // previously start reading `lastFired` before the first invocation had
+    // finished awaiting applyFn and updating `lastFired` — causing the same
+    // schedule to fire twice for the same minute.
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Every 10am', triggerType: 'cron', cronExpr: '0 10 * * *',
+      daysOfWeek: null, timeOfDay: null, offsetMinutes: 0,
+      latitude: null, longitude: null, groupId, actionType: 'power',
+      actionPayload: { on: true }, enabled: true
+    });
+
+    const slowApplyFn = vi.fn().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          // Resolve after 100ms to simulate a slow/offline controller whose
+          // HTTP call (with a retry) takes longer than a single tick.
+          setTimeout(() => resolve([{ controllerId, wledSegId: 0, ok: true }]), 100);
+        })
+    );
+    const engine = new SchedulerEngine(db, slowApplyFn);
+    const tenAM = new Date('2026-07-04T10:00:00');
+
+    // Fire two overlapping invocations without awaiting between them, just
+    // like an un-awaited setInterval callback firing again before the prior
+    // tick's applyFn call has resolved.
+    const first = engine.checkAndFireDueSchedules(tenAM);
+    const second = engine.checkAndFireDueSchedules(tenAM);
+
+    await Promise.all([first, second]);
+
+    expect(slowApplyFn).toHaveBeenCalledTimes(1);
+  });
+
   it('does not fire a disabled schedule', async () => {
     const schedules = createScheduleRepository(db);
     schedules.add({
