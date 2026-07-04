@@ -74,7 +74,7 @@ describe('control routes', () => {
   });
 
   it('isolates a failure to one controller and retries once before giving up', async () => {
-    stubFetchByHost({
+    const fetchMock = stubFetchByHost({
       [HOST_A]: () => ({ status: 200, body: { on: true, bri: 200, ps: -1, seg: [] } }),
       [HOST_B]: () => ({ status: 500, body: {} })
     });
@@ -91,6 +91,9 @@ describe('control routes', () => {
     expect(res.body.results[0]).toEqual({ controllerId: controllerA, wledSegId: 0, ok: true });
     expect(res.body.results[1].ok).toBe(false);
     expect(res.body.results[1].error).toBeTruthy();
+
+    const hostBCalls = fetchMock.mock.calls.filter(([url]) => new URL(url as string).host === HOST_B);
+    expect(hostBCalls.length).toBe(2);
   });
 
   it('applies a custom theme by resolving its stored effect/palette/color/brightness', async () => {
