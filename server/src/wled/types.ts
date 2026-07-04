@@ -21,6 +21,7 @@ export interface WledInfo {
   name: string;
   ver: string;
   leds: { count: number };
+  arch: string;
 }
 
 export interface WledPreset {
