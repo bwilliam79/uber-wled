@@ -6,6 +6,7 @@ import { ThemeManager } from './ThemeManager';
 import { LayoutSection } from './LayoutSection';
 import { ScheduleSection } from './ScheduleSection';
 import { FirmwareSection } from './FirmwareSection';
+import { SettingsSection } from './SettingsSection';
 
 const DEFAULT_SECTION: SectionKey = 'layout';
 const KEYS = SECTIONS.map((s) => s.key);
@@ -40,6 +41,7 @@ export function AppShell() {
         {active === 'themes' && <ThemeManager />}
         {active === 'schedule' && <ScheduleSection />}
         {active === 'firmware' && <FirmwareSection />}
+        {active === 'settings' && <SettingsSection />}
       </main>
     </div>
   );

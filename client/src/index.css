@@ -822,3 +822,17 @@ button, input {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Settings form ---------- */
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 480px;
+}
+
+.settings-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
