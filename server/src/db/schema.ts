@@ -4,6 +4,7 @@ export function runMigrations(db: Database.Database): void {
   db.exec(`
     DROP TABLE IF EXISTS placements;
     DROP TABLE IF EXISTS floorplans;
+    DROP TABLE IF EXISTS wled_releases;
 
     CREATE TABLE IF NOT EXISTS controllers (
       id TEXT PRIMARY KEY,
@@ -82,6 +83,7 @@ export function runMigrations(db: Database.Database): void {
     CREATE TABLE IF NOT EXISTS wled_releases (
       tag TEXT PRIMARY KEY,
       published_at TEXT NOT NULL,
+      prerelease INTEGER NOT NULL DEFAULT 0,
       assets TEXT NOT NULL,
       fetched_at TEXT NOT NULL
     );
