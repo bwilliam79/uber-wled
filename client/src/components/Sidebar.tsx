@@ -1,13 +1,14 @@
 import { type ReactElement } from 'react';
-import { LightbulbIcon, GridIcon, UsersIcon, PaletteIcon, CalendarIcon, ChipIcon, GearIcon } from './icons';
+import { LightbulbIcon, GridIcon, UsersIcon, PaletteIcon, CalendarIcon, ChipIcon, GearIcon, HomeIcon } from './icons';
 
-export type SectionKey = 'layout' | 'controllers' | 'groups' | 'themes' | 'schedule' | 'firmware' | 'settings';
+export type SectionKey = 'home' | 'layout' | 'controllers' | 'groups' | 'themes' | 'schedule' | 'firmware' | 'settings';
 
 type IconComp = (p: { className?: string }) => ReactElement;
 
 // Later tasks add layout/schedule/firmware/settings entries. Order here is the
 // order shown in the rail.
 export const SECTIONS: { key: SectionKey; label: string; Icon: IconComp }[] = [
+  { key: 'home', label: 'Home', Icon: HomeIcon },
   { key: 'layout', label: 'Layout', Icon: GridIcon },
   { key: 'controllers', label: 'Controllers', Icon: LightbulbIcon },
   { key: 'groups', label: 'Groups', Icon: UsersIcon },
