@@ -6,11 +6,11 @@ afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
 describe('AppShell', () => {
-  it('opens on the Layout section by default and lists all seven sections', async () => {
+  it('opens on the Home section by default and lists all eight sections', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
     render(<AppShell />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Layout/ }).className).toContain('active'));
-    for (const name of ['Layout', 'Controllers', 'Groups', 'Themes', 'Schedule', 'Firmware', 'Settings']) {
+    await waitFor(() => expect(screen.getByRole('button', { name: /Home/ }).className).toContain('active'));
+    for (const name of ['Home', 'Layout', 'Controllers', 'Groups', 'Themes', 'Schedule', 'Firmware', 'Settings']) {
       expect(screen.getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
   });

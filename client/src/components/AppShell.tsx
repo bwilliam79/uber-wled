@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Sidebar, SECTIONS, type SectionKey } from './Sidebar';
+import { HomeSection } from './HomeSection';
 import { ControllersSection } from './ControllersSection';
 import { GroupManager } from './GroupManager';
 import { ThemeManager } from './ThemeManager';
@@ -9,7 +10,7 @@ import { FirmwareSection } from './FirmwareSection';
 import { SettingsSection } from './SettingsSection';
 import { listControllers, getFirmwareStatus } from '../api/client';
 
-const DEFAULT_SECTION: SectionKey = 'layout';
+const DEFAULT_SECTION: SectionKey = 'home';
 const KEYS = SECTIONS.map((s) => s.key);
 const FIRMWARE_CHECK_INTERVAL_MS = 60_000;
 
@@ -67,6 +68,7 @@ export function AppShell() {
         badges={{ firmware: firmwareUpdateAvailable }}
       />
       <main className="app-main">
+        {active === 'home' && <HomeSection />}
         {active === 'layout' && <LayoutSection />}
         {active === 'controllers' && <ControllersSection />}
         {active === 'groups' && <GroupManager />}
