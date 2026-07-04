@@ -3,8 +3,9 @@ import { Sidebar, SECTIONS, type SectionKey } from './Sidebar';
 import { ControllersSection } from './ControllersSection';
 import { GroupManager } from './GroupManager';
 import { ThemeManager } from './ThemeManager';
+import { LayoutSection } from './LayoutSection';
 
-const DEFAULT_SECTION: SectionKey = 'controllers';
+const DEFAULT_SECTION: SectionKey = 'layout';
 const KEYS = SECTIONS.map((s) => s.key);
 
 function sectionFromHash(): SectionKey {
@@ -31,6 +32,7 @@ export function AppShell() {
     <div className="app-shell">
       <Sidebar active={active} onNavigate={navigate} collapsed={collapsed} onToggleCollapsed={() => setCollapsed((c) => !c)} />
       <main className="app-main">
+        {active === 'layout' && <LayoutSection />}
         {active === 'controllers' && <ControllersSection />}
         {active === 'groups' && <GroupManager />}
         {active === 'themes' && <ThemeManager />}

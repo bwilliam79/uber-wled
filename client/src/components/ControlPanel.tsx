@@ -12,8 +12,9 @@ export function ControlPanel({
   const disabled = selectedMembers.length === 0;
 
   return (
-    <div className="card control-panel">
+    <div className="card control-panel docked">
       <h3>Control ({selectedMembers.length} selected)</h3>
+      {disabled && <p className="empty-state">Select a strip to control it.</p>}
       <div className="control-panel-buttons">
         <button
           type="button"

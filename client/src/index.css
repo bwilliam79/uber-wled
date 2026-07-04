@@ -637,3 +637,44 @@ button, input {
   stroke-width: 0.4;
   stroke-dasharray: 1 1;
 }
+
+/* ---------- Layout section ---------- */
+
+.layout-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.layout-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.layout-body {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+.layout-canvas-wrap {
+  min-width: 0;
+}
+
+.control-panel.docked {
+  position: sticky;
+  top: var(--space-lg);
+}
+
+.strip-canvas.draw {
+  cursor: crosshair;
+}
+
+@media (max-width: 720px) {
+  .layout-body {
+    grid-template-columns: 1fr;
+  }
+}
