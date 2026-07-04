@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { importSchedules, type Controller } from '../api/client';
 import { LightbulbIcon, TrashIcon } from './icons';
-import { FirmwareStatus } from './FirmwareStatus';
 
 function ImportSchedules({ controllerId }: { controllerId: string }) {
   const [disableOnDevice, setDisableOnDevice] = useState(false);
@@ -75,7 +74,6 @@ export function ControllerList({
             <TrashIcon />
             Remove
           </button>
-          <FirmwareStatus controllerId={c.id} />
           <ImportSchedules controllerId={c.id} />
         </li>
       ))}

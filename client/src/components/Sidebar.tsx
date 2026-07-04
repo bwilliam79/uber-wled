@@ -21,12 +21,14 @@ export function Sidebar({
   active,
   onNavigate,
   collapsed,
-  onToggleCollapsed
+  onToggleCollapsed,
+  badges
 }: {
   active: SectionKey;
   onNavigate: (s: SectionKey) => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  badges?: Partial<Record<SectionKey, boolean>>;
 }) {
   return (
     <nav className={`sidebar${collapsed ? ' collapsed' : ''}`} aria-label="Sections">
@@ -43,7 +45,10 @@ export function Sidebar({
               aria-current={active === key ? 'page' : undefined}
               onClick={() => onNavigate(key)}
             >
-              <Icon className="sidebar-link-icon" />
+              <span className="sidebar-link-icon-wrap">
+                <Icon className="sidebar-link-icon" />
+                {badges?.[key] && <span className="sidebar-link-badge" title="Update available" />}
+              </span>
               <span className="sidebar-link-label">{label}</span>
             </button>
           </li>

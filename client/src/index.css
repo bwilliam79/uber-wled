@@ -567,10 +567,27 @@ button, input {
   border-color: rgba(34, 197, 94, 0.35);
 }
 
+.sidebar-link-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
 .sidebar-link-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;
+}
+
+.sidebar-link-badge {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-surface);
 }
 
 .sidebar-collapse-toggle {

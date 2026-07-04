@@ -4,21 +4,8 @@ import { ControllerList } from '../components/ControllerList';
 
 afterEach(() => vi.unstubAllGlobals());
 
-const firmwareResponse = {
-  ok: true,
-  json: async () => ({
-    installedVersion: '0.14.0',
-    latestTag: 'v0.14.0',
-    updateAvailable: false,
-    pinnedAssetPattern: null,
-    candidateAssets: []
-  })
-};
-
 describe('ControllerList', () => {
   it("renders each controller's name and host", () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(firmwareResponse));
-
     render(
       <ControllerList
         controllers={[
@@ -33,6 +20,19 @@ describe('ControllerList', () => {
     expect(screen.getByText(/stale/i)).toBeTruthy();
   });
 
+  it('does not show firmware details — that belongs to the Firmware section only', () => {
+    render(
+      <ControllerList
+        controllers={[
+          { id: '1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null }
+        ]}
+        onDelete={vi.fn()}
+      />
+    );
+    expect(screen.queryByText(/installed:/i)).toBeNull();
+    expect(screen.queryByText(/update available/i)).toBeNull();
+  });
+
   it('imports schedules for a controller and shows the imported/skipped counts', async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (typeof url === 'string' && url.includes('import-schedules')) {
@@ -44,7 +44,7 @@ describe('ControllerList', () => {
           })
         });
       }
-      return Promise.resolve(firmwareResponse);
+      return Promise.resolve({ ok: true, json: async () => ({}) });
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -73,7 +73,7 @@ describe('ControllerList', () => {
       if (typeof url === 'string' && url.includes('import-schedules')) {
         return Promise.resolve({ ok: true, json: async () => ({ imported: [], skipped: [] }) });
       }
-      return Promise.resolve(firmwareResponse);
+      return Promise.resolve({ ok: true, json: async () => ({}) });
     });
     vi.stubGlobal('fetch', fetchMock);
 
