@@ -74,6 +74,35 @@ export interface Placement {
   lengthMeters: number | null;
 }
 
+export type DateRule =
+  | { kind: 'fixed'; month: number; day: number }
+  | { kind: 'nthWeekday'; month: number; weekday: number; n: number }
+  | { kind: 'lastWeekday'; month: number; weekday: number }
+  | { kind: 'easterOffset'; offsetDays: number }
+  | { kind: 'oneOff'; year: number; month: number; day: number };
+
+export interface CalendarEvent {
+  id: string;
+  name: string;
+  category: 'holiday' | 'custom';
+  dateRule: DateRule;
+  recursYearly: boolean;
+  enabled: boolean;
+  groupId: string | null;
+  triggerTime: { type: 'fixed'; time: string } | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
+  actionType: 'power' | 'brightness' | 'preset' | 'theme' | null;
+  actionPayload: unknown;
+}
+
+export class ConflictError extends Error {
+  conflict: { id: string; name: string; month: number; day: number };
+
+  constructor(message: string, conflict: { id: string; name: string; month: number; day: number }) {
+    super(message);
+    this.conflict = conflict;
+  }
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`GET ${url} failed`);
@@ -118,6 +147,38 @@ export const deleteSchedule = (id: string) => fetch(`/api/schedules/${id}`, { me
 export const applyControl = (members: GroupMember[], action: ControlAction) =>
   sendJson<{ results: { controllerId: string; wledSegId: number; ok: boolean; error?: string }[] }>(
     '/api/control/apply', 'POST', { members, action }
+  );
+
+export const listCalendarEvents = () => getJson<CalendarEvent[]>('/api/calendar-events');
+
+async function sendCalendarEvent(
+  url: string,
+  method: string,
+  body: unknown
+): Promise<CalendarEvent> {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (res.status === 409) {
+    const payload = await res.json();
+    throw new ConflictError(payload.error, payload.conflict);
+  }
+  if (!res.ok) throw new Error(`${method} ${url} failed`);
+  return res.json();
+}
+
+export const addCalendarEvent = (input: Omit<CalendarEvent, 'id'>) =>
+  sendCalendarEvent('/api/calendar-events', 'POST', input);
+export const updateCalendarEvent = (id: string, patch: Partial<Omit<CalendarEvent, 'id'>>) =>
+  sendCalendarEvent(`/api/calendar-events/${id}`, 'PATCH', patch);
+export const deleteCalendarEvent = (id: string) =>
+  fetch(`/api/calendar-events/${id}`, { method: 'DELETE' });
+
+export const getSegmentsSnapshot = (controllerId: string) =>
+  getJson<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][] }[]>(
+    `/api/controllers/${controllerId}/segments`
   );
 
 export const listFloorplans = () => getJson<Floorplan[]>('/api/floorplans');

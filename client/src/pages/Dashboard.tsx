@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import {
   listControllers, deleteController, addController, listFloorplans,
-  type Controller, type Floorplan
+  listCalendarEvents, updateCalendarEvent, deleteCalendarEvent, listGroups, listThemes,
+  type Controller, type Floorplan, type CalendarEvent, type Group, type CustomTheme
 } from '../api/client';
 import { ControllerList } from '../components/ControllerList';
 import { GroupManager } from '../components/GroupManager';
 import { ThemeManager } from '../components/ThemeManager';
 import { ScheduleManager } from '../components/ScheduleManager';
+import { CalendarEventList } from '../components/CalendarEventList';
+import { CalendarEventForm } from '../components/CalendarEventForm';
 import { LightbulbIcon, AlertIcon } from '../components/icons';
 import { FloorplanEditor } from './FloorplanEditor';
 
@@ -17,11 +20,30 @@ export function Dashboard() {
   const [name, setName] = useState('');
   const [host, setHost] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [calendarGroups, setCalendarGroups] = useState<Group[]>([]);
+  const [calendarThemes, setCalendarThemes] = useState<CustomTheme[]>([]);
 
   useEffect(() => {
     listControllers().then(setControllers).catch((e) => setError(e.message));
     listFloorplans().then(setFloorplans);
   }, []);
+
+  useEffect(() => {
+    listCalendarEvents().then(setCalendarEvents);
+    listGroups().then(setCalendarGroups);
+    listThemes().then(setCalendarThemes);
+  }, []);
+
+  async function handleToggleEventEnabled(id: string, enabled: boolean) {
+    const updated = await updateCalendarEvent(id, { enabled });
+    setCalendarEvents((prev) => prev.map((e) => (e.id === id ? updated : e)));
+  }
+
+  async function handleDeleteEvent(id: string) {
+    await deleteCalendarEvent(id);
+    setCalendarEvents((prev) => prev.filter((e) => e.id !== id));
+  }
 
   async function handleAdd() {
     if (!name || !host) return;
@@ -129,6 +151,8 @@ export function Dashboard() {
       <GroupManager />
       <ThemeManager />
       <ScheduleManager />
+      <CalendarEventList events={calendarEvents} onToggleEnabled={handleToggleEventEnabled} onDelete={handleDeleteEvent} />
+      <CalendarEventForm groups={calendarGroups} themes={calendarThemes} onCreated={(e) => setCalendarEvents((prev) => [...prev, e])} />
     </div>
   );
 }
