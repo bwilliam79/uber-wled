@@ -7,7 +7,8 @@ export function runMigrations(db: Database.Database): void {
       name TEXT NOT NULL,
       host TEXT NOT NULL UNIQUE,
       source TEXT NOT NULL CHECK (source IN ('discovered','manual')),
-      stale INTEGER NOT NULL DEFAULT 0
+      stale INTEGER NOT NULL DEFAULT 0,
+      pinned_asset_pattern TEXT
     );
 
     CREATE TABLE IF NOT EXISTS floorplans (
@@ -79,6 +80,13 @@ export function runMigrations(db: Database.Database): void {
       trigger_time TEXT NOT NULL,
       action_type TEXT CHECK (action_type IN ('preset','theme','power','brightness')),
       action_payload TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS wled_releases (
+      tag TEXT PRIMARY KEY,
+      published_at TEXT NOT NULL,
+      assets TEXT NOT NULL,
+      fetched_at TEXT NOT NULL
     );
   `);
 }
