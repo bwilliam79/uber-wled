@@ -6,6 +6,7 @@ import { createSegmentsRouter } from './segments/routes.js';
 import { createFloorplansRouter } from './floorplans/routes.js';
 import { createPlacementsRouter } from './placements/routes.js';
 import { createGroupsRouter } from './groups/routes.js';
+import { createThemesRouter } from './themes/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
@@ -22,6 +23,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/floorplans', createFloorplansRouter(db, UPLOAD_DIR));
   app.use('/api/floorplans/:floorplanId/placements', createPlacementsRouter(db));
   app.use('/api/groups', createGroupsRouter(db));
+  app.use('/api/themes', createThemesRouter(db));
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {
