@@ -4,6 +4,7 @@ export interface Controller {
   host: string;
   source: 'discovered' | 'manual';
   stale: boolean;
+  pinnedAssetPattern: string | null;
 }
 
 export interface GroupMember {
@@ -124,6 +125,11 @@ export const addController = (name: string, host: string) =>
   sendJson<Controller>('/api/controllers', 'POST', { name, host });
 export const deleteController = (id: string) =>
   fetch(`/api/controllers/${id}`, { method: 'DELETE' });
+
+export const importSchedules = (controllerId: string, disableOnDevice: boolean) =>
+  sendJson<{ imported: Schedule[]; skipped: { raw: unknown; reason: string }[] }>(
+    `/api/controllers/${controllerId}/import-schedules`, 'POST', { disableOnDevice }
+  );
 
 export const listGroups = () => getJson<Group[]>('/api/groups');
 export const addGroup = (name: string, members: GroupMember[]) =>
