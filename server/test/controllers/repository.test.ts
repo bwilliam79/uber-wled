@@ -34,4 +34,12 @@ describe('controller repository', () => {
     repo.remove(created.id);
     expect(repo.list()).toEqual([]);
   });
+
+  it('stores and reads a pinned asset pattern, defaulting to null', () => {
+    const created = repo.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' });
+    expect(created.pinnedAssetPattern).toBeNull();
+
+    repo.setPinnedAssetPattern(created.id, 'ESP02');
+    expect(repo.list()[0].pinnedAssetPattern).toBe('ESP02');
+  });
 });

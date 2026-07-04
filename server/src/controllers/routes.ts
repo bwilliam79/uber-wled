@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
 import { importSchedules } from './scheduleImport.js';
+import { createFirmwareRouter } from '../firmware/routes.js';
 
 export function createControllersRouter(db: Database.Database): Router {
   const router = Router();
@@ -34,6 +35,8 @@ export function createControllersRouter(db: Database.Database): Router {
       res.status(status).json({ error: err.message });
     }
   });
+
+  router.use('/:id/firmware', createFirmwareRouter(db));
 
   return router;
 }
