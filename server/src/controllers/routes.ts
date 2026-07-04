@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
+import { createControllerStatusRepository } from './statusRepository.js';
 import { importSchedules } from './scheduleImport.js';
 import { createFirmwareRouter } from '../firmware/routes.js';
 import { assertValidHost } from './validateHost.js';
@@ -8,6 +9,7 @@ import { assertValidHost } from './validateHost.js';
 export function createControllersRouter(db: Database.Database): Router {
   const router = Router();
   const repo = createControllerRepository(db);
+  const statusRepo = createControllerStatusRepository(db);
 
   router.get('/', (_req, res) => {
     res.json(repo.list());
@@ -30,6 +32,16 @@ export function createControllersRouter(db: Database.Database): Router {
   router.delete('/:id', (req, res) => {
     repo.remove(req.params.id);
     res.status(204).end();
+  });
+
+  router.get('/:id/status', (req, res) => {
+    const controller = repo.list().find((c) => c.id === req.params.id);
+    if (!controller) return res.status(404).json({ error: 'controller not found' });
+
+    const cached = statusRepo.get(controller.id);
+    res.json(
+      cached ?? { controllerId: controller.id, reachable: false, info: null, state: null, polledAt: null }
+    );
   });
 
   router.post('/:id/import-schedules', async (req, res) => {

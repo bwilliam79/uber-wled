@@ -6,7 +6,8 @@ afterEach(() => vi.unstubAllGlobals());
 
 const initial = {
   includePrereleaseFirmware: false, homeLatitude: null, homeLongitude: null,
-  discoveryRescanIntervalMinutes: 5, scheduleImportDisableOnDeviceDefault: false
+  discoveryRescanIntervalMinutes: 5, scheduleImportDisableOnDeviceDefault: false,
+  controllerStatusPollIntervalMinutes: 5
 };
 
 describe('SettingsSection', () => {
