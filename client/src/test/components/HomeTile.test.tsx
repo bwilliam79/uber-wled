@@ -15,7 +15,7 @@ describe('HomeTile', () => {
       />
     );
     expect(screen.getByText('Kitchen')).toBeTruthy();
-    expect(screen.getByText('On')).toBeTruthy();
+    expect(screen.getByText('On now')).toBeTruthy();
     expect(screen.getByText('200 / 255')).toBeTruthy();
     expect(screen.queryByText('offline')).toBeNull();
   });
