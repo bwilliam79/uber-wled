@@ -1009,3 +1009,29 @@ button, input {
   display: flex;
   gap: var(--space-sm);
 }
+
+/* ---------- Home section ---------- */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.home-banner {
+  color: var(--color-foreground-muted);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.home-ungrouped-heading {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-foreground-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--space-lg) 0 var(--space-sm);
+}
