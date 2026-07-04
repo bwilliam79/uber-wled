@@ -1,6 +1,7 @@
 import { createApp } from './app.js';
 import { createDb } from './db/client.js';
 import { runDiscoveryCycle } from './discovery/service.js';
+import { pollAllControllerStatus } from './controllers/statusPoller.js';
 import { SchedulerEngine } from './schedules/engine.js';
 import { applyToMembers } from './control/routes.js';
 import { seedHolidaysIfEmpty } from './calendar/repository.js';
@@ -22,6 +23,11 @@ const intervalMinutes = settings.get().discoveryRescanIntervalMinutes;
 
 runDiscoveryCycle(db);
 setInterval(() => runDiscoveryCycle(db), Math.max(1, intervalMinutes) * 60_000);
+
+const statusPollIntervalMinutes = settings.get().controllerStatusPollIntervalMinutes;
+
+pollAllControllerStatus(db);
+setInterval(() => pollAllControllerStatus(db), Math.max(1, statusPollIntervalMinutes) * 60_000);
 
 const scheduler = new SchedulerEngine(db, (members, action) => applyToMembers(db, members, action as any));
 scheduler.start();

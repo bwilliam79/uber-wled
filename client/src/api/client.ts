@@ -212,7 +212,31 @@ export interface Settings {
   homeLongitude: number | null;
   discoveryRescanIntervalMinutes: number;
   scheduleImportDisableOnDeviceDefault: boolean;
+  controllerStatusPollIntervalMinutes: number;
 }
+
+export interface WledSegmentSnapshot {
+  id: number;
+  start: number;
+  stop: number;
+  len: number;
+  on: boolean;
+  bri: number;
+  fx: number;
+  pal: number;
+  col: number[][];
+}
+
+export interface ControllerStatus {
+  controllerId: string;
+  reachable: boolean;
+  info: { name: string; ver: string; leds: { count: number }; arch: string } | null;
+  state: { on: boolean; bri: number; ps: number; seg: WledSegmentSnapshot[] } | null;
+  polledAt: string | null;
+}
+
+export const getControllerStatus = (controllerId: string) =>
+  getJson<ControllerStatus>(`/api/controllers/${controllerId}/status`);
 
 export const listStrips = () => getJson<Strip[]>('/api/strips');
 export const addStrip = (input: { controllerId: string; wledSegId: number; points: { x: number; y: number }[]; label?: string | null }) =>

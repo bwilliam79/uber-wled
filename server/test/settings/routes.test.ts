@@ -24,7 +24,8 @@ describe('settings routes', () => {
       homeLatitude: null,
       homeLongitude: null,
       discoveryRescanIntervalMinutes: 5,
-      scheduleImportDisableOnDeviceDefault: false
+      scheduleImportDisableOnDeviceDefault: false,
+      controllerStatusPollIntervalMinutes: 5
     });
   });
 
