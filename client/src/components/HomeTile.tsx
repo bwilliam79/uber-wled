@@ -2,8 +2,8 @@ import type { CustomTheme, ControlAction } from '../api/client';
 import type { TileMember, TileStatus } from '../lib/tileStatus';
 
 const POWER_LABEL: Record<TileStatus['power'], string> = {
-  on: 'On',
-  off: 'Off',
+  on: 'On now',
+  off: 'Off now',
   mixed: 'Mixed',
   unknown: '—'
 };
@@ -32,9 +32,7 @@ export function HomeTile({
         {status.anyOffline && <span className="badge badge-stale">offline</span>}
       </div>
       <div className="home-tile-status">
-        {status.power !== 'on' && status.power !== 'off' && (
-          <span className="controller-meta">{POWER_LABEL[status.power]}</span>
-        )}
+        <span className="controller-meta">{POWER_LABEL[status.power]}</span>
         {status.brightness !== null && (
           <span className="controller-meta">{status.brightness} / 255</span>
         )}
