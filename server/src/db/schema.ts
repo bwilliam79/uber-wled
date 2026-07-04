@@ -22,6 +22,13 @@ export function runMigrations(db: Database.Database): void {
       label TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS room_labels (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      x REAL NOT NULL,
+      y REAL NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS groups (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL

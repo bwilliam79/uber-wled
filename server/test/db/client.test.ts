@@ -14,6 +14,7 @@ describe('createDb', () => {
       'controllers',
       'group_members',
       'groups',
+      'room_labels',
       'schedules',
       'strips',
       'themes',
