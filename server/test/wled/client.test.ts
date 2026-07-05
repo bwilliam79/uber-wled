@@ -86,4 +86,27 @@ describe('wled client', () => {
     stubFetchOnce({ url: `http://${HOST}/json/pal` }, ['Default', 'Random Cycle', 'Sunset']);
     expect(await getPalettes(HOST)).toEqual(['Default', 'Random Cycle', 'Sunset']);
   });
+
+  it('setState forwards the full widened patch verbatim (nightlight, udpn nn, transition, full segment fields)', async () => {
+    const patch = {
+      on: true,
+      bri: 190,
+      transition: 7,
+      mainseg: 0,
+      nl: { on: true, dur: 30, mode: 1 as const, tbri: 10 },
+      udpn: { nn: true },
+      seg: [{
+        id: 0, start: 0, stop: 48, grp: 1, spc: 0, of: 0, on: true, frz: false,
+        bri: 255, cct: 127, n: 'Cabinet', col: [[255, 160, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
+        fx: 65, sx: 128, ix: 112, pal: 6, c1: 0, c2: 128, c3: 16,
+        sel: true, rev: false, mi: false, o1: true, o2: false, o3: true
+      }]
+    };
+    stubFetchOnce(
+      { url: `http://${HOST}/json/state`, method: 'POST', body: patch },
+      { on: true, bri: 190, ps: -1, seg: [] }
+    );
+    const state = await setState(HOST, patch);
+    expect(state.bri).toBe(190);
+  });
 });
