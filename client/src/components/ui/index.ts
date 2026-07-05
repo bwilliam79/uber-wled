@@ -21,3 +21,7 @@ export { SearchInput } from './SearchInput';
 export type { SearchInputProps } from './SearchInput';
 export { Select } from './Select';
 export type { SelectProps, SelectOption } from './Select';
+export { Modal } from './Modal';
+export type { ModalProps } from './Modal';
+export { Drawer } from './Drawer';
+export type { DrawerProps } from './Drawer';
