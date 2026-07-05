@@ -8,7 +8,7 @@ import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from './LayoutSection';
 import { ScheduleSection } from '../sections/schedule/ScheduleSection';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
-import { SettingsSection } from './SettingsSection';
+import { SettingsSection } from '../sections/settings/SettingsSection';
 import { useFirmwareUpdateAvailable } from '../api/queries';
 import './appshell.css';
 
