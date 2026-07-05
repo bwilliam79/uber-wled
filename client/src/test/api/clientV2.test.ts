@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-  applyControl, applyControlV1, getCapabilities, listDevicePresets,
+  applyControl, getCapabilities, listDevicePresets,
   type Target, type ControlPatch
 } from '../../api/client';
 
@@ -37,16 +37,6 @@ describe('api client v2 control fetchers', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ targets: [{ kind: 'controller', controllerId: 'c1' }], patch: { ps: 3 } })
-    });
-  });
-
-  it('applyControlV1 still POSTs the legacy { members, action } body', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
-    await applyControlV1([{ controllerId: 'c1', wledSegId: 0 }], { type: 'preset', presetId: 3 });
-    expect(global.fetch).toHaveBeenCalledWith('/api/control/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ members: [{ controllerId: 'c1', wledSegId: 0 }], action: { type: 'preset', presetId: 3 } })
     });
   });
 
