@@ -1,0 +1,83 @@
+.layout-section { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+
+.layout-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.layout-toolbar h2 { margin: 0; }
+.layout-toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.layout-btn {
+  min-height: 40px; padding: 0 14px; cursor: pointer;
+  border-radius: var(--radius-control, 10px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+  background: var(--surface-2, #1a2338); color: var(--text, #e6eaf2);
+}
+.layout-btn.primary { background: var(--accent, #7c6cff); border-color: transparent; color: #fff; }
+.layout-btn.danger { background: var(--danger, #ef4444); border-color: transparent; color: #fff; }
+.layout-btn:disabled { opacity: 0.5; cursor: default; }
+
+.layout-input {
+  min-height: 40px; padding: 0 10px;
+  border-radius: var(--radius-control, 10px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+  background: var(--surface, #131a2a); color: var(--text, #e6eaf2);
+}
+
+.layout-snap-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; color: var(--text-muted, #8a94a8); }
+.layout-draw-hint { color: var(--text-muted, #8a94a8); font-size: 13px; }
+
+.layout-canvas-wrap {
+  position: relative; flex: 1; min-height: 420px; overflow: hidden;
+  border-radius: var(--radius-card, 16px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+  background: var(--surface, #131a2a);
+}
+.layout-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.layout-hint { position: absolute; inset: auto 16px 16px; text-align: center; color: var(--text-muted, #8a94a8); pointer-events: none; }
+
+.layout-grid-line { stroke: rgba(148, 163, 184, 0.08); stroke-width: 1px; }
+
+/* Stroke COLOR is always set inline per strip (live / off / offline) so it wins
+   the cascade — never add a stroke color rule for .strip-line here. */
+.strip-line { stroke-width: 4px; stroke-linecap: round; stroke-linejoin: round; }
+.strip-line.selected { stroke-width: 6px; }
+.strip-hit { cursor: pointer; }
+
+.vertex-handle { fill: var(--bg, #0b0f1a); stroke: var(--accent, #7c6cff); stroke-width: 2px; cursor: grab; }
+.draw-line { stroke: var(--accent, #7c6cff); stroke-width: 2px; }
+.draw-rubber { stroke: var(--accent, #7c6cff); stroke-width: 1.5px; stroke-dasharray: 4 4; }
+.draw-vertex { fill: var(--accent, #7c6cff); }
+.marquee-rect { fill: rgba(124, 108, 255, 0.12); stroke: var(--accent, #7c6cff); stroke-width: 1px; stroke-dasharray: 4 3; }
+
+.room-chip { cursor: grab; }
+.room-chip-bg { fill: var(--surface-2, #1a2338); stroke: var(--border, rgba(148, 163, 184, 0.25)); }
+.room-chip-text { fill: var(--text, #e6eaf2); font-size: 12px; user-select: none; }
+.room-chip-input {
+  width: 100%; min-height: 26px; padding: 0 6px;
+  border-radius: 8px; border: 1px solid var(--accent, #7c6cff);
+  background: var(--surface, #131a2a); color: var(--text, #e6eaf2);
+}
+
+.layout-confirm-panel {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; padding: 16px;
+  border-radius: var(--radius-card, 16px);
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+  background: var(--surface, #131a2a);
+}
+.layout-confirm-panel h3 { margin: 0; flex-basis: 100%; }
+.layout-field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+.layout-field label { font-size: 12px; color: var(--text-muted, #8a94a8); }
+.layout-confirm-actions { display: flex; gap: 8px; }
+
+.layout-selection-bar {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 40;
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border, rgba(148, 163, 184, 0.1));
+  background: var(--surface-2, #1a2338);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+@media (max-width: 899px) {
+  /* clear the phone bottom nav from Phase C */
+  .layout-selection-bar { bottom: 88px; max-width: calc(100vw - 24px); }
+  .layout-canvas-wrap { min-height: 320px; }
+}
