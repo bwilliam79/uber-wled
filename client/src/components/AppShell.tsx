@@ -5,7 +5,7 @@ import { SECTIONS, type SectionKey } from './nav';
 import { HomeSection } from '../sections/home/HomeSection';
 import { DevicesSection } from '../sections/devices/DevicesSection';
 import { ThemeManager } from './ThemeManager';
-import { LayoutSection } from './LayoutSection';
+import { LayoutSection } from '../sections/layout/LayoutSection';
 import { ScheduleSection } from './ScheduleSection';
 import { FirmwareSection } from './FirmwareSection';
 import { SettingsSection } from './SettingsSection';
