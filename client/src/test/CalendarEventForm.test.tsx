@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { CalendarEventForm } from '../components/CalendarEventForm';
 
-const groups = [{ id: 'g1', name: 'Porch', members: [] }];
+const groups = [{ id: 'g1', name: 'Porch', icon: null, sortOrder: 0, members: [] }];
 const themes = [{ id: 't1', name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180 }];
 
 afterEach(() => vi.unstubAllGlobals());
