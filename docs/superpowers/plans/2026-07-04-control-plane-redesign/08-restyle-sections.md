@@ -4,11 +4,11 @@
 
 **Goal:** Rebuild the Themes, Schedule, Firmware, and Settings sections on the Phase C UI kit under `client/src/sections/`, with Themes driven by the Phase A capability cache, Schedule previews on fan-out v2, Firmware deep-linking into Devices → Update, and Settings gaining the live-poll-interval field — deleting the old flat components as each replacement ships.
 
-**Architecture:** Four independent section rewrites that consume (never modify) the Phase C design-token/component kit, the Phase A `GET /api/controllers/:id/capabilities` endpoint, the Phase B v2 `POST /api/control/apply` body and widened settings API, and Phase D's `useCapabilities` query hook, `applyControlV2` client function, and `ColorWheel` component. Each section lives in its own `client/src/sections/<name>/` folder with a section CSS file built on `design/tokens.css` variables; server state flows exclusively through `@tanstack/react-query` hooks in `client/src/api/queries.ts`.
+**Architecture:** Four independent section rewrites that consume (never modify) the Phase C design-token/component kit, the Phase A `GET /api/controllers/:id/capabilities` endpoint, the Phase B v2 `POST /api/control/apply` body and widened settings API, and Phase D's `useCapabilities` query hook, `applyControl` client function, and `ColorWheel` component (`client/src/components/ui/ColorWheel.tsx`, RGB-object contract). Each section lives in its own `client/src/sections/<name>/` folder with a section CSS file built on `design/tokens.css` variables; server state flows exclusively through `@tanstack/react-query` hooks in `client/src/api/queries.ts`.
 
 **Tech Stack:** React 18 + Vite + TypeScript, `@tanstack/react-query` (v5 object API: `useQuery({ queryKey, queryFn })`, `isPending`), plain CSS on Phase C tokens, Vitest + Testing Library (jsdom). No new dependencies.
 
-**Prerequisite phases:** C (kit + AppShell v2) and A (capabilities endpoint) are hard prerequisites; B (v2 apply + `livePollIntervalSeconds` in the settings API) and D (`useCapabilities`, `applyControlV2`, `ColorWheel`) are required for Tasks 8–11 and 4–5 respectively. Task 1 verifies all consumed interfaces and creates the small client-side pieces if an earlier phase has not shipped them yet (exact fallback code is included — nothing is left to invention).
+**Prerequisite phases:** C (kit + AppShell v2) and A (capabilities endpoint) are hard prerequisites; B (v2 apply + `livePollIntervalSeconds` in the settings API) and D (`useCapabilities`, `applyControl`, `ColorWheel`) are required for Tasks 8–11 and 4–5 respectively. Task 1 verifies all consumed interfaces and creates the small client-side pieces if an earlier phase has not shipped them yet (exact fallback code is included — nothing is left to invention).
 
 ## Global Constraints
 
@@ -61,9 +61,9 @@ Modal:       { open: boolean; onClose: () => void; title: string; children: Reac
 // client/src/api/queries.ts
 useCapabilities(controllerId: string | null)   // useQuery keyed ['capabilities', controllerId], enabled when non-null
 // client/src/api/client.ts
-applyControlV2(targets: Target[], patch: ControlPatch): Promise<{ results: ApplyResult[] }>
-// client/src/control/ColorWheel.tsx
-ColorWheel: ({ color: string /* '#rrggbb' */, onChange: (hex: string) => void, size?: number }) => ReactElement
+applyControl(targets: Target[], patch: ControlPatch): Promise<{ results: ApplyResult[] }>
+// client/src/components/ui/ColorWheel.tsx (Phase D Task 6 — the ONLY ColorWheel; do not build a second one)
+ColorWheel: ({ color: { r: number; g: number; b: number }; onChange: (c: { r: number; g: number; b: number }) => void; width?: number }) => ReactElement
 ```
 
 **AppShell v2 (Phase C):** renders each section behind `active === '<key>'`
@@ -83,13 +83,13 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
 **Files:**
 - Modify: `client/src/api/client.ts` (append after line 267 — capability + v2 types/functions if Phase D has not added them; add `livePollIntervalSeconds` to `Settings` at lines 219–226)
 - Create (only if missing): `client/src/api/queries.ts`
-- Create (only if missing): `client/src/control/ColorWheel.tsx`
+- Create (only if missing): `client/src/components/ui/ColorWheel.tsx` (Phase D Task 6's path — there is exactly one ColorWheel in the client; NEVER create `client/src/control/ColorWheel.tsx`)
 - Create (only if missing): `client/src/test/renderWithQuery.tsx`
 - Test: `client/src/test/api/phaseHContracts.test.ts`
 
 **Interfaces:**
 - Consumes: master-plan binding contracts `Target`, `SegPatch`, `ControlPatch`, `ApplyResult`, `FxMeta`, `PalettePreview`, `ControllerCapabilities`; server routes `POST /api/control/apply` (Phase B) and `GET /api/controllers/:id/capabilities` (Phase A); `@tanstack/react-query` (Phase C dependency).
-- Produces: `applyControlV2(targets, patch)`, `getCapabilities(controllerId)`, `Settings.livePollIntervalSeconds: number`, hooks `useControllers/useGroups/useThemes/useSchedules/useCalendarEvents/useSettings/useCapabilities/useFirmwareStatus`, test helper `renderWithQuery(ui: ReactElement)`, fallback `ColorWheel`.
+- Produces: `applyControl(targets, patch)`, `getCapabilities(controllerId)`, `Settings.livePollIntervalSeconds: number`, hooks `useControllers/useGroups/useThemes/useSchedules/useCalendarEvents/useSettings/useCapabilities/useFirmwareStatus`, test helper `renderWithQuery(ui: ReactElement)`, fallback `ColorWheel` at `client/src/components/ui/ColorWheel.tsx` with the RGB-object contract (`{ color: {r,g,b}; onChange: (c:{r,g,b}) => void; width?: number }`).
 
 **Steps:**
 
@@ -102,22 +102,23 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
   All three must exist/return ≥1. If any is missing, STOP — Phase C has not run; Phase H cannot start.
 - [ ] Check what Phase D already shipped:
   ```bash
-  grep -n "applyControlV2\|ControllerCapabilities\|getCapabilities" /Users/bwwilliams/github/uber-wled/client/src/api/client.ts
-  ls /Users/bwwilliams/github/uber-wled/client/src/api/queries.ts /Users/bwwilliams/github/uber-wled/client/src/control/ColorWheel.tsx /Users/bwwilliams/github/uber-wled/client/src/test/renderWithQuery.tsx 2>&1
+  grep -n "export const applyControl \|ControllerCapabilities\|getCapabilities" /Users/bwwilliams/github/uber-wled/client/src/api/client.ts
+  ls /Users/bwwilliams/github/uber-wled/client/src/api/queries.ts /Users/bwwilliams/github/uber-wled/client/src/components/ui/ColorWheel.tsx /Users/bwwilliams/github/uber-wled/client/src/test/renderWithQuery.tsx 2>&1
   ```
+  Note the `ColorWheel` existence check targets `client/src/components/ui/ColorWheel.tsx` — Phase D's real path — NOT `client/src/control/ColorWheel.tsx`; checking the wrong directory would always miss Phase D's file and cause a duplicate, incompatible ColorWheel to be created below.
   Each of the following creation steps is SKIPPED for any symbol/file that already exists with the pinned signature; if one exists with a *different* signature, the master contract wins — fix the existing code to match and rerun its owning phase's tests.
 - [ ] Write the failing contract test `client/src/test/api/phaseHContracts.test.ts`:
   ```tsx
   import { describe, it, expect, vi, afterEach } from 'vitest';
-  import { applyControlV2, getCapabilities } from '../../api/client';
+  import { applyControl, getCapabilities } from '../../api/client';
 
   afterEach(() => vi.unstubAllGlobals());
 
   describe('phase H api contracts', () => {
-    it('applyControlV2 POSTs { targets, patch } to /api/control/apply', async () => {
+    it('applyControl POSTs { targets, patch } to /api/control/apply', async () => {
       const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
       vi.stubGlobal('fetch', fetchMock);
-      await applyControlV2(
+      await applyControl(
         [{ kind: 'group', groupId: 'g1' }],
         { on: true, bri: 128, seg: { fxId: 2, palId: 6, col: [[255, 0, 0]] } }
       );
@@ -141,7 +142,7 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
     });
   });
   ```
-- [ ] Run it: `cd /Users/bwwilliams/github/uber-wled/client && npm test -- phaseHContracts` — expect FAIL (`applyControlV2`/`getCapabilities` not exported) unless Phase D shipped them, in which case expect PASS and skip the next step.
+- [ ] Run it: `cd /Users/bwwilliams/github/uber-wled/client && npm test -- phaseHContracts` — expect FAIL (`applyControl`/`getCapabilities` not exported) unless Phase D shipped them, in which case expect PASS and skip the next step.
 - [ ] Append to `client/src/api/client.ts` (verbatim master contracts, client mirrors):
   ```ts
   // --- Capability cache (Phase A contract, mirrored from 00-master.md) ---
@@ -214,7 +215,7 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
     error?: string;
   }
 
-  export const applyControlV2 = (targets: Target[], patch: ControlPatch) =>
+  export const applyControl = (targets: Target[], patch: ControlPatch) =>
     sendJson<{ results: ApplyResult[] }>('/api/control/apply', 'POST', { targets, patch });
   ```
 - [ ] In the `Settings` interface in `client/src/api/client.ts` (lines 219–226), add the Phase B field:
@@ -258,47 +259,66 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
   export const useFirmwareStatus = (controllerId: string) =>
     useQuery({ queryKey: ['firmware', controllerId], queryFn: () => getFirmwareStatus(controllerId) });
   ```
-- [ ] Create `client/src/control/ColorWheel.tsx` ONLY if Phase D has not shipped it:
+- [ ] Create `client/src/components/ui/ColorWheel.tsx` ONLY if Phase D has not shipped it at that exact path (do NOT create `client/src/control/ColorWheel.tsx` — that would be a second, incompatible ColorWheel). Use Phase D Task 6's implementation verbatim so there is exactly one component with exactly one contract:
   ```tsx
   import { useEffect, useRef } from 'react';
   import iro from '@jaames/iro';
 
-  export function ColorWheel({
-    color,
-    onChange,
-    size = 200
-  }: {
-    color: string;
-    onChange: (hex: string) => void;
-    size?: number;
-  }) {
+  type Rgb = { r: number; g: number; b: number };
+
+  interface IroPickerLike {
+    color: { rgb: Rgb; set(c: Rgb): void };
+    on(evt: 'color:change', fn: (c: { rgb: Rgb }) => void): void;
+  }
+
+  export interface ColorWheelProps {
+    color: Rgb;
+    onChange: (c: Rgb) => void;
+    width?: number;
+  }
+
+  export function ColorWheel({ color, onChange, width = 260 }: ColorWheelProps) {
     const mountRef = useRef<HTMLDivElement>(null);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pickerRef = useRef<any>(null);
+    const pickerRef = useRef<IroPickerLike | null>(null);
+    const suppressRef = useRef(false);
     const onChangeRef = useRef(onChange);
     onChangeRef.current = onChange;
 
     useEffect(() => {
       const mount = mountRef.current;
       if (!mount) return;
-      const picker = iro.ColorPicker(mount, { width: size, color });
-      picker.on('input:change', (c: { hexString: string }) => onChangeRef.current(c.hexString));
+      const createPicker = iro.ColorPicker as unknown as (
+        el: HTMLElement,
+        opts: Record<string, unknown>
+      ) => IroPickerLike;
+      const picker = createPicker(mount, {
+        width,
+        color,
+        layout: [{ component: iro.ui.Wheel }]
+      });
+      picker.on('color:change', (c) => {
+        if (suppressRef.current) return;
+        onChangeRef.current(c.rgb);
+      });
       pickerRef.current = picker;
       return () => {
         pickerRef.current = null;
         mount.innerHTML = '';
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [size]);
+    }, []);
 
     useEffect(() => {
       const picker = pickerRef.current;
-      if (picker && picker.color.hexString.toLowerCase() !== color.toLowerCase()) {
-        picker.color.hexString = color;
-      }
-    }, [color]);
+      if (!picker) return;
+      const current = picker.color.rgb;
+      if (current.r === color.r && current.g === color.g && current.b === color.b) return;
+      suppressRef.current = true;
+      picker.color.set(color);
+      suppressRef.current = false;
+    }, [color.r, color.g, color.b]);
 
-    return <div ref={mountRef} className="color-wheel" data-testid="color-wheel" />;
+    return <div ref={mountRef} data-testid="color-wheel" className="color-wheel" />;
   }
   ```
 - [ ] Create `client/src/test/renderWithQuery.tsx` ONLY if missing:
@@ -705,7 +725,7 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
 - Test: `client/src/test/ThemeForm.test.tsx`
 
 **Interfaces:**
-- Consumes: `ColorWheel` (`client/src/control/ColorWheel.tsx`, Phase D / Task 1 fallback); `EffectPicker`, `PalettePicker` (Task 3); `hexToRgb` (Task 2); kit `Button`, `Field`, `Slider`; `addTheme` + `CustomTheme` from `api/client.ts`; react-query `useMutation`/`useQueryClient` with cache key `['themes']`.
+- Consumes: `ColorWheel` (`client/src/components/ui/ColorWheel.tsx`, Phase D Task 6 / Task 1 fallback — RGB-object contract, NOT a hex-string contract); `EffectPicker`, `PalettePicker` (Task 3); `hexToRgb`, `rgbToHex` (Task 2, used here to bridge ColorSlotButton's hex-string API to ColorWheel's RGB-object API); kit `Button`, `Field`, `Slider`; `addTheme` + `CustomTheme` from `api/client.ts`; react-query `useMutation`/`useQueryClient` with cache key `['themes']`.
 - Produces:
   ```tsx
   ColorSlotButton: { label: string; color: string; onChange: (hex: string) => void }
@@ -724,9 +744,20 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
   import { ThemeForm } from '../sections/themes/ThemeForm';
   import { CAPS } from './fixtures/capabilities';
 
-  vi.mock('../control/ColorWheel', () => ({
-    ColorWheel: ({ color, onChange }: { color: string; onChange: (hex: string) => void }) => (
-      <input aria-label="color wheel" value={color} onChange={(e) => onChange(e.target.value)} />
+  vi.mock('../components/ui/ColorWheel', () => ({
+    ColorWheel: ({ color, onChange }: { color: { r: number; g: number; b: number }; onChange: (c: { r: number; g: number; b: number }) => void }) => (
+      <input
+        aria-label="color wheel"
+        value={`#${[color.r, color.g, color.b].map((n) => n.toString(16).padStart(2, '0')).join('')}`}
+        onChange={(e) => {
+          const hex = e.target.value;
+          onChange({
+            r: parseInt(hex.slice(1, 3), 16),
+            g: parseInt(hex.slice(3, 5), 16),
+            b: parseInt(hex.slice(5, 7), 16)
+          });
+        }}
+      />
     )
   }));
 
@@ -779,7 +810,8 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
 - [ ] Create `client/src/sections/themes/ColorSlotButton.tsx`:
   ```tsx
   import { useEffect, useRef, useState } from 'react';
-  import { ColorWheel } from '../../control/ColorWheel';
+  import { ColorWheel } from '../../components/ui/ColorWheel';
+  import { hexToRgb, rgbToHex } from '../../lib/color';
 
   export function ColorSlotButton({
     label,
@@ -812,6 +844,8 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
       };
     }, [open]);
 
+    const [wheelR, wheelG, wheelB] = hexToRgb(color);
+
     return (
       <div className="color-slot" ref={wrapRef}>
         <button
@@ -825,7 +859,10 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
         <span className="color-slot-label">{label}</span>
         {open && (
           <div className="color-pop" role="dialog" aria-label={`Pick ${label}`}>
-            <ColorWheel color={color} onChange={onChange} />
+            <ColorWheel
+              color={{ r: wheelR, g: wheelG, b: wheelB }}
+              onChange={(c) => onChange(rgbToHex([c.r, c.g, c.b]))}
+            />
             <input
               className="input color-pop-hex"
               aria-label={`${label} hex`}
@@ -971,9 +1008,20 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
   import { ThemesSection } from '../sections/themes/ThemesSection';
   import { CAPS } from './fixtures/capabilities';
 
-  vi.mock('../control/ColorWheel', () => ({
-    ColorWheel: ({ color, onChange }: { color: string; onChange: (hex: string) => void }) => (
-      <input aria-label="color wheel" value={color} onChange={(e) => onChange(e.target.value)} />
+  vi.mock('../components/ui/ColorWheel', () => ({
+    ColorWheel: ({ color, onChange }: { color: { r: number; g: number; b: number }; onChange: (c: { r: number; g: number; b: number }) => void }) => (
+      <input
+        aria-label="color wheel"
+        value={`#${[color.r, color.g, color.b].map((n) => n.toString(16).padStart(2, '0')).join('')}`}
+        onChange={(e) => {
+          const hex = e.target.value;
+          onChange({
+            r: parseInt(hex.slice(1, 3), 16),
+            g: parseInt(hex.slice(3, 5), 16),
+            b: parseInt(hex.slice(5, 7), 16)
+          });
+        }}
+      />
     )
   }));
 
@@ -1777,7 +1825,7 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
 - Test: `client/src/test/ScheduleManager.test.tsx` (new file)
 
 **Interfaces:**
-- Consumes: `applyControlV2`, `getSegmentsSnapshot`, `addSchedule`, `deleteSchedule` from `api/client.ts`; `useSchedules`, `useGroups`, `useThemes` (Task 1); `WeeklyScheduleForm` + `WeeklyScheduleDraft` (Task 7); kit `Card`, `Button`, `Chip`, `Modal`.
+- Consumes: `applyControl`, `getSegmentsSnapshot`, `addSchedule`, `deleteSchedule` from `api/client.ts`; `useSchedules`, `useGroups`, `useThemes` (Task 1); `WeeklyScheduleForm` + `WeeklyScheduleDraft` (Task 7); kit `Card`, `Button`, `Chip`, `Modal`.
 - Produces: `ScheduleManager: () => ReactElement` (no props). v2 wire contract exercised:
   - Preview: `POST /api/control/apply` body `{ targets: [{ kind: 'group', groupId }], patch: { on: true, bri: theme.brightness, seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors } } }`.
   - Revert: one call per snapshotted member, body `{ targets: [{ kind: 'segment', controllerId, wledSegId }], patch: { seg: { on, bri, fxId, palId, col } } }`.
@@ -1894,7 +1942,7 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
   import { useState } from 'react';
   import { useQueryClient } from '@tanstack/react-query';
   import {
-    addSchedule, applyControlV2, deleteSchedule, getSegmentsSnapshot,
+    addSchedule, applyControl, deleteSchedule, getSegmentsSnapshot,
     type CustomTheme, type Schedule
   } from '../../api/client';
   import { useGroups, useSchedules, useThemes } from '../../api/queries';
@@ -1948,7 +1996,7 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
       setSnapshot(snapshots);
       setDraft(nextDraft);
       setRevertError(null);
-      await applyControlV2(
+      await applyControl(
         [{ kind: 'group', groupId: nextDraft.groupId }],
         {
           on: true,
@@ -1961,14 +2009,14 @@ Devices section; Phase F's detail view parses `<controllerId>` and the
     /**
      * Reverts every previewed member to its snapshot. A revert failure must
      * surface as a visible error rather than silently leaving lights in the
-     * previewed state; applyControlV2 never throws for per-target failures,
+     * previewed state; applyControl never throws for per-target failures,
      * so results are checked for ok: false explicitly.
      */
     async function revertToSnapshot(): Promise<boolean> {
       if (!snapshot) return true;
       const failures: string[] = [];
       for (const s of snapshot) {
-        const { results } = await applyControlV2(
+        const { results } = await applyControl(
           [{ kind: 'segment', controllerId: s.controllerId, wledSegId: s.wledSegId }],
           { seg: { on: s.on, bri: s.bri, fxId: s.fx, palId: s.pal, col: s.col } }
         );

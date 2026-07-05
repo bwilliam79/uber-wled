@@ -600,7 +600,9 @@ Phases C–H replaced the shell and most sections; this task removes what they
 were told to leave for Phase I (`GroupManager.tsx`, `ControlPanel.tsx`),
 migrates any straggler still POSTing the v1 body (the schedule/calendar
 theme-preview flow is the known candidate), deletes the v1 `ControlAction`
-type + `applyControl` from `client/src/api/client.ts`, and sweeps
+type + the legacy `applyControlV1` (renamed from `applyControl` by
+`04-control-surface.md` Task 1 — do NOT delete Phase D's v2 `applyControl`,
+which every section still depends on) from `client/src/api/client.ts`, and sweeps
 `client/src/components/` for orphans. **Groups CRUD client functions
 (`listGroups`/`addGroup`/`updateGroup`/`deleteGroup`) STAY — Home's inline
 room editing uses them.** `icons.tsx` stays regardless of import count.
@@ -608,7 +610,7 @@ room editing uses them.** `icons.tsx` stays regardless of import count.
 **Files:**
 - Delete: `client/src/components/GroupManager.tsx`, `client/src/test/GroupManager.test.tsx`
 - Delete: `client/src/components/ControlPanel.tsx`, `client/src/test/components/ControlPanel.test.tsx`
-- Modify: `client/src/api/client.ts` (remove `export type ControlAction = ...` [pre-phase lines 51–56] and `export const applyControl = ...` [pre-phase lines 142–145])
+- Modify: `client/src/api/client.ts` (remove `export type ControlAction = ...` [pre-phase lines 51–56] and the legacy `export const applyControlV1 = ...` [pre-phase lines 142–145, renamed from `applyControl` by Phase D Task 1] — leave Phase D's v2 `applyControl` in place)
 - Modify: any file the Step-2 grep finds still sending a v1 body (pre-phase candidates: `client/src/components/ScheduleManager.tsx` lines 60, 75–82 — by Phase I this logic lives in `client/src/sections/schedule/`; migrate wherever it landed)
 - Modify: whichever stylesheet still holds the deleted components' rules (pre-phase: `client/src/index.css`; post-Phase-C: `client/src/design/global.css` — grep both)
 - Delete: every orphan the sweep in the steps below finds, plus its test file
@@ -644,21 +646,22 @@ export interface ApplyResult {
   error?: string;
 }
 
-export const applyControlV2 = (targets: Target[], patch: ControlPatch) =>
+export const applyControl = (targets: Target[], patch: ControlPatch) =>
   sendJson<{ results: ApplyResult[] }>('/api/control/apply', 'POST', { targets, patch });
 ```
 
-- Produces: a client bundle with zero v1 control references: `grep -rn "ControlAction\|applyControl\b" client/src` (excluding `applyControlV2`/Phase D's fn) returns nothing.
+- Produces: a client bundle with zero v1 control references: `grep -rn "ControlAction\|applyControlV1\b" client/src` returns nothing (Phase D's v2 `applyControl` is expected to remain and is a different symbol — `\b` after `applyControlV1` does not match it).
 
 **Steps:**
 
 - [ ] Inventory current state (paths will have moved since plan-authoring):
-  `cd /Users/bwwilliams/github/uber-wled/client && grep -rn "GroupManager\|ControlPanel" src ; grep -rn "'/api/control/apply'" src ; grep -rn "applyControl\b\|ControlAction" src`
+  `cd /Users/bwwilliams/github/uber-wled/client && grep -rn "GroupManager\|ControlPanel" src ; grep -rn "'/api/control/apply'" src ; grep -rn "applyControlV1\b\|ControlAction" src`
 - [ ] Migrate every remaining v1 caller found (known candidate: the schedule preview/revert flow, `handlePreview`/`revertToSnapshot`). Apply this exact transformation, adjusting only the import path to where the flow now lives:
 
 ```ts
-// v1 (pre-phase ScheduleManager.tsx:60):
-await applyControl(members, { type: nextDraft.actionType, ...(nextDraft.actionPayload as object) } as any);
+// v1 (pre-phase ScheduleManager.tsx:60, function since renamed to `applyControlV1` by
+// 04-control-surface.md Task 1 — use whatever name the Step-1 grep actually finds):
+await applyControlV1(members, { type: nextDraft.actionType, ...(nextDraft.actionPayload as object) } as any);
 
 // v2 — resolve the draft action to a ControlPatch client-side (themes are
 // already loaded in this component via listThemes):
@@ -682,11 +685,12 @@ function draftActionToPatch(
 const targets: Target[] = members.map((m) => ({
   kind: 'segment', controllerId: m.controllerId, wledSegId: m.wledSegId
 }));
-await applyControlV2(targets, draftActionToPatch(nextDraft.actionType, nextDraft.actionPayload, themes));
+await applyControl(targets, draftActionToPatch(nextDraft.actionType, nextDraft.actionPayload, themes));
 
-// v1 revert (pre-phase ScheduleManager.tsx:75-82, two calls per snapshot):
+// v1 revert (pre-phase ScheduleManager.tsx:75-82, two calls per snapshot, same
+// applyControlV1 rename applies):
 // → one combined v2 call per snapshot entry, same on/bri-only restore scope:
-const result = await applyControlV2(
+const result = await applyControl(
   [{ kind: 'segment', controllerId: s.controllerId, wledSegId: s.wledSegId }],
   { on: s.on, bri: s.bri }
 );
@@ -711,7 +715,7 @@ expect(fetchMock).toHaveBeenCalledWith('/api/control/apply', expect.objectContai
 - [ ] Delete the two components and their tests:
   `cd /Users/bwwilliams/github/uber-wled && git rm client/src/components/GroupManager.tsx client/src/components/ControlPanel.tsx && git rm --ignore-unmatch client/src/test/GroupManager.test.tsx client/src/test/components/ControlPanel.test.tsx`
   (If Phase G already deleted `ControlPanel.tsx` when it shipped the canvas's Control-surface integration, `--ignore-unmatch` keeps this step idempotent — verify with the Step-1 grep and skip what is already gone.)
-- [ ] Remove `ControlAction` and `applyControl` from `client/src/api/client.ts`; fix any import lists that referenced them.
+- [ ] Remove `ControlAction` and `applyControlV1` (NOT the v2 `applyControl`) from `client/src/api/client.ts`; fix any import lists that referenced them.
 - [ ] Orphan sweep — list every component with zero non-test importers:
 
 ```bash
@@ -728,6 +732,45 @@ done | sort -n
 - [ ] Purge dead styles: for each deleted component, grep its distinctive class names (pre-phase set from GroupManager/ControlPanel: `.control-panel`, `.control-panel-buttons`, `.control-panel-themes`, `.group-members-editor`, `.group-row`, `.group-members-card`) across `client/src/**/*.css` and delete rules no longer referenced by any `.tsx`: `grep -rn "control-panel\|group-members\|group-row" client/src --include='*.css' --include='*.tsx'`
 - [ ] Full client gate: `cd /Users/bwwilliams/github/uber-wled/client && npm test && npm run build` — expect green; then re-run the zero-reference check from **Produces** above.
 - [ ] Commit: `cd /Users/bwwilliams/github/uber-wled && git add -A client/src && git commit -m "Delete v1 client control path: GroupManager, ControlPanel, ControlAction, orphans"`
+
+---
+
+## Task 4B: Relocate firmware components into `sections/devices/`
+
+Phases F (`06-devices.md` Task 14) and H (`08-restyle-sections.md`) both left
+`client/src/components/FirmwareStatus.tsx` and
+`client/src/components/AssetPickerModal.tsx` in place under the BINDING
+agreement that "Phase I removes any leftovers." The Task 4 orphan sweep above
+is reference-count based and will never flag these two files — they stay
+imported by `client/src/sections/devices/UpdateTab.tsx` throughout, so they
+are never orphans. This task performs the actual relocation the earlier
+phases deferred, completing the migration to the `sections/<name>/` layout
+that every other section already underwent.
+
+**Files:**
+- Move: `client/src/components/FirmwareStatus.tsx` → `client/src/sections/devices/FirmwareStatus.tsx`
+- Move: `client/src/components/AssetPickerModal.tsx` → `client/src/sections/devices/AssetPickerModal.tsx`
+- Move: `client/src/test/FirmwareStatus.test.tsx` → `client/src/test/devices/FirmwareStatus.test.tsx` (adjust the relative import)
+- Modify: `client/src/sections/devices/UpdateTab.tsx` (import path)
+
+**Steps:**
+
+- [ ] Confirm current state before moving: `grep -rln "FirmwareStatus\|AssetPickerModal" /Users/bwwilliams/github/uber-wled/client/src --include='*.ts*'` — expect hits in `components/FirmwareStatus.tsx`, `components/AssetPickerModal.tsx`, `sections/devices/UpdateTab.tsx`, and `test/FirmwareStatus.test.tsx` only (if `FirmwareSection.tsx` still exists here, STOP — Phase H has not run; this task depends on it having deleted `FirmwareSection.tsx`).
+- [ ] Move the two components with history preserved:
+  ```bash
+  cd /Users/bwwilliams/github/uber-wled
+  git mv client/src/components/FirmwareStatus.tsx client/src/sections/devices/FirmwareStatus.tsx
+  git mv client/src/components/AssetPickerModal.tsx client/src/sections/devices/AssetPickerModal.tsx
+  mkdir -p client/src/test/devices
+  git mv client/src/test/FirmwareStatus.test.tsx client/src/test/devices/FirmwareStatus.test.tsx
+  ```
+- [ ] `AssetPickerModal.tsx`'s import of `./AssetPickerModal` from `FirmwareStatus.tsx` needs no change (both files moved together, same relative path).
+- [ ] Update `client/src/sections/devices/UpdateTab.tsx`: change `import { FirmwareStatus } from '../../components/FirmwareStatus';` to `import { FirmwareStatus } from './FirmwareStatus';`.
+- [ ] Update `client/src/test/devices/FirmwareStatus.test.tsx`: change `import { FirmwareStatus } from '../components/FirmwareStatus';` to `import { FirmwareStatus } from '../../sections/devices/FirmwareStatus';`; if this test uses a `renderDevices`/route-stubbing helper from `client/src/test/devices/helpers.ts` (Phase F), prefer that over any ad hoc fetch stubbing it previously used, but only if reconciling is trivial — otherwise leave its existing fetch-mocking approach intact.
+- [ ] Run: `cd /Users/bwwilliams/github/uber-wled/client && npm test` — expect green (import paths are the only change; no behavior change).
+- [ ] Verify zero references to the old path: `grep -rn "components/FirmwareStatus\|components/AssetPickerModal" /Users/bwwilliams/github/uber-wled/client/src` → expect no hits.
+- [ ] Run: `cd /Users/bwwilliams/github/uber-wled/client && npm run build` — expect green.
+- [ ] Commit: `cd /Users/bwwilliams/github/uber-wled && git add -A client/src && git commit -m "Phase I: relocate FirmwareStatus/AssetPickerModal into sections/devices/"`
 
 ---
 
