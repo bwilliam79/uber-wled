@@ -15,6 +15,10 @@ export interface WledRelease {
 
 const GITHUB_RELEASES_URL = 'https://api.github.com/repos/Aircoookie/WLED/releases';
 const CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+// Below this, a fetch is treated as an incomplete/anomalous upstream
+// response rather than the project's real release history — see the usage
+// site in fetchLatestRelease for the production incident that motivated it.
+const MIN_PLAUSIBLE_RELEASE_COUNT = 2;
 
 function fromRow(row: any): WledRelease {
   return {
@@ -80,8 +84,22 @@ export async function fetchLatestRelease(
 
   try {
     const fresh = await fetchFromGithub();
-    cache.saveAll(fresh);
-    return selectLatest(cache.list(), !!opts.includePrerelease);
+    // A healthy fetch of an actively-maintained project's release history
+    // returns many entries, virtually always including a stable one. Seen in
+    // production: a fetch that returned exactly one release ("nightly"),
+    // which GitHub itself had flagged prerelease:false at that moment — so
+    // checking the prerelease flag alone can't catch it; the fetch being
+    // implausibly small is the real tell. Treat either signal as an
+    // unreliable/incomplete response: don't let it overwrite a better
+    // existing cache, and don't cache it as truth for CACHE_MAX_AGE_MS
+    // either — the next call should retry live rather than keep serving a
+    // poisoned "fresh" cache.
+    const looksIncomplete = fresh.length < MIN_PLAUSIBLE_RELEASE_COUNT || !fresh.some((r) => !r.prerelease);
+    if (looksIncomplete && cached.length > 0) {
+      return selectLatest(cached, !!opts.includePrerelease);
+    }
+    if (!looksIncomplete) cache.saveAll(fresh);
+    return selectLatest(looksIncomplete ? fresh : cache.list(), !!opts.includePrerelease);
   } catch (err) {
     if (cached.length > 0) return selectLatest(cached, !!opts.includePrerelease);
     throw err;
