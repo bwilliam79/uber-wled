@@ -12,11 +12,13 @@ import type { Cfg } from './configPatches';
 import { DiffConfirmModal } from './DiffConfirmModal';
 import { IdentityForm } from './config/IdentityForm';
 import { LedHardwareForm } from './config/LedHardwareForm';
+import { WifiForm } from './config/WifiForm';
 import './devices.css';
 
 const CONFIG_PAGES = [
   { id: 'identity', label: 'Identity' },
-  { id: 'led', label: 'LED & Hardware' }
+  { id: 'led', label: 'LED & Hardware' },
+  { id: 'wifi', label: 'WiFi' }
 ];
 
 interface PendingSave {
@@ -92,6 +94,7 @@ export function ConfigTab({ controllerId }: { controllerId: string }) {
       <Tabs label="Config pages" tabs={CONFIG_PAGES} active={page} onChange={setPage} />
       {page === 'identity' && <IdentityForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'led' && <LedHardwareForm cfg={cfg} busy={busy} onSave={requestSave} />}
+      {page === 'wifi' && <WifiForm cfg={cfg} busy={busy} onSave={requestSave} />}
       <DiffConfirmModal
         open={pending !== null}
         diff={pending?.diff ?? []}
