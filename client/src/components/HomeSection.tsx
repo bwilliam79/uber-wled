@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  listGroups, listControllers, listThemes, applyControl, getSegmentsSnapshot, getEffectsPalettes,
+  listGroups, listControllers, listThemes, applyControlV1, getSegmentsSnapshot, getEffectsPalettes,
   type Group, type Controller, type CustomTheme, type ControlAction
 } from '../api/client';
 import { HomeTile } from './HomeTile';
@@ -52,7 +52,7 @@ export function HomeSection() {
   }, [refreshSnapshots]);
 
   async function handleApply(members: TileMember[], action: ControlAction) {
-    await applyControl(members, action);
+    await applyControlV1(members, action);
     refreshSnapshots();
   }
 

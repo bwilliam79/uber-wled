@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  listStrips, addStrip, listControllers, listThemes, applyControl, getSegmentsSnapshot,
+  listStrips, addStrip, listControllers, listThemes, applyControlV1, getSegmentsSnapshot,
   type Strip, type Controller, type CustomTheme, type ControlAction
 } from '../api/client';
 import { listRoomLabels, addRoomLabel, updateRoomLabel, type RoomLabel } from '../api/client';
@@ -63,7 +63,7 @@ export function LayoutSection() {
   const selectedMembers = strips.filter((s) => selected.has(s.id)).map((s) => ({ controllerId: s.controllerId, wledSegId: s.wledSegId }));
 
   async function handleApply(action: ControlAction) {
-    await applyControl(selectedMembers, action);
+    await applyControlV1(selectedMembers, action);
     refreshLiveColors();
   }
 

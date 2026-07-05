@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   listSchedules, addSchedule, deleteSchedule, listGroups, listThemes,
-  applyControl, getSegmentsSnapshot,
+  applyControlV1, getSegmentsSnapshot,
   type Schedule, type Group, type CustomTheme
 } from '../api/client';
 import { WeeklyScheduleForm, type WeeklyScheduleDraft } from './WeeklyScheduleForm';
@@ -57,26 +57,26 @@ export function ScheduleManager() {
     setSnapshot(snapshots);
     setDraft(nextDraft);
     setRevertError(null);
-    await applyControl(members, { type: nextDraft.actionType, ...(nextDraft.actionPayload as object) } as any);
+    await applyControlV1(members, { type: nextDraft.actionType, ...(nextDraft.actionPayload as object) } as any);
   }
 
   /**
    * Reverts every previewed member to its snapshot. Per the scheduling
    * spec's error-handling section, a revert failure must surface as a
    * visible error in the editor rather than silently leaving lights in the
-   * previewed state — `applyControl`'s per-controller `results` are checked
-   * for `ok: false` explicitly, since `applyControl` itself never throws
+   * previewed state — `applyControlV1`'s per-controller `results` are checked
+   * for `ok: false` explicitly, since `applyControlV1` itself never throws
    * (Task 12's batch-apply isolates failures per controller instead).
    */
   async function revertToSnapshot(): Promise<boolean> {
     if (!snapshot) return true;
     const failures: string[] = [];
     for (const s of snapshot) {
-      const powerResult = await applyControl(
+      const powerResult = await applyControlV1(
         [{ controllerId: s.controllerId, wledSegId: s.wledSegId }],
         { type: 'power', on: s.on } as any
       );
-      const briResult = await applyControl(
+      const briResult = await applyControlV1(
         [{ controllerId: s.controllerId, wledSegId: s.wledSegId }],
         { type: 'brightness', value: s.bri } as any
       );
