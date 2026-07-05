@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   getFirmwareStatus, pinFirmwareAsset, pushFirmwareUpdate, type FirmwareStatus as FirmwareStatusData
-} from '../api/client';
+} from '../../api/client';
 import { AssetPickerModal } from './AssetPickerModal';
 
 /**
