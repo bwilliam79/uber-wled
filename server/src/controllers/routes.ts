@@ -2,6 +2,8 @@ import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
 import { createControllerStatusRepository } from './statusRepository.js';
+import { createCapabilitiesRepository } from './capabilitiesRepository.js';
+import { refreshCapabilities } from './capabilityService.js';
 import { importSchedules } from './scheduleImport.js';
 import { createFirmwareRouter } from '../firmware/routes.js';
 import { assertValidHost } from './validateHost.js';
@@ -10,6 +12,7 @@ export function createControllersRouter(db: Database.Database): Router {
   const router = Router();
   const repo = createControllerRepository(db);
   const statusRepo = createControllerStatusRepository(db);
+  const capsRepo = createCapabilitiesRepository(db);
 
   router.get('/', (_req, res) => {
     res.json(repo.list());
@@ -42,6 +45,23 @@ export function createControllersRouter(db: Database.Database): Router {
     res.json(
       cached ?? { controllerId: controller.id, reachable: false, info: null, state: null, polledAt: null }
     );
+  });
+
+  router.get('/:id/capabilities', async (req, res) => {
+    const controller = repo.list().find((c) => c.id === req.params.id);
+    if (!controller) return res.status(404).json({ error: 'controller not found' });
+
+    const cached = capsRepo.get(controller.id);
+    if (cached) return res.json(cached);
+
+    try {
+      const fresh = await refreshCapabilities(db, controller);
+      res.json(fresh);
+    } catch (err: any) {
+      res.status(503).json({
+        error: `capabilities not cached and device fetch failed: ${err.message}`
+      });
+    }
   });
 
   router.post('/:id/import-schedules', async (req, res) => {
