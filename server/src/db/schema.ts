@@ -104,6 +104,13 @@ export function runMigrations(db: Database.Database): void {
       state TEXT,
       polled_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS controller_capabilities (
+      controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
+      vid INTEGER NOT NULL,
+      effects TEXT NOT NULL, palettes TEXT NOT NULL, fxdata TEXT NOT NULL,
+      palette_previews TEXT NOT NULL, fetched_at TEXT NOT NULL
+    );
   `);
 
   // Idempotent column add for wled_releases caches created before the

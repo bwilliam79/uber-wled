@@ -11,6 +11,7 @@ describe('createDb', () => {
       .sort();
     expect(tables).toEqual([
       'calendar_events',
+      'controller_capabilities',
       'controller_status',
       'controllers',
       'group_members',
