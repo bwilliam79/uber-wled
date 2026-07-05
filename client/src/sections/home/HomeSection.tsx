@@ -10,6 +10,7 @@ import {
   type Controller,
   type ControlPatch,
   type Group,
+  type GroupMember,
   type Target
 } from '../../api/client';
 import { useLiveStatus } from '../../api/live';
@@ -108,6 +109,10 @@ export function HomeSection() {
 
   function setRoomIcon(id: string, icon: string | null) {
     updateGroup(id, { icon }).then(invalidateGroups);
+  }
+
+  function changeMembers(id: string, members: GroupMember[]) {
+    updateGroup(id, { members }).then(invalidateGroups);
   }
 
   function confirmDelete() {
@@ -234,9 +239,11 @@ export function HomeSection() {
             <RoomEditTile
               key={g.id}
               group={g}
+              controllers={controllers}
               onRename={renameRoom}
               onSetIcon={setRoomIcon}
               onDelete={(id) => setDeleteTarget(sortedGroups.find((x) => x.id === id) ?? null)}
+              onMembersChange={changeMembers}
             />
           ))}
         </div>
