@@ -130,4 +130,92 @@ describe('device management routes', () => {
       expect(res.body.error).toContain('ECONNREFUSED');
     });
   });
+
+  // Subset of the real /json/cfg probed from 192.168.1.86.
+  const CFG: Record<string, unknown> = {
+    id: { mdns: 'cabinet-lights', name: 'Cabinet Lights', inv: 'Cabinet Lights', sui: false },
+    ap: { ssid: 'WLED-AP', pskl: 8, chan: 1, hide: 0 },
+    hw: { led: { total: 48, maxpwr: 0, fps: 42, ins: [{ start: 0, len: 39, pin: [16], order: 34, rev: true, skip: 0, type: 30 }] } },
+    def: { ps: 1, on: true, bri: 128 }
+  };
+
+  describe('config', () => {
+    it('GET passes the device cfg.json through', async () => {
+      stubFetchByHost({
+        [HOST]: (url) => {
+          expect(url).toBe(`http://${HOST}/json/cfg`);
+          return { status: 200, body: CFG };
+        }
+      });
+      const res = await request(app).get(`/api/controllers/${controllerId}/config`);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual(CFG);
+    });
+
+    it('POST ?dryRun=1 returns the flat diff + rebootRequired and never writes to the device', async () => {
+      const fetchMock = stubFetchByHost({
+        [HOST]: (url, init) => {
+          expect(init?.method).toBeUndefined(); // GETs only
+          expect(url).toBe(`http://${HOST}/json/cfg`);
+          return { status: 200, body: CFG };
+        }
+      });
+      const res = await request(app)
+        .post(`/api/controllers/${controllerId}/config?dryRun=1`)
+        .send({ patch: { id: { name: 'Kitchen Cabinets' }, hw: { led: { ins: [{ pin: [17] }] } } } });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        diff: [
+          { path: 'id.name', from: 'Cabinet Lights', to: 'Kitchen Cabinets' },
+          { path: 'hw.led.ins.0.pin.0', from: 16, to: 17 }
+        ],
+        rebootRequired: true
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('POST applies the patch and reports rebootRequired', async () => {
+      const posts: { url: string; body: unknown }[] = [];
+      stubFetchByHost({
+        [HOST]: (url, init) => {
+          if (!init || init.method === undefined) return { status: 200, body: CFG };
+          posts.push({ url, body: JSON.parse(init.body as string) });
+          return { status: 200, body: { success: true } };
+        }
+      });
+      const res = await request(app)
+        .post(`/api/controllers/${controllerId}/config`)
+        .send({ patch: { def: { ps: 3 } } });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true, rebootRequired: false });
+      expect(posts).toEqual([{ url: `http://${HOST}/json/cfg`, body: { def: { ps: 3 } } }]);
+    });
+
+    it('POST without a patch object is a 400', async () => {
+      const res = await request(app).post(`/api/controllers/${controllerId}/config`).send({});
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('reboot', () => {
+    it('POST sends rb:true and returns ok', async () => {
+      const posts: unknown[] = [];
+      stubFetchByHost({
+        [HOST]: (url, init) => {
+          expect(url).toBe(`http://${HOST}/json/state`);
+          posts.push(JSON.parse(init?.body as string));
+          return { status: 200, body: { on: true, bri: 9, ps: -1, seg: [] } };
+        }
+      });
+      const res = await request(app).post(`/api/controllers/${controllerId}/reboot`);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ ok: true });
+      expect(posts).toEqual([{ rb: true }]);
+    });
+
+    it('404s for an unknown controller', async () => {
+      const res = await request(app).post('/api/controllers/ghost/reboot');
+      expect(res.status).toBe(404);
+    });
+  });
 });

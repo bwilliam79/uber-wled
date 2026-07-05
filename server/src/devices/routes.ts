@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from '../controllers/repository.js';
-import { getPresetsRaw, savePreset, deletePreset } from '../wled/client.js';
+import { getPresetsRaw, savePreset, deletePreset, getConfig, patchConfig, reboot } from '../wled/client.js';
 import { parsePresetsJson } from './presets.js';
+import { buildConfigDiff, rebootRequired } from './configDiff.js';
 
 export function createDevicesRouter(db: Database.Database): Router {
   const router = Router({ mergeParams: true });
@@ -49,6 +50,48 @@ export function createDevicesRouter(db: Database.Database): Router {
     try {
       await deletePreset(host, Number(req.params.presetId));
       res.status(204).end();
+    } catch (err: any) {
+      res.status(502).json({ error: err.message });
+    }
+  });
+
+  router.get<{ controllerId: string }>('/config', async (req, res) => {
+    const host = resolveHost(req.params.controllerId);
+    if (!host) return res.status(404).json({ error: 'controller not found' });
+    try {
+      res.json(await getConfig(host));
+    } catch (err: any) {
+      res.status(502).json({ error: err.message });
+    }
+  });
+
+  router.post<{ controllerId: string }>('/config', async (req, res) => {
+    const host = resolveHost(req.params.controllerId);
+    if (!host) return res.status(404).json({ error: 'controller not found' });
+    const patch = req.body?.patch;
+    if (typeof patch !== 'object' || patch === null) {
+      return res.status(400).json({ error: 'patch is required' });
+    }
+    try {
+      const current = await getConfig(host);
+      const diff = buildConfigDiff(current, patch);
+      const needsReboot = rebootRequired(diff);
+      if (req.query.dryRun === '1') {
+        return res.json({ diff, rebootRequired: needsReboot });
+      }
+      await patchConfig(host, patch);
+      res.json({ ok: true, rebootRequired: needsReboot });
+    } catch (err: any) {
+      res.status(502).json({ error: err.message });
+    }
+  });
+
+  router.post<{ controllerId: string }>('/reboot', async (req, res) => {
+    const host = resolveHost(req.params.controllerId);
+    if (!host) return res.status(404).json({ error: 'controller not found' });
+    try {
+      await reboot(host);
+      res.json({ ok: true });
     } catch (err: any) {
       res.status(502).json({ error: err.message });
     }
