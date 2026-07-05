@@ -8,13 +8,16 @@ import '@fontsource/plus-jakarta-sans/700.css'
 import './index.css'
 import App from './App.tsx'
 import { createQueryClient } from './api/queryClient'
+import { ToastProvider } from './components/ui'
 
 const queryClient = createQueryClient()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 )
