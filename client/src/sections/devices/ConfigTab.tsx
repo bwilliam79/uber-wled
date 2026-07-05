@@ -10,6 +10,7 @@ import { Tabs } from '../../components/ui/Tabs';
 import { useToast } from '../../components/ui/Toast';
 import type { Cfg } from './configPatches';
 import { DiffConfirmModal } from './DiffConfirmModal';
+import { AdvancedJsonForm } from './config/AdvancedJsonForm';
 import { IdentityForm } from './config/IdentityForm';
 import { LedHardwareForm } from './config/LedHardwareForm';
 import { LedPrefsForm } from './config/LedPrefsForm';
@@ -24,7 +25,8 @@ const CONFIG_PAGES = [
   { id: 'wifi', label: 'WiFi' },
   { id: 'sync', label: 'Sync' },
   { id: 'time', label: 'Time' },
-  { id: 'prefs', label: 'LED Prefs' }
+  { id: 'prefs', label: 'LED Prefs' },
+  { id: 'advanced', label: 'Advanced' }
 ];
 
 interface PendingSave {
@@ -104,6 +106,7 @@ export function ConfigTab({ controllerId }: { controllerId: string }) {
       {page === 'sync' && <SyncForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'time' && <TimeForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'prefs' && <LedPrefsForm cfg={cfg} busy={busy} onSave={requestSave} />}
+      {page === 'advanced' && <AdvancedJsonForm cfg={cfg} busy={busy} onSave={requestSave} />}
       <DiffConfirmModal
         open={pending !== null}
         diff={pending?.diff ?? []}
