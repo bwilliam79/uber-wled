@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { FirmwareStatus } from '../components/FirmwareStatus';
+import { FirmwareStatus } from '../../sections/devices/FirmwareStatus';
 
 afterEach(() => vi.unstubAllGlobals());
 
