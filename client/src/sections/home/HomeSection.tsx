@@ -1,9 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listControllers,
   listGroups,
   applyControl,
+  addGroup,
+  updateGroup,
+  deleteGroup,
   type Controller,
   type ControlPatch,
   type Group,
@@ -11,7 +14,10 @@ import {
 } from '../../api/client';
 import { useLiveStatus } from '../../api/live';
 import { ControlSurface } from '../../control/ControlSurface';
+import { Modal } from '../../components/ui/Modal';
 import { HomeTile, type HomeTileData } from './HomeTile';
+import { RoomCreateModal } from './RoomCreateModal';
+import { RoomEditTile } from './RoomEditTile';
 import {
   aggregateTileStatusLive,
   type LiveTileSource,
@@ -76,7 +82,41 @@ export function HomeSection() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
+  const queryClient = useQueryClient();
+  const [editMode, setEditMode] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
+
   const tiles = useMemo(() => buildTiles(groups, controllers), [groups, controllers]);
+  const sortedGroups = useMemo(
+    () => groups.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
+    [groups]
+  );
+
+  function invalidateGroups() {
+    queryClient.invalidateQueries({ queryKey: ['groups'] });
+  }
+
+  async function createRoom(name: string, icon: string | null) {
+    await addGroup(name, [], icon);
+    invalidateGroups();
+  }
+
+  function renameRoom(id: string, name: string) {
+    updateGroup(id, { name }).then(invalidateGroups);
+  }
+
+  function setRoomIcon(id: string, icon: string | null) {
+    updateGroup(id, { icon }).then(invalidateGroups);
+  }
+
+  function confirmDelete() {
+    if (!deleteTarget) return;
+    deleteGroup(deleteTarget.id).then(() => {
+      setDeleteTarget(null);
+      invalidateGroups();
+    });
+  }
 
   function toggleSelect(id: string) {
     setSelectMode(true);
@@ -169,28 +209,59 @@ export function HomeSection() {
     <section className="section home-section">
       <div className="home-header">
         <h2>Home</h2>
-        <div className="home-header-actions" />
+        <div className="home-header-actions">
+          {editMode && (
+            <button type="button" className="btn btn-primary" onClick={() => setCreateOpen(true)}>
+              Add room
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-secondary"
+            aria-pressed={editMode}
+            onClick={() => {
+              setEditMode((v) => !v);
+              exitSelectMode();
+            }}
+          >
+            {editMode ? 'Done' : 'Edit'}
+          </button>
+        </div>
       </div>
-      <div className={`home-grid${selectMode ? ' home-select-mode' : ''}`}>
-        {tiles.map((tile) => {
-          const status = statusFor(tile);
-          return (
-            <HomeTile
-              key={tile.id}
-              tile={tile}
-              status={status}
-              glowColor={glowFor(tile, status)}
-              selectMode={selectMode}
-              selected={selectedIds.has(tile.id)}
-              onToggleSelect={toggleSelect}
-              onLongPress={enterSelectMode}
-              onOpenControl={(t) => setControlTargets(targetsFor(t))}
-              onPower={handlePower}
-              onBrightness={handleBrightness}
+      {editMode ? (
+        <div className="home-grid">
+          {sortedGroups.map((g) => (
+            <RoomEditTile
+              key={g.id}
+              group={g}
+              onRename={renameRoom}
+              onSetIcon={setRoomIcon}
+              onDelete={(id) => setDeleteTarget(sortedGroups.find((x) => x.id === id) ?? null)}
             />
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className={`home-grid${selectMode ? ' home-select-mode' : ''}`}>
+          {tiles.map((tile) => {
+            const status = statusFor(tile);
+            return (
+              <HomeTile
+                key={tile.id}
+                tile={tile}
+                status={status}
+                glowColor={glowFor(tile, status)}
+                selectMode={selectMode}
+                selected={selectedIds.has(tile.id)}
+                onToggleSelect={toggleSelect}
+                onLongPress={enterSelectMode}
+                onOpenControl={(t) => setControlTargets(targetsFor(t))}
+                onPower={handlePower}
+                onBrightness={handleBrightness}
+              />
+            );
+          })}
+        </div>
+      )}
       {selectMode && (
         <div className="home-action-bar" role="toolbar" aria-label="selection actions">
           <span className="home-action-count">{selectedIds.size} selected</span>
@@ -211,6 +282,21 @@ export function HomeSection() {
         open={controlTargets !== null}
         onClose={() => setControlTargets(null)}
       />
+      <RoomCreateModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={createRoom} />
+      <Modal open={deleteTarget !== null} title="Delete room" onClose={() => setDeleteTarget(null)}>
+        <p>
+          Delete "{deleteTarget?.name}"? Schedules and calendar events that reference it will stop
+          working.
+        </p>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => setDeleteTarget(null)}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-destructive" onClick={confirmDelete}>
+            Delete
+          </button>
+        </div>
+      </Modal>
     </section>
   );
 }

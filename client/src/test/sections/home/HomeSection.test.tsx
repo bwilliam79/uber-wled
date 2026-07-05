@@ -225,3 +225,63 @@ describe('HomeSection multi-select', () => {
     expect(screen.queryByRole('toolbar', { name: 'selection actions' })).toBeNull();
   });
 });
+
+describe('HomeSection edit mode', () => {
+  async function enterEdit() {
+    stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+  }
+
+  it('creates a room with a name and an icon from the fixed set', async () => {
+    await enterEdit();
+    fireEvent.click(screen.getByText('Add room'));
+    const dialog = screen.getByRole('dialog', { name: 'New room' });
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Bedroom' } });
+    fireEvent.click(within(dialog).getByRole('radio', { name: 'icon 🛏️' }));
+    fireEvent.click(within(dialog).getByText('Create room'));
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ name: 'Bedroom', members: [], icon: '🛏️' })
+      }))
+    );
+  });
+
+  it('renames a room inline on blur', async () => {
+    await enterEdit();
+    const input = screen.getByRole('textbox', { name: 'rename Kitchen' });
+    fireEvent.change(input, { target: { value: 'Kitchen 2' } });
+    fireEvent.blur(input);
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups/g1', expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'Kitchen 2' })
+      }))
+    );
+  });
+
+  it('changes a room icon from the picker', async () => {
+    await enterEdit();
+    fireEvent.click(screen.getByRole('button', { name: 'change icon for Kitchen' }));
+    fireEvent.click(screen.getAllByRole('radio', { name: 'icon 📚' })[0]);
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups/g1', expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ icon: '📚' })
+      }))
+    );
+  });
+
+  it('deletes a room only after modal confirmation', async () => {
+    await enterEdit();
+    const tile = screen.getByTestId('edit-tile-g1');
+    fireEvent.click(within(tile).getByText('Delete'));
+    const dialog = screen.getByRole('dialog', { name: 'Delete room' });
+    fireEvent.click(within(dialog).getByText('Delete'));
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups/g1', { method: 'DELETE' })
+    );
+  });
+});
