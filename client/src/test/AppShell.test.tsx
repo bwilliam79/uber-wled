@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AppShell } from '../components/AppShell';
+import { AppShell, sectionFromHash } from '../components/AppShell';
+import { ToastProvider } from '../components/ui/Toast';
 
 const SEVEN = ['Home', 'Layout', 'Devices', 'Themes', 'Schedule', 'Firmware', 'Settings'];
 
@@ -9,7 +10,9 @@ function renderShell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <AppShell />
+      <ToastProvider>
+        <AppShell />
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
@@ -46,12 +49,12 @@ describe('AppShell v2', () => {
     }
   });
 
-  it('renders the existing Controllers screen under the Devices section', async () => {
+  it('renders the Devices section', async () => {
     stubFetchEmpty();
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Sections' });
     fireEvent.click(within(sidebar).getByRole('button', { name: /Devices/ }));
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Controllers' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Devices' })).toBeTruthy());
     expect(window.location.hash).toBe('#/devices');
   });
 
@@ -110,5 +113,17 @@ describe('AppShell v2', () => {
     );
     expect(within(bottom).getByRole('button', { name: /Firmware/ }).querySelector('.sidebar-link-badge')).toBeTruthy();
     expect(within(sidebar).getByRole('button', { name: /Layout/ }).querySelector('.sidebar-link-badge')).toBeNull();
+  });
+});
+
+describe('sectionFromHash deep links (Phase F)', () => {
+  it('maps #/devices/c1/update to the devices section (Phase H deep link)', () => {
+    window.location.hash = '#/devices/c1/update';
+    expect(sectionFromHash()).toBe('devices');
+  });
+
+  it('still maps the legacy #/controllers alias to devices', () => {
+    window.location.hash = '#/controllers';
+    expect(sectionFromHash()).toBe('devices');
   });
 });
