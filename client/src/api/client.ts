@@ -124,6 +124,15 @@ export const deleteTheme = (id: string) => fetch(`/api/themes/${id}`, { method: 
 export const listPresets = (controllerId: string) =>
   getJson<WledPreset[]>(`/api/themes/presets/${controllerId}`);
 
+export interface EffectsPalettes {
+  effects: string[];
+  palettes: string[];
+  sourceControllerId: string | null;
+  sourceControllerName: string | null;
+}
+
+export const getEffectsPalettes = () => getJson<EffectsPalettes>('/api/themes/effects-palettes');
+
 export const listSchedules = () => getJson<Schedule[]>('/api/schedules');
 export const addSchedule = (input: Omit<Schedule, 'id'>) =>
   sendJson<Schedule>('/api/schedules', 'POST', input);

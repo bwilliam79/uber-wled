@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { listThemes, addTheme, deleteTheme, type CustomTheme } from '../api/client';
+import { listThemes, addTheme, deleteTheme, getEffectsPalettes, type CustomTheme } from '../api/client';
 import { TrashIcon } from './icons';
 
 function hexToRgb(hex: string): number[] {
@@ -19,10 +19,31 @@ export function ThemeManager() {
   const [brightness, setBrightness] = useState(128);
   const [color, setColor] = useState('#ffffff');
   const [saving, setSaving] = useState(false);
+  const [effects, setEffects] = useState<string[]>([]);
+  const [palettes, setPalettes] = useState<string[]>([]);
+  const [sourceControllerName, setSourceControllerName] = useState<string | null>(null);
+  const [loadingOptions, setLoadingOptions] = useState(true);
 
   useEffect(() => {
     listThemes().then(setThemes).catch((e: Error) => setError(e.message));
   }, []);
+
+  useEffect(() => {
+    getEffectsPalettes()
+      .then((r) => {
+        setEffects(r.effects);
+        setPalettes(r.palettes);
+        setSourceControllerName(r.sourceControllerName);
+      })
+      .catch(() => {
+        // Leave effects/palettes at their empty defaults — the form stays
+        // disabled with the "no controller responded" message, same as a
+        // well-formed response reporting no reachable controller.
+      })
+      .finally(() => setLoadingOptions(false));
+  }, []);
+
+  const formDisabled = loadingOptions || effects.length === 0 || palettes.length === 0;
 
   async function handleDelete(id: string) {
     await deleteTheme(id);
@@ -81,6 +102,12 @@ export function ThemeManager() {
             ))}
           </ul>
         )}
+        {loadingOptions && (
+          <p className="empty-state">Loading effect and palette options from a controller…</p>
+        )}
+        {!loadingOptions && formDisabled && (
+          <p className="empty-state">No controller responded — add or reconnect one to create themes.</p>
+        )}
         <div className="add-controller-form">
           <div className="field">
             <label htmlFor="theme-name">Name</label>
@@ -90,31 +117,39 @@ export function ThemeManager() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="New theme name"
+              disabled={formDisabled}
             />
           </div>
           <div className="field">
             <label htmlFor="theme-effect">Effect</label>
-            <input
+            <select
               id="theme-effect"
               className="input"
-              type="number"
-              min={0}
               value={effect}
               onChange={(e) => setEffect(Number(e.target.value))}
-            />
-            <span className="field-hint">WLED effect ID — see a controller's Effects list</span>
+              disabled={formDisabled}
+            >
+              {effects.map((effectName, i) => (
+                <option key={i} value={i}>{effectName}</option>
+              ))}
+            </select>
+            {sourceControllerName && (
+              <span className="field-hint">From {sourceControllerName}</span>
+            )}
           </div>
           <div className="field">
             <label htmlFor="theme-palette">Palette</label>
-            <input
+            <select
               id="theme-palette"
               className="input"
-              type="number"
-              min={0}
               value={palette}
               onChange={(e) => setPalette(Number(e.target.value))}
-            />
-            <span className="field-hint">WLED palette ID — see a controller's Palettes list</span>
+              disabled={formDisabled}
+            >
+              {palettes.map((paletteName, i) => (
+                <option key={i} value={i}>{paletteName}</option>
+              ))}
+            </select>
           </div>
           <div className="field">
             <label htmlFor="theme-brightness">Brightness</label>
@@ -126,6 +161,7 @@ export function ThemeManager() {
               max={255}
               value={brightness}
               onChange={(e) => setBrightness(Number(e.target.value))}
+              disabled={formDisabled}
             />
           </div>
           <div className="field">
@@ -136,9 +172,10 @@ export function ThemeManager() {
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
+              disabled={formDisabled}
             />
           </div>
-          <button type="button" className="btn btn-primary" onClick={handleAdd} disabled={!name || saving}>
+          <button type="button" className="btn btn-primary" onClick={handleAdd} disabled={!name || saving || formDisabled}>
             {saving ? 'Adding…' : 'Add theme'}
           </button>
         </div>

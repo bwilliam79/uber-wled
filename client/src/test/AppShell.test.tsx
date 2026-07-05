@@ -16,7 +16,16 @@ describe('AppShell', () => {
   });
 
   it('switches to the Themes section when its nav item is clicked', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url === '/api/themes/effects-palettes') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ effects: [], palettes: [], sourceControllerId: null, sourceControllerName: null })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
     render(<AppShell />);
     fireEvent.click(screen.getByRole('button', { name: /Themes/ }));
     await waitFor(() => expect(screen.getByText(/No custom themes yet/)).toBeTruthy());
