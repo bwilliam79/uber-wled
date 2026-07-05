@@ -340,3 +340,28 @@ describe('HomeSection room member editing', () => {
     );
   });
 });
+
+describe('HomeSection reorder', () => {
+  it('persists the new order when a room is moved with the arrow buttons', async () => {
+    stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('button', { name: 'move Kitchen later' }));
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups/reorder', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ ids: ['g2', 'g1'] })
+      }))
+    );
+  });
+
+  it('disables the boundary arrows', async () => {
+    stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect((screen.getByRole('button', { name: 'move Kitchen earlier' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'move Porch later' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+});
