@@ -12,6 +12,7 @@ import { createSchedulesRouter } from './schedules/routes.js';
 import { createCalendarRouter } from './calendar/routes.js';
 import { createSettingsRouter } from './settings/routes.js';
 import { createLiveRouter } from './live/routes.js';
+import { createDevicesRouter } from './devices/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
@@ -23,6 +24,7 @@ export function createApp(db: Database.Database) {
 
   app.use('/api/controllers', createControllersRouter(db));
   app.use('/api/controllers/:controllerId/segments', createSegmentsRouter(db));
+  app.use('/api/controllers/:controllerId', createDevicesRouter(db));
 
   app.use('/api/strips', createStripsRouter(db));
   app.use('/api/room-labels', createRoomLabelsRouter(db));
