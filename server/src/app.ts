@@ -11,6 +11,7 @@ import { createControlRouter } from './control/routes.js';
 import { createSchedulesRouter } from './schedules/routes.js';
 import { createCalendarRouter } from './calendar/routes.js';
 import { createSettingsRouter } from './settings/routes.js';
+import { createLiveRouter } from './live/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
@@ -31,6 +32,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/schedules', createSchedulesRouter(db));
   app.use('/api/calendar-events', createCalendarRouter(db));
   app.use('/api/settings', createSettingsRouter(db));
+  app.use('/api/live', createLiveRouter(db));
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {
