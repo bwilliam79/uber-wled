@@ -3,7 +3,7 @@ import { createDb } from './db/client.js';
 import { runDiscoveryCycle } from './discovery/service.js';
 import { pollAllControllerStatus } from './controllers/statusPoller.js';
 import { SchedulerEngine } from './schedules/engine.js';
-import { applyToMembers } from './control/routes.js';
+import { applyActionV2, type ControlAction } from './control/actionMap.js';
 import { seedHolidaysIfEmpty } from './calendar/repository.js';
 import { createSettingsRepository } from './settings/repository.js';
 
@@ -29,5 +29,6 @@ const statusPollIntervalMinutes = settings.get().controllerStatusPollIntervalMin
 pollAllControllerStatus(db);
 setInterval(() => pollAllControllerStatus(db), Math.max(1, statusPollIntervalMinutes) * 60_000);
 
-const scheduler = new SchedulerEngine(db, (members, action) => applyToMembers(db, members, action as any));
+const scheduler = new SchedulerEngine(db, (members, action) =>
+  applyActionV2(db, members, action as ControlAction));
 scheduler.start();
