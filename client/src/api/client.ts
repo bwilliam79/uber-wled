@@ -50,13 +50,6 @@ export interface Schedule {
   enabled: boolean;
 }
 
-export type ControlAction =
-  | { type: 'power'; on: boolean }
-  | { type: 'brightness'; value: number }
-  | { type: 'preset'; presetId: number }
-  | { type: 'theme'; themeId: string }
-  | { type: 'effect'; effectId: number };
-
 export type DateRule =
   | { kind: 'fixed'; month: number; day: number }
   | { kind: 'nthWeekday'; month: number; weekday: number; n: number }
@@ -144,11 +137,6 @@ export const listSchedules = () => getJson<Schedule[]>('/api/schedules');
 export const addSchedule = (input: Omit<Schedule, 'id'>) =>
   sendJson<Schedule>('/api/schedules', 'POST', input);
 export const deleteSchedule = (id: string) => fetch(`/api/schedules/${id}`, { method: 'DELETE' });
-
-export const applyControlV1 = (members: GroupMember[], action: ControlAction) =>
-  sendJson<{ results: { controllerId: string; wledSegId: number; ok: boolean; error?: string }[] }>(
-    '/api/control/apply', 'POST', { members, action }
-  );
 
 export const listCalendarEvents = () => getJson<CalendarEvent[]>('/api/calendar-events');
 

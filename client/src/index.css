@@ -301,25 +301,6 @@ h2 {
   }
 }
 
-/* ---------- Control panel ---------- */
-
-.control-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.control-panel-buttons {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.control-panel-themes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
-}
-
 /* ---------- Firmware status ---------- */
 
 .firmware-status {
@@ -406,23 +387,6 @@ h2 {
   width: 16px;
   height: 16px;
   accent-color: var(--color-accent);
-}
-
-/* ---------- Group members editor ---------- */
-
-.group-members-card {
-  margin-top: var(--space-md);
-}
-
-.group-members-card h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-foreground);
-  margin-bottom: var(--space-sm);
-}
-
-.group-members-editor .controller-list {
-  margin-bottom: var(--space-md);
 }
 
 /* ---------- Calendar ---------- */
