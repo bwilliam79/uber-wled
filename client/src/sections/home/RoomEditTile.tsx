@@ -6,17 +6,25 @@ import { RoomMembersEditor } from './RoomMembersEditor';
 export function RoomEditTile({
   group,
   controllers,
+  index,
+  count,
   onRename,
   onSetIcon,
   onDelete,
-  onMembersChange
+  onMembersChange,
+  onMove,
+  onDragStart
 }: {
   group: Group;
   controllers: Controller[];
+  index: number;
+  count: number;
   onRename: (id: string, name: string) => void;
   onSetIcon: (id: string, icon: string | null) => void;
   onDelete: (id: string) => void;
   onMembersChange: (id: string, members: GroupMember[]) => void;
+  onMove: (id: string, delta: number) => void;
+  onDragStart: (id: string, e: React.PointerEvent) => void;
 }) {
   const [name, setName] = useState(group.name);
   const [showIcons, setShowIcons] = useState(false);
@@ -59,9 +67,34 @@ export function RoomEditTile({
         />
       )}
       <div className="home-tile-edit-actions">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          aria-label={`move ${group.name} earlier`}
+          disabled={index === 0}
+          onClick={() => onMove(group.id, -1)}
+        >
+          ←
+        </button>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          aria-label={`move ${group.name} later`}
+          disabled={index === count - 1}
+          onClick={() => onMove(group.id, 1)}
+        >
+          →
+        </button>
         <button type="button" className="btn btn-secondary" onClick={() => setShowMembers((v) => !v)}>
           Members
         </button>
+        <span
+          className="home-tile-drag-handle"
+          aria-hidden="true"
+          onPointerDown={(e) => onDragStart(group.id, e)}
+        >
+          ⠿
+        </span>
         <button type="button" className="btn btn-destructive" onClick={() => onDelete(group.id)}>
           Delete
         </button>
