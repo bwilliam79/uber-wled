@@ -8,7 +8,13 @@ import {
 import { CAPS_A, CAPS_B, makeSeg, makeState, liveEntry } from '../fixtures/capabilities';
 
 const GROUPS: Group[] = [
-  { id: 'g1', name: 'Kitchen', members: [{ controllerId: 'cA', wledSegId: 0 }, { controllerId: 'cB', wledSegId: 0 }] }
+  {
+    id: 'g1',
+    name: 'Kitchen',
+    icon: null,
+    sortOrder: 0,
+    members: [{ controllerId: 'cA', wledSegId: 0 }, { controllerId: 'cB', wledSegId: 0 }]
+  }
 ];
 
 const caps = new Map<string, ControllerCapabilities>([['cA', CAPS_A], ['cB', CAPS_B]]);

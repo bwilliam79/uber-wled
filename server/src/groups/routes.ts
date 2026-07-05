@@ -19,11 +19,11 @@ export function createGroupsRouter(db: Database.Database): Router {
   });
 
   router.post('/reorder', (req, res) => {
-    const orderedIds = req.body?.orderedIds;
-    if (!Array.isArray(orderedIds) || orderedIds.some((id: unknown) => typeof id !== 'string')) {
-      return res.status(400).json({ error: 'orderedIds must be a string array' });
+    const ids = req.body?.ids;
+    if (!Array.isArray(ids) || ids.some((id: unknown) => typeof id !== 'string')) {
+      return res.status(400).json({ error: 'ids must be an array of group ids' });
     }
-    res.json(repo.reorder(orderedIds));
+    res.json(repo.reorder(ids));
   });
 
   router.patch('/:id', (req, res) => {

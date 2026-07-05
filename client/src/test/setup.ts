@@ -40,6 +40,49 @@ Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
 });
 
+// jsdom has no `PointerEvent` constructor. Testing Library's
+// fireEvent.pointerDown/Move/Up resolve their constructor via
+// `window[EventType] || window.Event` (see @testing-library/dom's
+// createEvent) and silently fall back to plain `Event` when it is missing —
+// which drops `clientX`/`clientY` entirely, breaking any pointer handler
+// that does hit-testing/drag-threshold math on those fields. jsdom's
+// `MouseEvent` *does* support clientX/clientY correctly, so polyfill
+// `PointerEvent` as a thin MouseEvent subclass carrying `pointerId`.
+if (typeof globalThis.PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    public pointerId: number;
+    public pointerType: string;
+
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 0;
+      this.pointerType = params.pointerType ?? 'mouse';
+    }
+  }
+  // @ts-expect-error - minimal polyfill, not a spec-complete PointerEvent
+  globalThis.PointerEvent = PointerEventPolyfill;
+}
+
+// jsdom has no `EventSource`. `api/live.ts`'s `useLiveStatus` opens one
+// unconditionally whenever it is given a non-empty controller id list (Home
+// v2 wires this in for every controller, not just ones inside a group), so
+// any test that renders a component tree reaching `useLiveStatus` with
+// controllers present would otherwise throw `ReferenceError: EventSource is
+// not defined` from inside a passive effect. Tests that care about the SSE
+// wire protocol install their own richer fake via `vi.stubGlobal` (see
+// `api/live.test.tsx`) and that takes priority for the duration of those
+// tests; this is just a safe no-op fallback so unrelated tests don't crash.
+if (typeof globalThis.EventSource === 'undefined') {
+  class EventSourcePolyfill {
+    onerror: (() => void) | null = null;
+    addEventListener() {}
+    removeEventListener() {}
+    close() {}
+  }
+  // @ts-expect-error - minimal polyfill, not a spec-complete EventSource
+  globalThis.EventSource = EventSourcePolyfill;
+}
+
 afterEach(() => {
   cleanup();
 });
