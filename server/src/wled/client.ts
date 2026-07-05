@@ -1,4 +1,4 @@
-import type { WledInfo, WledState, WledSegment, WledPreset } from './types.js';
+import type { WledInfo, WledState, WledStatePatch, WledPreset } from './types.js';
 import { assertValidHost } from '../controllers/validateHost.js';
 
 async function getJson<T>(host: string, path: string): Promise<T> {
@@ -27,10 +27,7 @@ export function getState(host: string): Promise<WledState> {
   return getJson<WledState>(host, '/json/state');
 }
 
-export function setState(
-  host: string,
-  patch: Partial<Pick<WledState, 'on' | 'bri' | 'ps'>> & { seg?: Partial<WledSegment>[] }
-): Promise<WledState> {
+export function setState(host: string, patch: WledStatePatch): Promise<WledState> {
   return postJson<WledState>(host, '/json/state', patch);
 }
 
