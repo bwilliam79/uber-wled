@@ -1,0 +1,67 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { InfoTab } from '../../sections/devices/InfoTab';
+import { renderDevices, stubFetchRoutes } from './helpers';
+import { CONTROLLERS, liveEntry } from './fixtures';
+
+afterEach(() => vi.unstubAllGlobals());
+
+function renderTab(routes: Record<string, unknown> = {}, onRemoved = vi.fn()) {
+  const fn = stubFetchRoutes(routes);
+  renderDevices(<InfoTab controller={CONTROLLERS[0]} live={liveEntry()} onRemoved={onRemoved} />);
+  return { fn, onRemoved };
+}
+
+describe('InfoTab', () => {
+  it('renders the probed facts grid', () => {
+    renderTab();
+    expect(screen.getByText('32d 7h')).toBeTruthy(); // uptime 2791487 s
+    expect(screen.getByText('98% (4/4 bars), channel 6')).toBeTruthy();
+    expect(screen.getByText('118 KiB')).toBeTruthy(); // freeheap 120876
+    expect(screen.getByText('28 / 983 KiB')).toBeTruthy();
+    expect(screen.getByText('48 RGBW')).toBeTruthy();
+    expect(screen.getByText('AudioReactive')).toBeTruthy();
+  });
+
+  it('embeds the liveview peek iframe pointing at the device', () => {
+    renderTab();
+    const frame = screen.getByTitle('Live output of Cabinet Lights') as HTMLIFrameElement;
+    expect(frame.src).toBe('http://192.168.1.86/liveview');
+  });
+
+  it('links to the native UI in a new tab', () => {
+    renderTab();
+    const link = screen.getByRole('link', { name: 'Open native UI' }) as HTMLAnchorElement;
+    expect(link.href).toBe('http://192.168.1.86/');
+    expect(link.target).toBe('_blank');
+  });
+
+  it('reboots only after modal confirmation', async () => {
+    const { fn } = renderTab({ 'POST /api/controllers/c1/reboot': { ok: true } });
+    fireEvent.click(screen.getByRole('button', { name: 'Reboot' }));
+    await screen.findByText(/Reboot “Cabinet Lights”\?/);
+    expect(fn).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm reboot' }));
+    await waitFor(() => expect(fn).toHaveBeenCalledWith(
+      '/api/controllers/c1/reboot', expect.objectContaining({ method: 'POST' })));
+  });
+
+  it('removes the controller after confirmation and calls onRemoved', async () => {
+    const { fn, onRemoved } = renderTab({ 'DELETE /api/controllers/c1': {} });
+    fireEvent.click(screen.getByRole('button', { name: 'Remove controller' }));
+    await screen.findByText(/Remove “Cabinet Lights” from uber-wled\?/);
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }));
+    await waitFor(() => expect(onRemoved).toHaveBeenCalledOnce());
+    expect(fn).toHaveBeenCalledWith('/api/controllers/c1', expect.objectContaining({ method: 'DELETE' }));
+  });
+
+  it('imports device schedules and toasts the result', async () => {
+    const { fn } = renderTab({
+      'POST /api/controllers/c1/import-schedules': { imported: [{}, {}], skipped: [] }
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Import schedules' }));
+    await screen.findByText('Schedules imported');
+    expect(JSON.parse((fn.mock.calls[0][1] as RequestInit).body as string))
+      .toEqual({ disableOnDevice: false });
+  });
+});
