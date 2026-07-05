@@ -9,3 +9,7 @@ export { Field } from './Field';
 export type { FieldProps } from './Field';
 export { Skeleton } from './Skeleton';
 export type { SkeletonProps } from './Skeleton';
+export { Slider } from './Slider';
+export type { SliderProps } from './Slider';
+export { Toggle } from './Toggle';
+export type { ToggleProps } from './Toggle';
