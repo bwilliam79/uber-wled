@@ -20,11 +20,7 @@ import { Modal } from '../../components/ui/Modal';
 import { HomeTile, type HomeTileData } from './HomeTile';
 import { RoomCreateModal } from './RoomCreateModal';
 import { RoomEditTile } from './RoomEditTile';
-import {
-  aggregateTileStatusLive,
-  type LiveTileSource,
-  type TileStatusV2
-} from '../../lib/tileStatus';
+import { aggregateTileStatusLive, type TileStatusV2 } from '../../lib/tileStatus';
 import { dominantColor, OFF_GLOW, OFFLINE_GLOW } from '../../lib/dominantColor';
 import { throttle } from '../../lib/throttle';
 import { moveId, dropIndexForPoint } from './reorder';
@@ -78,7 +74,7 @@ export function HomeSection() {
   const controllers = controllersQuery.data ?? [];
 
   const controllerIds = useMemo(() => controllers.map((c) => c.id), [controllers]);
-  const live = useLiveStatus(controllerIds) as ReadonlyMap<string, LiveTileSource>;
+  const live = useLiveStatus(controllerIds);
 
   const [controlTargets, setControlTargets] = useState<Target[] | null>(null);
   const [overrides, setOverrides] = useState<Map<string, QuickOverride>>(new Map());
