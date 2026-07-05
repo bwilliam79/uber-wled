@@ -4,6 +4,7 @@ import { HomeTile } from '../../components/HomeTile';
 
 const MEMBERS = [{ controllerId: 'c1', wledSegId: 0 }];
 const THEMES = [{ id: 't1', name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180 }];
+const EFFECTS = ['Solid', 'Blink', 'Breathe'];
 
 describe('HomeTile', () => {
   it('shows the title and "on" status with brightness', () => {
@@ -11,7 +12,7 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Kitchen" members={MEMBERS}
         status={{ power: 'on', brightness: 200, anyOffline: false }}
-        themes={THEMES} onApply={vi.fn()}
+        themes={THEMES} effects={EFFECTS} onApply={vi.fn()}
       />
     );
     expect(screen.getByText('Kitchen')).toBeTruthy();
@@ -25,7 +26,7 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Kitchen" members={MEMBERS}
         status={{ power: 'mixed', brightness: 100, anyOffline: true }}
-        themes={THEMES} onApply={vi.fn()}
+        themes={THEMES} effects={EFFECTS} onApply={vi.fn()}
       />
     );
     expect(screen.getByText('Mixed')).toBeTruthy();
@@ -37,7 +38,7 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Kitchen" members={MEMBERS}
         status={{ power: 'unknown', brightness: null, anyOffline: true }}
-        themes={THEMES} onApply={vi.fn()}
+        themes={THEMES} effects={EFFECTS} onApply={vi.fn()}
       />
     );
     expect(screen.getByText('—')).toBeTruthy();
@@ -50,7 +51,7 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Kitchen" members={MEMBERS}
         status={{ power: 'off', brightness: null, anyOffline: false }}
-        themes={THEMES} onApply={onApply}
+        themes={THEMES} effects={EFFECTS} onApply={onApply}
       />
     );
     screen.getByText('On').click();
@@ -65,12 +66,39 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Kitchen" members={MEMBERS}
         status={{ power: 'on', brightness: 128, anyOffline: false }}
-        themes={THEMES} onApply={onApply}
+        themes={THEMES} effects={EFFECTS} onApply={onApply}
       />
     );
     const slider = screen.getByLabelText(/brightness for kitchen/i);
     fireEvent.change(slider, { target: { value: '75' } });
     expect(onApply).toHaveBeenCalledWith({ type: 'brightness', value: 75 });
+  });
+
+  it('lists WLED effects and saved Themes as option groups in the same dropdown', () => {
+    render(
+      <HomeTile
+        id="g1" title="Kitchen" members={MEMBERS}
+        status={{ power: 'on', brightness: 128, anyOffline: false }}
+        themes={THEMES} effects={EFFECTS} onApply={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Breathe')).toBeTruthy();
+    expect(screen.getByText('Sunset')).toBeTruthy();
+  });
+
+  it('calls onApply with an effect action and resets the select back to the placeholder', () => {
+    const onApply = vi.fn();
+    render(
+      <HomeTile
+        id="g1" title="Kitchen" members={MEMBERS}
+        status={{ power: 'on', brightness: 128, anyOffline: false }}
+        themes={THEMES} effects={EFFECTS} onApply={onApply}
+      />
+    );
+    const select = screen.getByLabelText(/apply effect or theme to kitchen/i) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'effect:2' } });
+    expect(onApply).toHaveBeenCalledWith({ type: 'effect', effectId: 2 });
+    expect(select.value).toBe('');
   });
 
   it('calls onApply with a theme action and resets the select back to the placeholder', () => {
@@ -79,11 +107,11 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Kitchen" members={MEMBERS}
         status={{ power: 'on', brightness: 128, anyOffline: false }}
-        themes={THEMES} onApply={onApply}
+        themes={THEMES} effects={EFFECTS} onApply={onApply}
       />
     );
-    const select = screen.getByLabelText(/apply theme to kitchen/i) as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 't1' } });
+    const select = screen.getByLabelText(/apply effect or theme to kitchen/i) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'theme:t1' } });
     expect(onApply).toHaveBeenCalledWith({ type: 'theme', themeId: 't1' });
     expect(select.value).toBe('');
   });
@@ -93,12 +121,12 @@ describe('HomeTile', () => {
       <HomeTile
         id="g1" title="Empty Room" members={[]}
         status={{ power: 'unknown', brightness: null, anyOffline: false }}
-        themes={THEMES} onApply={vi.fn()}
+        themes={THEMES} effects={EFFECTS} onApply={vi.fn()}
       />
     );
     expect(screen.getByText(/Add members in Groups/)).toBeTruthy();
     expect((screen.getByText('On') as HTMLButtonElement).disabled).toBe(true);
     expect((screen.getByLabelText(/brightness for empty room/i) as HTMLInputElement).disabled).toBe(true);
-    expect((screen.getByLabelText(/apply theme to empty room/i) as HTMLSelectElement).disabled).toBe(true);
+    expect((screen.getByLabelText(/apply effect or theme to empty room/i) as HTMLSelectElement).disabled).toBe(true);
   });
 });
