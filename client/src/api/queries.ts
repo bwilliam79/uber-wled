@@ -2,7 +2,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import {
   listControllers, listGroups, listThemes, getControllerStatus, getFirmwareStatus,
-  getCapabilities, listDevicePresets,
+  getCapabilities, listDevicePresets, getControllerConfig, getControllerSegments,
   type Controller, type Group, type CustomTheme, type ControllerStatus,
   type ControllerCapabilities, type DevicePreset
 } from './client';
@@ -75,6 +75,15 @@ const FIRMWARE_CHECK_INTERVAL_MS = 60_000;
  * True when any controller reports an available firmware update.
  * Best-effort: unreachable controllers are ignored; errors keep the last value.
  */
+export const useFirmwareStatus = (controllerId: string) =>
+  useQuery({ queryKey: ['firmware', controllerId], queryFn: () => getFirmwareStatus(controllerId) });
+
+export const useDeviceConfig = (controllerId: string) =>
+  useQuery({ queryKey: ['config', controllerId], queryFn: () => getControllerConfig(controllerId) });
+
+export const useDeviceSegments = (controllerId: string) =>
+  useQuery({ queryKey: ['segments', controllerId], queryFn: () => getControllerSegments(controllerId) });
+
 export function useFirmwareUpdateAvailable(): boolean {
   const query = useQuery({
     queryKey: ['firmware-update-available'],

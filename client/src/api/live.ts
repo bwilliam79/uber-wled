@@ -18,7 +18,15 @@ export interface LiveState {
 
 export interface LiveInfo {
   name: string; ver: string; vid?: number;
-  leds: { count: number; rgbw: boolean; cct: number | boolean; seglc?: number[] };
+  leds: {
+    count: number; rgbw: boolean; cct: number | boolean; seglc?: number[];
+    fps?: number; pwr?: number; maxseg?: number;
+  };
+  wifi?: { bssid?: string; rssi?: number; signal: number; channel: number };
+  fs?: { u: number; t: number };
+  arch?: string; core?: string; mac?: string; ip?: string;
+  uptime?: number; freeheap?: number;
+  u?: Record<string, unknown>;
 }
 
 export interface LiveStatusEntry { reachable: boolean; state?: LiveState; info?: LiveInfo }
