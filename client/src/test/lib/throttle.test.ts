@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { throttleTrailing } from '../../lib/throttle';
+import { throttleTrailing, throttle } from '../../lib/throttle';
 
 describe('throttleTrailing', () => {
   beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] }));
@@ -60,5 +60,39 @@ describe('throttleTrailing', () => {
     t.call(4);
     t.flush();
     expect(fn).toHaveBeenLastCalledWith(4);
+  });
+});
+
+describe('throttle', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('fires immediately on the leading edge', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const t = throttle(fn, 250);
+    t(1);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(1);
+  });
+
+  it('coalesces calls inside the window into one trailing call with the latest args', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const t = throttle(fn, 250);
+    t(1); t(2); t(3);
+    expect(fn).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(250);
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(fn).toHaveBeenLastCalledWith(3);
+  });
+
+  it('allows a new leading call after the window has passed', () => {
+    vi.useFakeTimers();
+    const fn = vi.fn();
+    const t = throttle(fn, 250);
+    t(1);
+    vi.advanceTimersByTime(300);
+    t(2);
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 });

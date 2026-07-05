@@ -71,25 +71,19 @@ describe('groups routes', () => {
     expect(patch.body.name).toBe('A');
   });
 
-  it('reorders groups via POST /reorder and lists in the new order', async () => {
+  it('reorders groups and persists the new sortOrder', async () => {
     const a = await request(app).post('/api/groups').send({ name: 'A', members: [] });
     const b = await request(app).post('/api/groups').send({ name: 'B', members: [] });
-    const c = await request(app).post('/api/groups').send({ name: 'C', members: [] });
-
-    const res = await request(app)
-      .post('/api/groups/reorder')
-      .send({ orderedIds: [c.body.id, a.body.id, b.body.id] });
-
+    const res = await request(app).post('/api/groups/reorder').send({ ids: [b.body.id, a.body.id] });
     expect(res.status).toBe(200);
-    expect(res.body.map((g: any) => g.name)).toEqual(['C', 'A', 'B']);
-    expect(res.body.map((g: any) => g.sortOrder)).toEqual([0, 1, 2]);
-
+    expect(res.body.map((g: { id: string }) => g.id)).toEqual([b.body.id, a.body.id]);
+    expect(res.body.map((g: { sortOrder: number }) => g.sortOrder)).toEqual([0, 1]);
     const list = await request(app).get('/api/groups');
-    expect(list.body.map((g: any) => g.name)).toEqual(['C', 'A', 'B']);
+    expect(list.body.map((g: { id: string }) => g.id)).toEqual([b.body.id, a.body.id]);
   });
 
-  it('rejects reorder when orderedIds is not a string array', async () => {
-    const res = await request(app).post('/api/groups/reorder').send({ orderedIds: 'nope' });
-    expect(res.status).toBe(400);
+  it('rejects a reorder body without an ids array of strings', async () => {
+    await request(app).post('/api/groups/reorder').send({ ids: 'nope' }).expect(400);
+    await request(app).post('/api/groups/reorder').send({}).expect(400);
   });
 });
