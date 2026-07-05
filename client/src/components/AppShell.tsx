@@ -3,7 +3,7 @@ import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { SECTIONS, type SectionKey } from './nav';
 import { HomeSection } from './HomeSection';
-import { ControllersSection } from './ControllersSection';
+import { DevicesSection } from '../sections/devices/DevicesSection';
 import { ThemeManager } from './ThemeManager';
 import { LayoutSection } from './LayoutSection';
 import { ScheduleSection } from './ScheduleSection';
@@ -18,8 +18,8 @@ const KEYS = SECTIONS.map((s) => s.key);
 /** Pre-1.0 bookmarks keep working: Controllers became Devices; Groups folded into Home. */
 const LEGACY_ALIASES: Record<string, SectionKey> = { controllers: 'devices', groups: 'home' };
 
-function sectionFromHash(): SectionKey {
-  const raw = window.location.hash.replace(/^#\/?/, '');
+export function sectionFromHash(): SectionKey {
+  const raw = window.location.hash.replace(/^#\/?/, '').split('/')[0];
   const mapped = LEGACY_ALIASES[raw] ?? raw;
   return (KEYS as string[]).includes(mapped) ? (mapped as SectionKey) : DEFAULT_SECTION;
 }
@@ -54,7 +54,7 @@ export function AppShell() {
       <main className="app-main">
         {active === 'home' && <HomeSection />}
         {active === 'layout' && <LayoutSection />}
-        {active === 'devices' && <ControllersSection />}
+        {active === 'devices' && <DevicesSection />}
         {active === 'themes' && <ThemeManager />}
         {active === 'schedule' && <ScheduleSection />}
         {active === 'firmware' && <FirmwareSection />}
