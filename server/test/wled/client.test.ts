@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { getInfo, getState, setState, setSegment, getPresets, applyPreset } from '../../src/wled/client.js';
+import { getInfo, getState, setState, setSegment, getPresets, applyPreset, getEffects, getPalettes } from '../../src/wled/client.js';
 
 const HOST = '10.0.0.50';
 
@@ -75,5 +75,15 @@ describe('wled client', () => {
     );
     const state = await applyPreset(HOST, 2);
     expect(state.ps).toBe(2);
+  });
+
+  it('getEffects fetches the effect name list', async () => {
+    stubFetchOnce({ url: `http://${HOST}/json/eff` }, ['Solid', 'Blink', 'Breathe']);
+    expect(await getEffects(HOST)).toEqual(['Solid', 'Blink', 'Breathe']);
+  });
+
+  it('getPalettes fetches the palette name list', async () => {
+    stubFetchOnce({ url: `http://${HOST}/json/pal` }, ['Default', 'Random Cycle', 'Sunset']);
+    expect(await getPalettes(HOST)).toEqual(['Default', 'Random Cycle', 'Sunset']);
   });
 });

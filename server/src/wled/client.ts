@@ -51,3 +51,11 @@ export async function getPresets(host: string): Promise<WledPreset[]> {
 export function applyPreset(host: string, presetId: number): Promise<WledState> {
   return postJson<WledState>(host, '/json/state', { ps: presetId });
 }
+
+export function getEffects(host: string): Promise<string[]> {
+  return getJson<string[]>(host, '/json/eff');
+}
+
+export function getPalettes(host: string): Promise<string[]> {
+  return getJson<string[]>(host, '/json/pal');
+}

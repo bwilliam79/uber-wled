@@ -42,7 +42,10 @@ Groups, Themes, Schedule, Firmware, Settings** — opening on Home by default.
   a whole selection in one action; per-controller failures are isolated and
   retried once, never fail the whole batch.
 - **Themes**: custom effect/palette/color/brightness combos, independent of
-  any device's own presets.
+  any device's own presets. Effect and palette are picked from named
+  dropdowns imported live from a controller (`/json/eff` and `/json/pal`),
+  not typed in as raw WLED IDs; the form is disabled with an explanatory
+  message until a controller responds.
 - **Schedule (month calendar)**: a real month-grid calendar is the hero of
   the Schedule section — holidays and custom events show as chips on their
   dates, a side panel shows the selected day's detail plus your weekly
@@ -172,9 +175,10 @@ committed) that isn't already taken by another service on that host.
   kept, not deleted, in case it comes back online.
 - **Groups**: create a group, then add members (pick a controller + a WLED
   segment id) — a group only actually does anything once it has members.
-- **Themes**: build a custom effect/palette/color/brightness combo; these
-  become selectable anywhere a WLED preset would be (control panel,
-  schedules, calendar events).
+- **Themes**: build a custom effect/palette/color/brightness combo, picking
+  the effect and palette by name from a dropdown (imported from the first
+  reachable controller); these become selectable anywhere a WLED preset
+  would be (control panel, schedules, calendar events).
 - **Schedule**: the month calendar is the hero. Click a day to see its
   detail; "+ Event" adds a custom calendar event; weekly recurring schedules
   live in the side panel. Preview a theme live before saving —

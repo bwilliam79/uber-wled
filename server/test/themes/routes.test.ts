@@ -23,10 +23,11 @@ function stubFetchOnce(expected: { url: string; method?: string; body?: unknown 
 
 describe('themes routes', () => {
   let app: express.Express;
+  let db: ReturnType<typeof createDb>;
   let controllerId: string;
 
   beforeEach(() => {
-    const db = createDb(':memory:');
+    db = createDb(':memory:');
     controllerId = createControllerRepository(db).add({ name: 'Porch', host: HOST, source: 'manual' }).id;
     app = express();
     app.use(express.json());
@@ -55,5 +56,53 @@ describe('themes routes', () => {
     stubFetchOnce({ url: `http://${HOST}/presets.json` }, { '1': { n: 'Party' } });
     const res = await request(app).get(`/api/themes/presets/${controllerId}`);
     expect(res.body).toEqual([{ id: 1, name: 'Party' }]);
+  });
+
+  it('returns effect/palette names from the first reachable controller', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === `http://${HOST}/json/eff`) return { ok: true, json: async () => ['Solid', 'Blink'] } as Response;
+      if (url === `http://${HOST}/json/pal`) return { ok: true, json: async () => ['Default', 'Sunset'] } as Response;
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await request(app).get('/api/themes/effects-palettes');
+    expect(res.body).toEqual({
+      effects: ['Solid', 'Blink'],
+      palettes: ['Default', 'Sunset'],
+      sourceControllerId: controllerId,
+      sourceControllerName: 'Porch'
+    });
+  });
+
+  it('skips an unreachable controller and falls through to the next one', async () => {
+    const secondHost = '10.0.0.60';
+    // "Porch" sorts before "Zeta" (controllers.list() orders by name), so
+    // Porch (HOST) is tried first and made to fail here, forcing the fallthrough.
+    createControllerRepository(db).add({ name: 'Zeta', host: secondHost, source: 'manual' });
+
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url === `http://${HOST}/json/eff` || url === `http://${HOST}/json/pal`) {
+        throw new Error('ECONNREFUSED');
+      }
+      if (url === `http://${secondHost}/json/eff`) return { ok: true, json: async () => ['Solid'] } as Response;
+      if (url === `http://${secondHost}/json/pal`) return { ok: true, json: async () => ['Default'] } as Response;
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await request(app).get('/api/themes/effects-palettes');
+    expect(res.body).toEqual({
+      effects: ['Solid'],
+      palettes: ['Default'],
+      sourceControllerId: expect.any(String),
+      sourceControllerName: 'Zeta'
+    });
+  });
+
+  it('returns empty lists and null source when no controller is reachable', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('ECONNREFUSED'); }));
+    const res = await request(app).get('/api/themes/effects-palettes');
+    expect(res.body).toEqual({ effects: [], palettes: [], sourceControllerId: null, sourceControllerName: null });
   });
 });
