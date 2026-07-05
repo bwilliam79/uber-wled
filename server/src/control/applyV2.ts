@@ -1,6 +1,8 @@
 import type Database from 'better-sqlite3';
 import { createGroupRepository } from '../groups/repository.js';
-import type { WledSegment } from '../wled/types.js';
+import { createControllerRepository } from '../controllers/repository.js';
+import { getState, setState } from '../wled/client.js';
+import type { WledSegment, WledStatePatch } from '../wled/types.js';
 
 export type Target =
   | { kind: 'controller'; controllerId: string }
@@ -140,4 +142,74 @@ export function buildSegPatch(
   if (patch.on !== undefined) seg.on = patch.on;
   if (patch.bri !== undefined) seg.bri = patch.bri;
   return { seg };
+}
+
+async function writeTarget(
+  host: string,
+  target: ResolvedTarget,
+  patch: ControlPatch,
+  segPatch: Partial<WledSegment> | undefined
+): Promise<void> {
+  const body: WledStatePatch = { udpn: { nn: true } };
+  if (patch.on !== undefined) body.on = patch.on;
+  if (patch.bri !== undefined) body.bri = patch.bri;
+  if (patch.transition !== undefined) body.transition = patch.transition;
+  if (patch.ps !== undefined) body.ps = patch.ps;
+  if (patch.nl !== undefined) body.nl = patch.nl;
+  if (segPatch) {
+    if (target.wledSegId === null) {
+      // Whole-controller target: enumerate the device's current segment ids
+      // (one GET per controller per apply, per the master contract).
+      const state = await getState(host);
+      body.seg = state.seg.map((s) => ({ id: s.id, ...segPatch }));
+    } else {
+      body.seg = [{ id: target.wledSegId, ...segPatch }];
+    }
+  }
+  await setState(host, body);
+}
+
+export async function applyControlPatch(
+  db: Database.Database,
+  targets: Target[],
+  patch: ControlPatch
+): Promise<ApplyResult[]> {
+  const controllers = new Map(createControllerRepository(db).list().map((c) => [c.id, c]));
+  const resolved = expandTargets(db, targets); // GroupNotFoundError propagates to the route
+
+  return Promise.all(
+    resolved.map(async (target): Promise<ApplyResult> => {
+      const controller = controllers.get(target.controllerId);
+      if (!controller) {
+        return { controllerId: target.controllerId, wledSegId: target.wledSegId, ok: false, error: 'controller not found' };
+      }
+
+      let segPatch: Partial<WledSegment> | undefined;
+      if (patch.seg) {
+        const built = buildSegPatch(db, target.controllerId, patch.seg);
+        if ('error' in built) {
+          return { controllerId: target.controllerId, wledSegId: target.wledSegId, ok: false, error: built.error };
+        }
+        segPatch = built.seg;
+      }
+
+      try {
+        await writeTarget(controller.host, target, patch, segPatch);
+        return { controllerId: target.controllerId, wledSegId: target.wledSegId, ok: true };
+      } catch {
+        // Per-target isolation with exactly one retry (matches v1 behavior).
+        try {
+          await writeTarget(controller.host, target, patch, segPatch);
+          return { controllerId: target.controllerId, wledSegId: target.wledSegId, ok: true };
+        } catch (secondError: any) {
+          return {
+            controllerId: target.controllerId,
+            wledSegId: target.wledSegId,
+            ok: false,
+            error: secondError?.message ?? 'unknown error'
+          };
+        }
+      }
+    })
+  );
 }
