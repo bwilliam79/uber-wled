@@ -9,8 +9,21 @@ export function createGroupsRouter(db: Database.Database): Router {
   router.get('/', (_req, res) => res.json(repo.list()));
 
   router.post('/', (req, res) => {
-    const created = repo.add({ name: req.body.name, members: req.body.members ?? [] });
+    const created = repo.add({
+      name: req.body.name,
+      members: req.body.members ?? [],
+      icon: req.body.icon ?? null,
+      sortOrder: req.body.sortOrder
+    });
     res.status(201).json(created);
+  });
+
+  router.post('/reorder', (req, res) => {
+    const orderedIds = req.body?.orderedIds;
+    if (!Array.isArray(orderedIds) || orderedIds.some((id: unknown) => typeof id !== 'string')) {
+      return res.status(400).json({ error: 'orderedIds must be a string array' });
+    }
+    res.json(repo.reorder(orderedIds));
   });
 
   router.patch('/:id', (req, res) => {
