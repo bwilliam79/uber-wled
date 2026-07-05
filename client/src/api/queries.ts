@@ -90,19 +90,16 @@ export function useDevicePresets(controllerId: string | null): UseQueryResult<De
 
 const FIRMWARE_CHECK_INTERVAL_MS = 60_000;
 
-/**
- * True when any controller reports an available firmware update.
- * Best-effort: unreachable controllers are ignored; errors keep the last value.
- */
-export const useFirmwareStatus = (controllerId: string) =>
-  useQuery({ queryKey: ['firmware', controllerId], queryFn: () => getFirmwareStatus(controllerId) });
-
 export const useDeviceConfig = (controllerId: string) =>
   useQuery({ queryKey: ['config', controllerId], queryFn: () => getControllerConfig(controllerId) });
 
 export const useDeviceSegments = (controllerId: string) =>
   useQuery({ queryKey: ['segments', controllerId], queryFn: () => getControllerSegments(controllerId) });
 
+/**
+ * True when any controller reports an available firmware update.
+ * Best-effort: unreachable controllers are ignored; errors keep the last value.
+ */
 export function useFirmwareUpdateAvailable(): boolean {
   const query = useQuery({
     queryKey: ['firmware-update-available'],
