@@ -1,20 +1,26 @@
 import { useState } from 'react';
-import type { Group } from '../../api/client';
+import type { Controller, Group, GroupMember } from '../../api/client';
 import { IconPicker } from './IconPicker';
+import { RoomMembersEditor } from './RoomMembersEditor';
 
 export function RoomEditTile({
   group,
+  controllers,
   onRename,
   onSetIcon,
-  onDelete
+  onDelete,
+  onMembersChange
 }: {
   group: Group;
+  controllers: Controller[];
   onRename: (id: string, name: string) => void;
   onSetIcon: (id: string, icon: string | null) => void;
   onDelete: (id: string) => void;
+  onMembersChange: (id: string, members: GroupMember[]) => void;
 }) {
   const [name, setName] = useState(group.name);
   const [showIcons, setShowIcons] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
 
   function commitName() {
     const trimmed = name.trim();
@@ -53,10 +59,16 @@ export function RoomEditTile({
         />
       )}
       <div className="home-tile-edit-actions">
+        <button type="button" className="btn btn-secondary" onClick={() => setShowMembers((v) => !v)}>
+          Members
+        </button>
         <button type="button" className="btn btn-destructive" onClick={() => onDelete(group.id)}>
           Delete
         </button>
       </div>
+      {showMembers && (
+        <RoomMembersEditor group={group} controllers={controllers} onMembersChange={onMembersChange} />
+      )}
     </div>
   );
 }
