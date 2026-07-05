@@ -97,4 +97,41 @@ describe('fetchLatestRelease', () => {
     expect(release.tag).toBe('v0.15.1-b3');
     expect(release.prerelease).toBe(true);
   });
+
+  // Regression: a real deployment cached a single "nightly" release, incorrectly
+  // flagged prerelease:false by that fetch, and served it as the latest stable
+  // build for hours despite includePrereleaseFirmware being off — because
+  // fetchFromGithub() returned something incomplete/anomalous (no stable release
+  // at all, one entry) and the app trusted and cached it for the full 6-hour
+  // window regardless. A healthy fetch of an actively-maintained project's
+  // releases always includes at least one stable release; a fetch with none is
+  // treated as unreliable and must not overwrite a better existing cache, nor
+  // get cached as truth itself.
+  const SUSPICIOUS_RESPONSE = [
+    { tag_name: 'nightly', prerelease: false, published_at: '2026-07-04T00:00:00Z', assets: [] }
+  ];
+
+  it('does not let a fetch with zero stable releases overwrite an existing cached stable release', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => GITHUB_RESPONSE }));
+    await fetchLatestRelease(db); // seed a healthy cache containing v0.15.0 (stable)
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => SUSPICIOUS_RESPONSE }));
+    const release = await fetchLatestRelease(db, { forceRefresh: true });
+
+    expect(release.tag).toBe('v0.15.0');
+    expect(release.prerelease).toBe(false);
+  });
+
+  it('does not cache a fetch with zero stable releases, so the next call retries instead of reusing it', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => SUSPICIOUS_RESPONSE }));
+    const first = await fetchLatestRelease(db); // nothing cached yet — best available info is the suspicious result
+    expect(first.tag).toBe('nightly');
+
+    const secondFetch = vi.fn().mockResolvedValue({ ok: true, json: async () => GITHUB_RESPONSE });
+    vi.stubGlobal('fetch', secondFetch);
+    const second = await fetchLatestRelease(db); // should retry live, not serve a poisoned "fresh" cache
+
+    expect(secondFetch).toHaveBeenCalledTimes(1);
+    expect(second.tag).toBe('v0.15.0');
+  });
 });
