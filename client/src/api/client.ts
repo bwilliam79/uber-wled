@@ -139,7 +139,7 @@ export const addSchedule = (input: Omit<Schedule, 'id'>) =>
   sendJson<Schedule>('/api/schedules', 'POST', input);
 export const deleteSchedule = (id: string) => fetch(`/api/schedules/${id}`, { method: 'DELETE' });
 
-export const applyControl = (members: GroupMember[], action: ControlAction) =>
+export const applyControlV1 = (members: GroupMember[], action: ControlAction) =>
   sendJson<{ results: { controllerId: string; wledSegId: number; ok: boolean; error?: string }[] }>(
     '/api/control/apply', 'POST', { members, action }
   );
@@ -264,4 +264,90 @@ export const deleteRoomLabel = (id: string) => fetch(`/api/room-labels/${id}`, {
 
 export const getSettings = () => getJson<Settings>('/api/settings');
 export const updateSettings = (patch: Partial<Settings>) => sendJson<Settings>('/api/settings', 'PATCH', patch);
+
+// --- Control surface v2 (Phase D) ---
+// Mirrored verbatim from docs/superpowers/plans/2026-07-04-control-plane-redesign/00-master.md
+
+export type Target =
+  | { kind: 'controller'; controllerId: string }
+  | { kind: 'segment'; controllerId: string; wledSegId: number }
+  | { kind: 'group'; groupId: string };
+
+export interface SegPatch {
+  fxName?: string; fxId?: number;      // name wins if both; resolved per device
+  palName?: string; palId?: number;
+  col?: number[][];                    // up to 3 slots, each [r,g,b] or [r,g,b,w]
+  sx?: number; ix?: number; c1?: number; c2?: number; c3?: number;
+  o1?: boolean; o2?: boolean; o3?: boolean;
+  cct?: number;
+  on?: boolean; bri?: number;
+}
+
+export interface ControlPatch {
+  on?: boolean;
+  bri?: number;                        // 1-255
+  transition?: number;                 // WLED units (100ms)
+  ps?: number;                         // apply device preset id (device-local ids —
+                                       // client restricts to single-controller selections)
+  nl?: { on?: boolean; dur?: number; mode?: 0 | 1 | 2 | 3; tbri?: number };
+  seg?: SegPatch;
+}
+
+export interface ApplyResult {
+  controllerId: string;
+  wledSegId: number | null;            // null = whole-controller target
+  ok: boolean;
+  error?: string;
+}
+
+export interface FxMeta {
+  id: number;
+  name: string;                    // from /json/eff at same index
+  sliders: {                       // null = control hidden for this effect
+    sx: string | null;             // '!' in fxdata → 'Effect speed'
+    ix: string | null;             // '!' → 'Effect intensity'
+    c1: string | null;
+    c2: string | null;
+    c3: string | null;
+  };
+  options: {                       // checkbox labels, null = hidden
+    o1: string | null;
+    o2: string | null;
+    o3: string | null;
+  };
+  colorLabels: (string | null)[];  // length 3; '!' → default names Fx/Bg/Cs; null = slot unused
+  usesPalette: boolean;
+  flags: string[];                 // e.g. ['1'] dimensionality chars, 'v', 'f'
+  defaults: Record<string, number>; // e.g. { sx: 24, m12: 0 }
+}
+
+export type PalettePreview =
+  | { type: 'stops'; stops: [number, number, number, number][] } // [pos0-255, r, g, b]
+  | { type: 'random' }
+  | { type: 'slots'; slots: ('c1' | 'c2' | 'c3')[] };
+
+export interface ControllerCapabilities {
+  vid: number;
+  effects: string[];
+  palettes: string[];
+  fxMeta: FxMeta[];
+  palettePreviews: Record<number, PalettePreview>;
+  fetchedAt: string; // ISO
+}
+
+export interface DevicePreset {
+  id: number;
+  name: string;
+  isPlaylist: boolean;
+  quicklook?: { fx?: number; pal?: number; on?: boolean; bri?: number };
+}
+
+export const applyControl = (targets: Target[], patch: ControlPatch) =>
+  sendJson<{ results: ApplyResult[] }>('/api/control/apply', 'POST', { targets, patch });
+
+export const getCapabilities = (controllerId: string) =>
+  getJson<ControllerCapabilities>(`/api/controllers/${controllerId}/capabilities`);
+
+export const listDevicePresets = (controllerId: string) =>
+  getJson<{ presets: DevicePreset[] }>(`/api/controllers/${controllerId}/presets`).then((r) => r.presets);
 export const rescanNow = () => sendJson<{ controllers: Controller[] }>('/api/settings/rescan', 'POST');
