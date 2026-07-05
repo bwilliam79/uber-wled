@@ -16,8 +16,12 @@ export interface Group {
 
 export function createGroupRepository(db: Database.Database) {
   function membersFor(groupId: string): GroupMember[] {
+    // ORDER BY rowid: without an explicit order, sqlite may satisfy this
+    // WHERE clause via the (group_id, controller_id, wled_seg_id) primary-key
+    // index and return rows in key order rather than insertion order, which
+    // breaks callers (e.g. expandTargets) that rely on member order.
     return db
-      .prepare('SELECT controller_id, wled_seg_id FROM group_members WHERE group_id = ?')
+      .prepare('SELECT rowid, controller_id, wled_seg_id FROM group_members WHERE group_id = ? ORDER BY rowid')
       .all(groupId)
       .map((r: any) => ({ controllerId: r.controller_id, wledSegId: r.wled_seg_id }));
   }
