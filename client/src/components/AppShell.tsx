@@ -4,7 +4,7 @@ import { BottomNav } from './BottomNav';
 import { SECTIONS, type SectionKey } from './nav';
 import { HomeSection } from './HomeSection';
 import { ControllersSection } from './ControllersSection';
-import { ThemeManager } from './ThemeManager';
+import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from './LayoutSection';
 import { ScheduleSection } from './ScheduleSection';
 import { FirmwareSection } from './FirmwareSection';
@@ -55,7 +55,7 @@ export function AppShell() {
         {active === 'home' && <HomeSection />}
         {active === 'layout' && <LayoutSection />}
         {active === 'devices' && <ControllersSection />}
-        {active === 'themes' && <ThemeManager />}
+        {active === 'themes' && <ThemesSection />}
         {active === 'schedule' && <ScheduleSection />}
         {active === 'firmware' && <FirmwareSection />}
         {active === 'settings' && <SettingsSection />}
