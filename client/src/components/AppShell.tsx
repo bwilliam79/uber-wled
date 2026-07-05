@@ -7,7 +7,7 @@ import { ControllersSection } from './ControllersSection';
 import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from './LayoutSection';
 import { ScheduleSection } from '../sections/schedule/ScheduleSection';
-import { FirmwareSection } from './FirmwareSection';
+import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 import { SettingsSection } from './SettingsSection';
 import { useFirmwareUpdateAvailable } from '../api/queries';
 import './appshell.css';
@@ -19,8 +19,8 @@ const KEYS = SECTIONS.map((s) => s.key);
 const LEGACY_ALIASES: Record<string, SectionKey> = { controllers: 'devices', groups: 'home' };
 
 function sectionFromHash(): SectionKey {
-  const raw = window.location.hash.replace(/^#\/?/, '');
-  const mapped = LEGACY_ALIASES[raw] ?? raw;
+  const first = window.location.hash.replace(/^#\/?/, '').split('/')[0];
+  const mapped = LEGACY_ALIASES[first] ?? first;
   return (KEYS as string[]).includes(mapped) ? (mapped as SectionKey) : DEFAULT_SECTION;
 }
 
@@ -57,7 +57,13 @@ export function AppShell() {
         {active === 'devices' && <ControllersSection />}
         {active === 'themes' && <ThemesSection />}
         {active === 'schedule' && <ScheduleSection />}
-        {active === 'firmware' && <FirmwareSection />}
+        {active === 'firmware' && (
+          <FirmwareSection
+            onOpenDeviceUpdate={(controllerId) => {
+              window.location.hash = `#/devices/${controllerId}/update`;
+            }}
+          />
+        )}
         {active === 'settings' && <SettingsSection />}
       </main>
       <BottomNav active={active} onNavigate={navigate} badges={badges} />
