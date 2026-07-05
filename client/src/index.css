@@ -1,5 +1,6 @@
 @import './design/tokens.css';
 @import './design/global.css';
+@import './components/ui/ui.css';
 
 /* ============================================================
    TRANSITION LAYER — everything below this banner is legacy
