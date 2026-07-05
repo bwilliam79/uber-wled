@@ -58,3 +58,37 @@ export function throttleTrailing<A extends unknown[]>(
 
   return { call, flush, cancel };
 }
+
+/**
+ * Simple leading + trailing throttle returning a directly-callable function
+ * (companion to `throttleTrailing`'s {call,flush,cancel} handle, used where
+ * callers just want a throttled function reference — e.g. Home v2 tile
+ * brightness writes).
+ */
+export function throttle<A extends unknown[]>(
+  fn: (...args: A) => void,
+  intervalMs: number
+): (...args: A) => void {
+  let lastCall = 0;
+  let trailing: ReturnType<typeof setTimeout> | null = null;
+  let lastArgs: A | null = null;
+
+  return (...args: A) => {
+    const now = Date.now();
+    const elapsed = now - lastCall;
+    if (elapsed >= intervalMs) {
+      lastCall = now;
+      fn(...args);
+      return;
+    }
+    lastArgs = args;
+    if (!trailing) {
+      trailing = setTimeout(() => {
+        trailing = null;
+        lastCall = Date.now();
+        if (lastArgs) fn(...lastArgs);
+        lastArgs = null;
+      }, intervalMs - elapsed);
+    }
+  };
+}
