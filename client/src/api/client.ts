@@ -351,3 +351,78 @@ export const getCapabilities = (controllerId: string) =>
 export const listDevicePresets = (controllerId: string) =>
   getJson<{ presets: DevicePreset[] }>(`/api/controllers/${controllerId}/presets`).then((r) => r.presets);
 export const rescanNow = () => sendJson<{ controllers: Controller[] }>('/api/settings/rescan', 'POST');
+
+// ---- Devices section (Phase F) ----
+
+export interface ConfigDiffEntry {
+  path: string;
+  from: unknown;
+  to: unknown;
+}
+
+export interface DeviceSegment {
+  id: number;
+  start: number;
+  stop: number;
+  len: number;
+  grp: number;
+  spc: number;
+  of: number;
+  on: boolean;
+  bri: number;
+  rev: boolean;
+  mi: boolean;
+  n?: string;
+  fx: number;
+  pal: number;
+  col: number[][];
+}
+
+export interface SegmentUpdate {
+  start?: number;
+  stop?: number;
+  grp?: number;
+  spc?: number;
+  of?: number;
+  rev?: boolean;
+  mi?: boolean;
+  name?: string;
+  on?: boolean;
+  bri?: number;
+}
+
+export const saveControllerPreset = (
+  controllerId: string,
+  input: { id?: number; name: string; includeBrightness: boolean; saveSegmentBounds: boolean }
+) => sendJson<{ id: number; name: string }>(`/api/controllers/${controllerId}/presets`, 'POST', input);
+
+export const deleteControllerPreset = (controllerId: string, presetId: number) =>
+  fetch(`/api/controllers/${controllerId}/presets/${presetId}`, { method: 'DELETE' });
+
+export const getControllerConfig = (controllerId: string) =>
+  getJson<Record<string, unknown>>(`/api/controllers/${controllerId}/config`);
+
+export const dryRunControllerConfig = (controllerId: string, patch: object) =>
+  sendJson<{ diff: ConfigDiffEntry[]; rebootRequired: boolean }>(
+    `/api/controllers/${controllerId}/config?dryRun=1`, 'POST', { patch }
+  );
+
+export const applyControllerConfig = (controllerId: string, patch: object) =>
+  sendJson<{ ok: true; rebootRequired: boolean }>(
+    `/api/controllers/${controllerId}/config`, 'POST', { patch }
+  );
+
+export const rebootController = (controllerId: string) =>
+  sendJson<{ ok: true }>(`/api/controllers/${controllerId}/reboot`, 'POST');
+
+export const getControllerSegments = (controllerId: string) =>
+  getJson<DeviceSegment[]>(`/api/controllers/${controllerId}/segments`);
+
+export const updateControllerSegment = (controllerId: string, segId: number, patch: SegmentUpdate) =>
+  sendJson<DeviceSegment[]>(`/api/controllers/${controllerId}/segments/${segId}`, 'PUT', patch);
+
+export const createControllerSegment = (controllerId: string, bounds: { start: number; stop: number }) =>
+  sendJson<DeviceSegment[]>(`/api/controllers/${controllerId}/segments`, 'POST', bounds);
+
+export const deleteControllerSegment = (controllerId: string, segId: number) =>
+  sendJson<DeviceSegment[]>(`/api/controllers/${controllerId}/segments/${segId}`, 'DELETE');
