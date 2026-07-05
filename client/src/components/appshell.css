@@ -1,0 +1,217 @@
+/* ===== App shell v2: sidebar ≥900px, bottom nav <900px ===== */
+
+.app-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100svh;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-xl) var(--space-lg);
+  max-width: 1200px;
+}
+
+/* ---------- Sidebar (desktop) ---------- */
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100svh;
+  width: 230px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg) var(--space-md);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+
+.sidebar.collapsed {
+  width: 68px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.logo-mark {
+  width: 30px;
+  height: 30px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.sidebar-brand-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-brand-text {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sidebar-version {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.sidebar.collapsed .sidebar-brand-text,
+.sidebar.collapsed .sidebar-version,
+.sidebar.collapsed .sidebar-link-label {
+  display: none;
+}
+
+.sidebar-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  flex: 1;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.sidebar-link:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.sidebar-link.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(124, 108, 255, 0.35);
+}
+
+.sidebar-link-icon-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.sidebar-link-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-link-badge {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--warning);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.sidebar-collapse-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.sidebar-collapse-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------- Bottom navigation (phone) ---------- */
+
+.bottom-nav {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .sidebar {
+    display: none;
+  }
+
+  .app-main {
+    padding: var(--space-lg) var(--space-md)
+      calc(72px + env(safe-area-inset-bottom, 0px) + var(--space-lg));
+  }
+
+  .bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    display: flex;
+    align-items: stretch;
+    justify-content: space-around;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding: 0 var(--space-xs) env(safe-area-inset-bottom, 0px);
+    background: rgba(19, 26, 42, 0.92);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+  }
+
+  .bottom-nav-item {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 40px; /* touch target */
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .bottom-nav-item.active {
+    color: var(--accent);
+  }
+
+  .bottom-nav-icon-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .bottom-nav-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.625rem;
+    font-weight: 600;
+  }
+}
