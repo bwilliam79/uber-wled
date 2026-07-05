@@ -1,9 +1,11 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import {
-  listControllers, listGroups, listThemes, getControllerStatus, getFirmwareStatus,
+  listControllers, listGroups, listThemes, listSchedules, listCalendarEvents,
+  getControllerStatus, getFirmwareStatus, getSettings,
   getCapabilities, listDevicePresets,
   type Controller, type Group, type CustomTheme, type ControllerStatus,
+  type Schedule, type CalendarEvent, type Settings, type FirmwareStatus,
   type ControllerCapabilities, type DevicePreset
 } from './client';
 
@@ -35,6 +37,22 @@ export function useControllerStatuses(): UseQueryResult<Map<string, ControllerSt
     },
     refetchInterval: 60_000
   });
+}
+
+export function useSchedules(): UseQueryResult<Schedule[]> {
+  return useQuery({ queryKey: ['schedules'], queryFn: listSchedules });
+}
+
+export function useCalendarEvents(): UseQueryResult<CalendarEvent[]> {
+  return useQuery({ queryKey: ['calendarEvents'], queryFn: listCalendarEvents });
+}
+
+export function useSettings(): UseQueryResult<Settings> {
+  return useQuery({ queryKey: ['settings'], queryFn: getSettings });
+}
+
+export function useFirmwareStatus(controllerId: string): UseQueryResult<FirmwareStatus> {
+  return useQuery({ queryKey: ['firmware', controllerId], queryFn: () => getFirmwareStatus(controllerId) });
 }
 
 export function useCapabilities(controllerId: string | null): UseQueryResult<ControllerCapabilities> {
