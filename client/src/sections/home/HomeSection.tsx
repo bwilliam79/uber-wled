@@ -73,8 +73,39 @@ export function HomeSection() {
 
   const [controlTargets, setControlTargets] = useState<Target[] | null>(null);
   const [overrides, setOverrides] = useState<Map<string, QuickOverride>>(new Map());
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const tiles = useMemo(() => buildTiles(groups, controllers), [groups, controllers]);
+
+  function toggleSelect(id: string) {
+    setSelectMode(true);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function enterSelectMode(id: string) {
+    setSelectMode(true);
+    setSelectedIds(new Set([id]));
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(tiles.map((t) => t.id)));
+  }
+
+  function controlSelected() {
+    const targets = tiles.filter((t) => selectedIds.has(t.id)).flatMap(targetsFor);
+    if (targets.length > 0) setControlTargets(targets);
+  }
 
   function statusFor(tile: HomeTileData): TileStatusV2 {
     const base = aggregateTileStatusLive(tile.members, live);
@@ -140,7 +171,7 @@ export function HomeSection() {
         <h2>Home</h2>
         <div className="home-header-actions" />
       </div>
-      <div className="home-grid">
+      <div className={`home-grid${selectMode ? ' home-select-mode' : ''}`}>
         {tiles.map((tile) => {
           const status = statusFor(tile);
           return (
@@ -149,10 +180,10 @@ export function HomeSection() {
               tile={tile}
               status={status}
               glowColor={glowFor(tile, status)}
-              selectMode={false}
-              selected={false}
-              onToggleSelect={() => {}}
-              onLongPress={() => {}}
+              selectMode={selectMode}
+              selected={selectedIds.has(tile.id)}
+              onToggleSelect={toggleSelect}
+              onLongPress={enterSelectMode}
               onOpenControl={(t) => setControlTargets(targetsFor(t))}
               onPower={handlePower}
               onBrightness={handleBrightness}
@@ -160,6 +191,21 @@ export function HomeSection() {
           );
         })}
       </div>
+      {selectMode && (
+        <div className="home-action-bar" role="toolbar" aria-label="selection actions">
+          <span className="home-action-count">{selectedIds.size} selected</span>
+          <button type="button" className="btn btn-secondary" onClick={selectAll}>Select all</button>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={selectedIds.size === 0}
+            onClick={controlSelected}
+          >
+            Control
+          </button>
+          <button type="button" className="btn btn-secondary" onClick={exitSelectMode}>Cancel</button>
+        </div>
+      )}
       <ControlSurface
         targets={controlTargets ?? []}
         open={controlTargets !== null}
