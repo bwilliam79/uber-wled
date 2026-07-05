@@ -7,6 +7,7 @@ import {
   addGroup,
   updateGroup,
   deleteGroup,
+  reorderGroups,
   type Controller,
   type ControlPatch,
   type Group,
@@ -26,6 +27,7 @@ import {
 } from '../../lib/tileStatus';
 import { dominantColor, OFF_GLOW, OFFLINE_GLOW } from '../../lib/dominantColor';
 import { throttle } from '../../lib/throttle';
+import { moveId, dropIndexForPoint } from './reorder';
 import './home.css';
 
 const OVERRIDE_TTL_MS = 4000; // two live-poll ticks at the 2s default
@@ -113,6 +115,50 @@ export function HomeSection() {
 
   function changeMembers(id: string, members: GroupMember[]) {
     updateGroup(id, { members }).then(invalidateGroups);
+  }
+
+  const editGridRef = useRef<HTMLDivElement | null>(null);
+  const dragIdRef = useRef<string | null>(null);
+  const [dragOrder, setDragOrder] = useState<string[] | null>(null);
+
+  const orderedGroups = useMemo(() => {
+    if (!dragOrder) return sortedGroups;
+    const byId = new Map(sortedGroups.map((g) => [g.id, g]));
+    return dragOrder.map((id) => byId.get(id)).filter((g): g is Group => !!g);
+  }, [sortedGroups, dragOrder]);
+
+  function persistOrder(ids: string[]) {
+    reorderGroups(ids).then(invalidateGroups);
+  }
+
+  function moveRoom(id: string, delta: number) {
+    const ids = orderedGroups.map((g) => g.id);
+    const from = ids.indexOf(id);
+    if (from === -1) return;
+    const to = from + delta;
+    if (to < 0 || to >= ids.length) return;
+    persistOrder(moveId(ids, id, to));
+  }
+
+  function handleDragStart(id: string, e: React.PointerEvent) {
+    dragIdRef.current = id;
+    setDragOrder(orderedGroups.map((g) => g.id));
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  }
+
+  function handleDragMove(e: React.PointerEvent) {
+    const dragId = dragIdRef.current;
+    if (!dragId || !editGridRef.current) return;
+    const rects = Array.from(editGridRef.current.children).map((el) => el.getBoundingClientRect());
+    const idx = dropIndexForPoint(rects, e.clientX, e.clientY);
+    setDragOrder((prev) => (prev ? moveId(prev, dragId, idx) : prev));
+  }
+
+  function handleDragEnd() {
+    const dragId = dragIdRef.current;
+    dragIdRef.current = null;
+    if (dragId && dragOrder) persistOrder(dragOrder);
+    setDragOrder(null);
   }
 
   function confirmDelete() {
@@ -234,16 +280,25 @@ export function HomeSection() {
         </div>
       </div>
       {editMode ? (
-        <div className="home-grid">
-          {sortedGroups.map((g) => (
+        <div
+          className="home-grid"
+          ref={editGridRef}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+        >
+          {orderedGroups.map((g, i) => (
             <RoomEditTile
               key={g.id}
               group={g}
               controllers={controllers}
+              index={i}
+              count={orderedGroups.length}
               onRename={renameRoom}
               onSetIcon={setRoomIcon}
-              onDelete={(id) => setDeleteTarget(sortedGroups.find((x) => x.id === id) ?? null)}
+              onDelete={(id) => setDeleteTarget(orderedGroups.find((x) => x.id === id) ?? null)}
               onMembersChange={changeMembers}
+              onMove={moveRoom}
+              onDragStart={handleDragStart}
             />
           ))}
         </div>
