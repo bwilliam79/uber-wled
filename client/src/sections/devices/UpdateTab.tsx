@@ -1,5 +1,5 @@
 import { Card } from '../../components/ui/Card';
-import { FirmwareStatus } from '../../components/FirmwareStatus';
+import { FirmwareStatus } from './FirmwareStatus';
 import './devices.css';
 
 export function UpdateTab({ controllerId }: { controllerId: string }) {
