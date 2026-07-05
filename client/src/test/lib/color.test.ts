@@ -29,6 +29,12 @@ describe('hex <-> rgb', () => {
     expect(rgbToHex([255, 0, 0, 128])).toBe('#ff0000');
     expect(rgbToHex([300, -5, 12.4])).toBe('#ff000c');
   });
+  it('rgbToHex clamps and tolerates short arrays (Phase H lib/color contract)', () => {
+    // Phase H's paletteCss/ThemeForm consume rgbToHex with a possibly-short array.
+    expect(rgbToHex([300, -5])).toBe('#ff0000');
+    expect(rgbToHex([155, 0, 213])).toBe('#9b00d5');
+    expect(rgbToHex([0, 0, 0])).toBe('#000000');
+  });
   it('hexToRgb rejects malformed input', () => {
     expect(hexToRgb('#12345')).toBeNull();
     expect(hexToRgb('red')).toBeNull();

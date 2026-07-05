@@ -1,0 +1,37 @@
+/* Themes section — Phase H. All colors/radii come from design/tokens.css. */
+.themes-section { display: flex; flex-direction: column; gap: 16px; }
+
+.theme-list { list-style: none; margin: 0; padding: 0; }
+.theme-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
+.theme-row:last-child { border-bottom: none; }
+.theme-row-info { display: flex; flex-direction: column; min-width: 140px; }
+.theme-row-name { color: var(--text); font-weight: 600; }
+.theme-row-meta { color: var(--text-muted); font-size: 0.85rem; }
+.theme-row-preview { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.theme-row-swatches { display: flex; gap: 4px; }
+.theme-row-swatch { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--border); }
+
+.palette-bar { display: inline-block; flex: 1; min-width: 60px; height: 14px; border-radius: 7px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+.palette-random-badge { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: rgba(0, 0, 0, 0.35); }
+
+.theme-form { display: flex; flex-direction: column; gap: 14px; }
+.theme-form-source { display: flex; flex-direction: column; gap: 6px; max-width: 320px; margin-bottom: 14px; }
+.theme-form-pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 700px) { .theme-form-pickers { grid-template-columns: 1fr; } }
+
+.picker { display: flex; flex-direction: column; gap: 8px; }
+.picker-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
+.picker-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 40px; padding: 8px 12px; background: none; border: none; color: var(--text); cursor: pointer; text-align: left; font: inherit; }
+.picker-row:hover { background: var(--surface-2); }
+.picker-row.selected { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+.picker-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker-row .palette-bar { flex: 0 0 96px; }
+.picker-row-tags { display: flex; gap: 4px; }
+.picker-tag { font-size: 0.65rem; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--text-muted); }
+
+.theme-form-colors { display: flex; gap: 18px; }
+.color-slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.color-slot-swatch { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; }
+.color-slot-label { font-size: 0.75rem; color: var(--text-muted); }
+.color-pop { position: absolute; top: 52px; left: 0; z-index: 30; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
+.color-pop-hex { width: 110px; }

@@ -4,11 +4,11 @@ import { BottomNav } from './BottomNav';
 import { SECTIONS, type SectionKey } from './nav';
 import { HomeSection } from '../sections/home/HomeSection';
 import { DevicesSection } from '../sections/devices/DevicesSection';
-import { ThemeManager } from './ThemeManager';
+import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from '../sections/layout/LayoutSection';
-import { ScheduleSection } from './ScheduleSection';
-import { FirmwareSection } from './FirmwareSection';
-import { SettingsSection } from './SettingsSection';
+import { ScheduleSection } from '../sections/schedule/ScheduleSection';
+import { FirmwareSection } from '../sections/firmware/FirmwareSection';
+import { SettingsSection } from '../sections/settings/SettingsSection';
 import { useFirmwareUpdateAvailable } from '../api/queries';
 import './appshell.css';
 
@@ -55,9 +55,15 @@ export function AppShell() {
         {active === 'home' && <HomeSection />}
         {active === 'layout' && <LayoutSection />}
         {active === 'devices' && <DevicesSection />}
-        {active === 'themes' && <ThemeManager />}
+        {active === 'themes' && <ThemesSection />}
         {active === 'schedule' && <ScheduleSection />}
-        {active === 'firmware' && <FirmwareSection />}
+        {active === 'firmware' && (
+          <FirmwareSection
+            onOpenDeviceUpdate={(controllerId) => {
+              window.location.hash = `#/devices/${controllerId}/update`;
+            }}
+          />
+        )}
         {active === 'settings' && <SettingsSection />}
       </main>
       <BottomNav active={active} onNavigate={navigate} badges={badges} />
