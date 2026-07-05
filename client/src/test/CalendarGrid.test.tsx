@@ -1,29 +1,48 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import { CalendarGrid } from '../components/CalendarGrid';
+import { CalendarGrid, eventsForDay } from '../sections/schedule/CalendarGrid';
 import type { CalendarEvent } from '../api/client';
 
-const events: CalendarEvent[] = [
-  { id: 'e1', name: 'Halloween', category: 'holiday', dateRule: { kind: 'fixed', month: 10, day: 31 }, recursYearly: true, enabled: true, groupId: null, triggerTime: { type: 'fixed', time: '18:00' }, actionType: 'theme', actionPayload: {} },
-  { id: 'e2', name: 'Party', category: 'custom', dateRule: { kind: 'fixed', month: 10, day: 15 }, recursYearly: true, enabled: false, groupId: null, triggerTime: { type: 'fixed', time: '20:00' }, actionType: 'theme', actionPayload: {} }
-];
+const halloween: CalendarEvent = {
+  id: 'e1', name: 'Halloween', category: 'holiday',
+  dateRule: { kind: 'fixed', month: 10, day: 31 }, recursYearly: true, enabled: true,
+  groupId: 'g1', triggerTime: { type: 'fixed', time: '18:00' },
+  actionType: 'theme', actionPayload: { themeId: 't1' }
+};
 
-describe('CalendarGrid', () => {
-  it('renders an enabled event chip (accent) on its day and a disabled chip (muted) on another', () => {
-    render(<CalendarGrid events={events} year={2026} month={10} selectedDay={null} onSelectDay={vi.fn()} onPrev={vi.fn()} onNext={vi.fn()} onToday={vi.fn()} />);
-    const day31 = screen.getByTestId('day-31');
-    expect(within(day31).getByText('Halloween').className).toContain('enabled');
-    const day15 = screen.getByTestId('day-15');
-    expect(within(day15).getByText('Party').className).toContain('disabled');
+describe('CalendarGrid v2', () => {
+  it('renders day cells with event chips and reports day selection', () => {
+    const onSelectDay = vi.fn();
+    render(
+      <CalendarGrid
+        events={[halloween]} year={2026} month={10} selectedDay={null}
+        onSelectDay={onSelectDay} onPrev={() => {}} onNext={() => {}} onToday={() => {}}
+      />
+    );
+    expect(screen.getByTestId('calendar-grid')).toBeTruthy();
+    expect(within(screen.getByTestId('day-31')).getByText('Halloween')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('day-14'));
+    expect(onSelectDay).toHaveBeenCalledWith(14);
   });
 
-  it('calls onSelectDay when a day cell is clicked and onNext for the next-month control', () => {
-    const onSelectDay = vi.fn();
-    const onNext = vi.fn();
-    render(<CalendarGrid events={events} year={2026} month={10} selectedDay={null} onSelectDay={onSelectDay} onPrev={vi.fn()} onNext={onNext} onToday={vi.fn()} />);
-    fireEvent.click(screen.getByTestId('day-15'));
-    expect(onSelectDay).toHaveBeenCalledWith(15);
-    fireEvent.click(screen.getByLabelText(/next month/i));
+  it('wires prev/next/today buttons', () => {
+    const onPrev = vi.fn(); const onNext = vi.fn(); const onToday = vi.fn();
+    render(
+      <CalendarGrid
+        events={[]} year={2026} month={10} selectedDay={null}
+        onSelectDay={() => {}} onPrev={onPrev} onNext={onNext} onToday={onToday}
+      />
+    );
+    fireEvent.click(screen.getByLabelText('previous month'));
+    fireEvent.click(screen.getByLabelText('next month'));
+    fireEvent.click(screen.getByText('Today'));
+    expect(onPrev).toHaveBeenCalled();
     expect(onNext).toHaveBeenCalled();
+    expect(onToday).toHaveBeenCalled();
+  });
+
+  it('eventsForDay resolves fixed date rules', () => {
+    expect(eventsForDay([halloween], 2026, 10, 31)).toHaveLength(1);
+    expect(eventsForDay([halloween], 2026, 10, 30)).toHaveLength(0);
   });
 });

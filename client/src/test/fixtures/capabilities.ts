@@ -128,3 +128,43 @@ export function makeInfo(overrides: Partial<LiveInfo> = {}): LiveInfo {
 export function liveEntry(state: LiveState, info?: LiveInfo): LiveStatusEntry {
   return { reachable: true, state, info: info ?? makeInfo() };
 }
+
+// ── Themes v2 picker fixture ────────────────────────────────────────────────
+function fx(id: number, name: string, flags: string[] = ['1']): FxMeta {
+  return {
+    id,
+    name,
+    sliders: { sx: 'Effect speed', ix: 'Effect intensity', c1: null, c2: null, c3: null },
+    options: { o1: null, o2: null, o3: null },
+    colorLabels: ['Fx', 'Bg', 'Cs'],
+    usesPalette: true,
+    flags,
+    defaults: {}
+  };
+}
+
+/** Trimmed real capability data from 192.168.1.86 (WLED 16.0.0 "Niji", vid 2605030). */
+export const CAPS: ControllerCapabilities = {
+  vid: 2605030,
+  effects: ['Solid', 'Blink', 'Breathe', 'Wipe'],
+  palettes: [
+    'Default', '* Random Cycle', '* Color 1', '* Colors 1&2',
+    '* Color Gradient', '* Colors Only', 'Party', 'Cloud'
+  ],
+  fxMeta: [fx(0, 'Solid', []), fx(1, 'Blink'), fx(2, 'Breathe'), fx(3, 'Wipe', ['1', 'v'])],
+  palettePreviews: {
+    0: { type: 'stops', stops: [[0, 155, 0, 213], [128, 213, 155, 0], [240, 0, 50, 252]] },
+    1: { type: 'random' },
+    2: { type: 'slots', slots: ['c1'] },
+    3: { type: 'slots', slots: ['c1', 'c1', 'c2', 'c2'] },
+    6: {
+      type: 'stops',
+      stops: [
+        [0, 155, 0, 213], [64, 244, 85, 0], [128, 213, 155, 0],
+        [192, 196, 0, 176], [240, 0, 50, 252]
+      ]
+    },
+    7: { type: 'stops', stops: [[0, 0, 0, 255], [144, 0, 0, 139], [208, 255, 255, 255], [240, 135, 206, 235]] }
+  },
+  fetchedAt: '2026-07-04T00:00:00.000Z'
+};

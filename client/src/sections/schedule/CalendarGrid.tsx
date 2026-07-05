@@ -1,10 +1,16 @@
-import type { CalendarEvent } from '../api/client';
-import { resolveDate } from '../lib/dateRules';
+import type { CalendarEvent } from '../../api/client';
+import { resolveDate } from '../../lib/dateRules';
+import { Button } from '../../components/ui/Button';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
-export function eventsForDay(events: CalendarEvent[], year: number, month: number, day: number): CalendarEvent[] {
+export function eventsForDay(
+  events: CalendarEvent[], year: number, month: number, day: number
+): CalendarEvent[] {
   return events.filter((e) => {
     const d = resolveDate(e.dateRule, year);
     return !!d && d.month === month && d.day === day;
@@ -12,14 +18,7 @@ export function eventsForDay(events: CalendarEvent[], year: number, month: numbe
 }
 
 export function CalendarGrid({
-  events,
-  year,
-  month,
-  selectedDay,
-  onSelectDay,
-  onPrev,
-  onNext,
-  onToday
+  events, year, month, selectedDay, onSelectDay, onPrev, onNext, onToday
 }: {
   events: CalendarEvent[];
   year: number;
@@ -39,11 +38,11 @@ export function CalendarGrid({
   return (
     <div className="calendar" data-testid="calendar-grid">
       <div className="calendar-header">
-        <button type="button" className="btn btn-secondary" aria-label="previous month" onClick={onPrev}>‹</button>
-        <h2>{MONTHS[month - 1]} {year}</h2>
+        <Button variant="ghost" aria-label="previous month" onClick={onPrev}>‹</Button>
+        <h3 className="calendar-title">{MONTHS[month - 1]} {year}</h3>
         <div className="calendar-header-actions">
-          <button type="button" className="btn btn-secondary" onClick={onToday}>Today</button>
-          <button type="button" className="btn btn-secondary" aria-label="next month" onClick={onNext}>›</button>
+          <Button variant="secondary" onClick={onToday}>Today</Button>
+          <Button variant="ghost" aria-label="next month" onClick={onNext}>›</Button>
         </div>
       </div>
       <div className="calendar-weekdays">
