@@ -31,7 +31,6 @@ function jsonResponse(data: unknown, status = 200) {
 }
 
 const fetchMock = vi.fn();
-let rectSpy: Mock;
 
 function mockCanvasRect(size: number) {
   (Element.prototype.getBoundingClientRect as unknown as Mock).mockReturnValue({
@@ -67,7 +66,7 @@ beforeEach(() => {
   vi.stubGlobal('fetch', fetchMock);
   // jsdom returns an all-zero rect; 100x100 makes screen coords == world coords
   // under the identity viewport.
-  rectSpy = vi.spyOn(Element.prototype, 'getBoundingClientRect') as unknown as Mock;
+  vi.spyOn(Element.prototype, 'getBoundingClientRect');
   mockCanvasRect(100);
 });
 
