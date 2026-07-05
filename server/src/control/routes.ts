@@ -4,6 +4,7 @@ import { createControllerRepository } from '../controllers/repository.js';
 import { createThemeRepository } from '../themes/repository.js';
 import { setState, applyPreset } from '../wled/client.js';
 import type { WledState, WledSegment } from '../wled/types.js';
+import { applyControlPatch, GroupNotFoundError, type Target, type ControlPatch } from './applyV2.js';
 
 export type ControlAction =
   | { type: 'power'; on: boolean }
@@ -77,9 +78,31 @@ export function createControlRouter(db: Database.Database): Router {
   const router = Router();
 
   router.post('/apply', async (req, res) => {
-    const { members, action } = req.body as { members: Member[]; action: ControlAction };
-    const results = await applyToMembers(db, members, action);
-    res.json({ results });
+    const body = req.body ?? {};
+
+    if (Array.isArray(body.targets)) {
+      // v2: { targets: Target[], patch: ControlPatch }
+      if (typeof body.patch !== 'object' || body.patch === null) {
+        return res.status(400).json({ error: 'patch is required' });
+      }
+      try {
+        const results = await applyControlPatch(db, body.targets as Target[], body.patch as ControlPatch);
+        return res.json({ results });
+      } catch (err) {
+        if (err instanceof GroupNotFoundError) {
+          return res.status(400).json({ error: err.message });
+        }
+        throw err;
+      }
+    }
+
+    if (Array.isArray(body.members)) {
+      // v1: { members: Member[], action: ControlAction } — unchanged until Phase I
+      const results = await applyToMembers(db, body.members as Member[], body.action as ControlAction);
+      return res.json({ results });
+    }
+
+    return res.status(400).json({ error: 'body must be {targets,patch} (v2) or {members,action} (v1)' });
   });
 
   return router;
