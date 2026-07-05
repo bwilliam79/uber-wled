@@ -481,3 +481,123 @@
   color: var(--text-muted);
   pointer-events: none;
 }
+
+/* ---------- Overlay (shared by Modal & Drawer) ---------- */
+
+.ui-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(4, 7, 14, 0.66);
+  backdrop-filter: blur(3px);
+}
+
+/* ---------- Modal ---------- */
+
+.ui-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: min(85svh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-lg);
+}
+
+.ui-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-modal-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.ui-modal-body {
+  padding: var(--space-lg);
+  overflow-y: auto;
+}
+
+.ui-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+/* ---------- Drawer: right slide-over ≥900px, bottom sheet <900px ---------- */
+
+.ui-overlay.ui-overlay-drawer {
+  padding: 0;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.ui-drawer {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  width: min(480px, 100vw);
+  height: 100%;
+  animation: ui-drawer-in-right 200ms ease;
+}
+
+.ui-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-drawer-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+}
+
+.ui-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+@keyframes ui-drawer-in-right {
+  from { transform: translateX(32px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes ui-drawer-in-up {
+  from { transform: translateY(48px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (max-width: 899px) {
+  .ui-overlay.ui-overlay-drawer {
+    align-items: flex-end;
+    justify-content: stretch;
+  }
+
+  .ui-drawer {
+    width: 100%;
+    height: calc(100svh - env(safe-area-inset-top, 0px));
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    animation: ui-drawer-in-up 240ms ease;
+  }
+}
