@@ -1,0 +1,186 @@
+/* ===== Devices section (Phase F) ===== */
+
+.devices-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+@media (max-width: 480px) {
+  .devices-grid { grid-template-columns: 1fr; }
+}
+
+/* ---------- Device card (list view) ---------- */
+
+.device-card { display: flex; flex-direction: column; gap: var(--space-sm); }
+
+.device-card-header { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+
+.device-card-title {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+  text-align: left;
+}
+
+.device-card-title:hover { color: var(--accent); }
+
+.device-card-host { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
+
+.device-card-live { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+
+.device-card-metric { color: var(--text-muted); font-size: 0.85rem; }
+
+.device-card-actions { display: flex; gap: var(--space-sm); margin-top: auto; }
+
+.signal-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
+.signal-bar { width: 4px; background: var(--border); border-radius: 1px; }
+.signal-bar:nth-child(1) { height: 4px; }
+.signal-bar:nth-child(2) { height: 8px; }
+.signal-bar:nth-child(3) { height: 12px; }
+.signal-bar:nth-child(4) { height: 16px; }
+.signal-bar-on { background: var(--success); }
+
+/* ---------- Device detail ---------- */
+
+.device-detail-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.device-detail-titles h2 { margin: 0; }
+
+.info-tab, .segments-tab, .presets-tab-device, .config-tab, .update-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-md);
+  margin: 0;
+}
+
+.fact dt {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.fact dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+
+.info-liveview {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: #000;
+}
+
+.info-actions-row { display: flex; gap: var(--space-sm); flex-wrap: wrap; align-items: center; }
+
+/* ---------- Segments editor ---------- */
+
+.segment-grid, .config-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-sm) var(--space-md);
+}
+
+.segment-row-header { display: flex; justify-content: space-between; align-items: center; }
+.segment-switches { display: flex; gap: var(--space-lg); flex-wrap: wrap; }
+.segment-row-actions, .config-form-actions { display: flex; gap: var(--space-sm); }
+
+/* ---------- Device presets ---------- */
+
+.device-preset-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-sm); }
+.device-preset-row { display: flex; align-items: center; gap: var(--space-sm); min-height: 40px; }
+.device-preset-id { color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 2ch; }
+.device-preset-name { flex: 1; overflow-wrap: anywhere; }
+.preset-save-flags { display: flex; gap: var(--space-lg); flex-wrap: wrap; margin: var(--space-sm) 0; }
+
+/* ---------- Config forms ---------- */
+
+.config-form { display: flex; flex-direction: column; gap: var(--space-sm); }
+.config-warning { color: var(--warning); font-size: 0.85rem; margin: 0; }
+
+.output-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-md);
+  margin: 0;
+}
+
+.config-json-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8rem;
+  width: 100%;
+  resize: vertical;
+}
+
+.config-reboot-offer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding: var(--space-md);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-control);
+}
+
+.config-reboot-offer p { margin: 0; flex: 1; }
+
+/* ---------- Diff confirm modal ---------- */
+
+.diff-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.diff-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+
+.diff-row-risky { outline: 1px solid var(--danger); }
+.diff-path { color: var(--text-muted); font-size: 0.75rem; overflow-wrap: anywhere; }
+.diff-from { color: var(--danger); text-decoration: line-through; }
+.diff-to { color: var(--success); }
+.diff-values { overflow-wrap: anywhere; }
+
+.diff-risk-warning {
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-control);
+  padding: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.diff-risk-ack { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 40px; }
