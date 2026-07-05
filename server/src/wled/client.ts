@@ -124,6 +124,10 @@ export async function deletePreset(host: string, presetId: number): Promise<void
   await postJson(host, '/json/state', { pdel: presetId });
 }
 
+export function getPresetsRaw(host: string): Promise<Record<string, unknown>> {
+  return getJson<Record<string, unknown>>(host, '/presets.json');
+}
+
 export async function reboot(host: string): Promise<void> {
   await postJson(host, '/json/state', { rb: true });
 }
