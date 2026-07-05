@@ -1,19 +1,68 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell } from '../components/AppShell';
+
+const SEVEN = ['Home', 'Layout', 'Devices', 'Themes', 'Schedule', 'Firmware', 'Settings'];
+
+function renderShell() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <AppShell />
+    </QueryClientProvider>
+  );
+}
+
+function stubFetchEmpty() {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
+}
 
 afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
-describe('AppShell', () => {
-  it('opens on the Home section by default and lists all eight sections', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
-    render(<AppShell />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Home/ }).className).toContain('active'));
-    for (const name of ['Home', 'Layout', 'Controllers', 'Groups', 'Themes', 'Schedule', 'Firmware', 'Settings']) {
-      expect(screen.getByRole('button', { name: new RegExp(name) })).toBeTruthy();
+describe('AppShell v2', () => {
+  it('opens on Home and lists exactly the seven sections in the sidebar (no Groups)', async () => {
+    stubFetchEmpty();
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    await waitFor(() =>
+      expect(within(sidebar).getByRole('button', { name: /Home/ }).className).toContain('active')
+    );
+    for (const name of SEVEN) {
+      expect(within(sidebar).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
-    expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy();
+    expect(within(sidebar).queryByRole('button', { name: /Groups/ })).toBeNull();
+    expect(within(sidebar).queryByRole('button', { name: /Controllers/ })).toBeNull();
+    expect(within(sidebar).getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy();
+  });
+
+  it('renders a bottom navigation with the same seven sections', () => {
+    stubFetchEmpty();
+    renderShell();
+    const bottom = screen.getByRole('navigation', { name: 'Bottom navigation' });
+    for (const name of SEVEN) {
+      expect(within(bottom).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
+    }
+  });
+
+  it('renders the existing Controllers screen under the Devices section', async () => {
+    stubFetchEmpty();
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    fireEvent.click(within(sidebar).getByRole('button', { name: /Devices/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Controllers' })).toBeTruthy());
+    expect(window.location.hash).toBe('#/devices');
+  });
+
+  it('maps the legacy #/controllers hash to Devices', async () => {
+    window.location.hash = '#/controllers';
+    stubFetchEmpty();
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    await waitFor(() =>
+      expect(within(sidebar).getByRole('button', { name: /Devices/ }).className).toContain('active')
+    );
   });
 
   it('switches to the Themes section when its nav item is clicked', async () => {
@@ -27,12 +76,13 @@ describe('AppShell', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
     vi.stubGlobal('fetch', fetchMock);
-    render(<AppShell />);
-    fireEvent.click(screen.getByRole('button', { name: /Themes/ }));
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    fireEvent.click(within(sidebar).getByRole('button', { name: /Themes/ }));
     await waitFor(() => expect(screen.getByText(/No custom themes yet/)).toBeTruthy());
   });
 
-  it('shows a badge on the Firmware nav item when any controller has an update available', async () => {
+  it('shows a firmware badge in both navs when any controller has an update available', async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (typeof url === 'string' && url === '/api/controllers') {
         return Promise.resolve({
@@ -52,12 +102,13 @@ describe('AppShell', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
     vi.stubGlobal('fetch', fetchMock);
-
-    render(<AppShell />);
-
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    const bottom = screen.getByRole('navigation', { name: 'Bottom navigation' });
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /Firmware/ }).querySelector('.sidebar-link-badge')).toBeTruthy()
+      expect(within(sidebar).getByRole('button', { name: /Firmware/ }).querySelector('.sidebar-link-badge')).toBeTruthy()
     );
-    expect(screen.getByRole('button', { name: /Layout/ }).querySelector('.sidebar-link-badge')).toBeNull();
+    expect(within(bottom).getByRole('button', { name: /Firmware/ }).querySelector('.sidebar-link-badge')).toBeTruthy();
+    expect(within(sidebar).getByRole('button', { name: /Layout/ }).querySelector('.sidebar-link-badge')).toBeNull();
   });
 });
