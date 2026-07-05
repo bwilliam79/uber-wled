@@ -31,7 +31,9 @@ export function runMigrations(db: Database.Database): void {
 
     CREATE TABLE IF NOT EXISTS groups (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL
+      name TEXT NOT NULL,
+      icon TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS group_members (
@@ -94,7 +96,8 @@ export function runMigrations(db: Database.Database): void {
       home_longitude REAL,
       discovery_rescan_interval_minutes INTEGER NOT NULL DEFAULT 5,
       schedule_import_disable_on_device_default INTEGER NOT NULL DEFAULT 0,
-      controller_status_poll_interval_minutes INTEGER NOT NULL DEFAULT 5
+      controller_status_poll_interval_minutes INTEGER NOT NULL DEFAULT 5,
+      live_poll_interval_seconds INTEGER NOT NULL DEFAULT 2
     );
 
     CREATE TABLE IF NOT EXISTS controller_status (
@@ -127,5 +130,19 @@ export function runMigrations(db: Database.Database): void {
   const settingsCols = db.prepare('PRAGMA table_info(settings)').all() as { name: string }[];
   if (!settingsCols.some((c) => c.name === 'controller_status_poll_interval_minutes')) {
     db.exec('ALTER TABLE settings ADD COLUMN controller_status_poll_interval_minutes INTEGER NOT NULL DEFAULT 5');
+  }
+
+  // Idempotent column adds for groups/settings rows created before phase B
+  // (control plane redesign): room icons, Home tile ordering, and the SSE
+  // fast-poll interval.
+  const groupCols = db.prepare('PRAGMA table_info(groups)').all() as { name: string }[];
+  if (!groupCols.some((c) => c.name === 'icon')) {
+    db.exec('ALTER TABLE groups ADD COLUMN icon TEXT');
+  }
+  if (!groupCols.some((c) => c.name === 'sort_order')) {
+    db.exec('ALTER TABLE groups ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0');
+  }
+  if (!settingsCols.some((c) => c.name === 'live_poll_interval_seconds')) {
+    db.exec('ALTER TABLE settings ADD COLUMN live_poll_interval_seconds INTEGER NOT NULL DEFAULT 2');
   }
 }

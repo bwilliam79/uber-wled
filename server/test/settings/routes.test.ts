@@ -25,7 +25,8 @@ describe('settings routes', () => {
       homeLongitude: null,
       discoveryRescanIntervalMinutes: 5,
       scheduleImportDisableOnDeviceDefault: false,
-      controllerStatusPollIntervalMinutes: 5
+      controllerStatusPollIntervalMinutes: 5,
+      livePollIntervalSeconds: 2
     });
   });
 
@@ -38,6 +39,15 @@ describe('settings routes', () => {
 
     const get = await request(app).get('/api/settings');
     expect(get.body.homeLongitude).toBe(-122.3);
+  });
+
+  it('persists livePollIntervalSeconds', async () => {
+    const patch = await request(app).patch('/api/settings').send({ livePollIntervalSeconds: 5 });
+    expect(patch.status).toBe(200);
+    expect(patch.body.livePollIntervalSeconds).toBe(5);
+
+    const get = await request(app).get('/api/settings');
+    expect(get.body.livePollIntervalSeconds).toBe(5);
   });
 
   it('runs a discovery cycle on POST /rescan and returns the controller list', async () => {

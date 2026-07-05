@@ -7,6 +7,7 @@ export interface Settings {
   discoveryRescanIntervalMinutes: number;
   scheduleImportDisableOnDeviceDefault: boolean;
   controllerStatusPollIntervalMinutes: number;
+  livePollIntervalSeconds: number;
 }
 
 const DEFAULTS: Settings = {
@@ -15,7 +16,8 @@ const DEFAULTS: Settings = {
   homeLongitude: null,
   discoveryRescanIntervalMinutes: 5,
   scheduleImportDisableOnDeviceDefault: false,
-  controllerStatusPollIntervalMinutes: 5
+  controllerStatusPollIntervalMinutes: 5,
+  livePollIntervalSeconds: 2
 };
 
 function fromRow(row: any): Settings {
@@ -25,7 +27,8 @@ function fromRow(row: any): Settings {
     homeLongitude: row.home_longitude,
     discoveryRescanIntervalMinutes: row.discovery_rescan_interval_minutes,
     scheduleImportDisableOnDeviceDefault: !!row.schedule_import_disable_on_device_default,
-    controllerStatusPollIntervalMinutes: row.controller_status_poll_interval_minutes
+    controllerStatusPollIntervalMinutes: row.controller_status_poll_interval_minutes,
+    livePollIntervalSeconds: row.live_poll_interval_seconds
   };
 }
 
@@ -34,15 +37,18 @@ export function createSettingsRepository(db: Database.Database) {
     const row = db.prepare('SELECT * FROM settings WHERE id = 1').get();
     if (row) return fromRow(row);
     db.prepare(
-      `INSERT INTO settings (id, include_prerelease_firmware, home_latitude, home_longitude, discovery_rescan_interval_minutes, schedule_import_disable_on_device_default, controller_status_poll_interval_minutes)
-       VALUES (1, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO settings (id, include_prerelease_firmware, home_latitude, home_longitude,
+         discovery_rescan_interval_minutes, schedule_import_disable_on_device_default,
+         controller_status_poll_interval_minutes, live_poll_interval_seconds)
+       VALUES (1, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       DEFAULTS.includePrereleaseFirmware ? 1 : 0,
       DEFAULTS.homeLatitude,
       DEFAULTS.homeLongitude,
       DEFAULTS.discoveryRescanIntervalMinutes,
       DEFAULTS.scheduleImportDisableOnDeviceDefault ? 1 : 0,
-      DEFAULTS.controllerStatusPollIntervalMinutes
+      DEFAULTS.controllerStatusPollIntervalMinutes,
+      DEFAULTS.livePollIntervalSeconds
     );
     return { ...DEFAULTS };
   }
@@ -56,14 +62,15 @@ export function createSettingsRepository(db: Database.Database) {
       db.prepare(
         `UPDATE settings SET include_prerelease_firmware = ?, home_latitude = ?, home_longitude = ?,
           discovery_rescan_interval_minutes = ?, schedule_import_disable_on_device_default = ?,
-          controller_status_poll_interval_minutes = ? WHERE id = 1`
+          controller_status_poll_interval_minutes = ?, live_poll_interval_seconds = ? WHERE id = 1`
       ).run(
         next.includePrereleaseFirmware ? 1 : 0,
         next.homeLatitude,
         next.homeLongitude,
         next.discoveryRescanIntervalMinutes,
         next.scheduleImportDisableOnDeviceDefault ? 1 : 0,
-        next.controllerStatusPollIntervalMinutes
+        next.controllerStatusPollIntervalMinutes,
+        next.livePollIntervalSeconds
       );
       return next;
     }
