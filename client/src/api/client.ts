@@ -15,6 +15,8 @@ export interface GroupMember {
 export interface Group {
   id: string;
   name: string;
+  icon: string | null;
+  sortOrder: number;
   members: GroupMember[];
 }
 
@@ -112,10 +114,14 @@ export const importSchedules = (controllerId: string, disableOnDevice: boolean) 
   );
 
 export const listGroups = () => getJson<Group[]>('/api/groups');
-export const addGroup = (name: string, members: GroupMember[]) =>
-  sendJson<Group>('/api/groups', 'POST', { name, members });
-export const updateGroup = (id: string, patch: { name?: string; members?: GroupMember[] }) =>
-  sendJson<Group>(`/api/groups/${id}`, 'PATCH', patch);
+export const addGroup = (name: string, members: GroupMember[], icon?: string | null) =>
+  sendJson<Group>('/api/groups', 'POST', { name, members, icon: icon ?? null });
+export const updateGroup = (
+  id: string,
+  patch: { name?: string; members?: GroupMember[]; icon?: string | null }
+) => sendJson<Group>(`/api/groups/${id}`, 'PATCH', patch);
+export const reorderGroups = (ids: string[]) =>
+  sendJson<Group[]>('/api/groups/reorder', 'POST', { ids });
 export const deleteGroup = (id: string) => fetch(`/api/groups/${id}`, { method: 'DELETE' });
 
 export const listThemes = () => getJson<CustomTheme[]>('/api/themes');
