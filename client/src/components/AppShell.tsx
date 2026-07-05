@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { BottomNav } from './BottomNav';
 import { SECTIONS, type SectionKey } from './nav';
-import { HomeSection } from './HomeSection';
+import { HomeSection } from '../sections/home/HomeSection';
 import { ControllersSection } from './ControllersSection';
 import { ThemeManager } from './ThemeManager';
 import { LayoutSection } from './LayoutSection';
