@@ -7,8 +7,11 @@
 ---
 
 **Project:** uber-wled
-**Generated:** 2026-07-04 11:42:21
-**Category:** Smart Home/IoT Dashboard
+**Updated:** 2026-07-04 (control-plane redesign — "sleek smart-home" direction)
+**Category:** Smart Home / IoT Control Plane
+
+Source of truth for values: `client/src/design/tokens.css` (this file mirrors
+it; if they ever disagree, tokens.css wins and this file must be fixed).
 
 ---
 
@@ -16,179 +19,78 @@
 
 ### Color Palette
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#1E293B` | `--color-primary` |
-| On Primary | `#FFFFFF` | `--color-on-primary` |
-| Secondary | `#334155` | `--color-secondary` |
-| Accent/CTA | `#22C55E` | `--color-accent` |
-| Background | `#0F172A` | `--color-background` |
-| Foreground | `#F8FAFC` | `--color-foreground` |
-| Muted | `#272F42` | `--color-muted` |
-| Border | `#475569` | `--color-border` |
-| Destructive | `#EF4444` | `--color-destructive` |
-| Ring | `#1E293B` | `--color-ring` |
+| Role | Value | CSS Variable |
+|------|-------|--------------|
+| App background (near-black blue) | `#0B0F1A` | `--bg` |
+| Raised card surface | `#131A2A` | `--surface` |
+| Second-level surface (inputs, hover) | `#1A2338` | `--surface-2` |
+| Hairline border | `rgba(148,163,184,.10)` | `--border` |
+| Text | `#E6EAF2` | `--text` |
+| Muted text | `#8A94A8` | `--text-muted` |
+| Accent / interactive / brand | `#7C6CFF` | `--accent` |
+| Accent wash (active backgrounds) | `rgba(124,108,255,.16)` | `--accent-soft` |
+| Success | `#22C55E` | `--success` |
+| Danger | `#EF4444` | `--danger` |
+| Warning (update badges) | `#F59E0B` | `--warning` |
 
-**Color Notes:** Dark tech + status green
+**Color Notes:** Deep dark surfaces with an electric indigo-violet accent.
+Dynamic glows on Home tiles and Layout strips use the **lights' actual live
+colors**, never the static accent. Legacy `--color-*` variables still exist in
+`client/src/index.css` as aliases for not-yet-rebuilt sections — never use
+them in new code.
 
 ### Typography
 
-- **Heading Font:** Plus Jakarta Sans
-- **Body Font:** Plus Jakarta Sans
-- **Mood:** neumorphism, soft ui, monochromatic, cool grey, minimal, physical, depth, ceramic, system font, utility
-- **Google Fonts:** [Plus Jakarta Sans + Plus Jakarta Sans](https://fonts.google.com/share?selection.family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,700;1,400)
+- **Font:** Plus Jakarta Sans (headings and body), weights 400/500/600/700.
+- **Hosting:** self-hosted via `@fontsource/plus-jakarta-sans`, imported in
+  `client/src/main.tsx`. **No Google Fonts CDN — the app is LAN-only and must
+  work with no internet.**
+- **Stack:** `--font-sans: 'Plus Jakarta Sans', system-ui, 'Segoe UI', Roboto, sans-serif`
+- Base: 16px/1.5. H1 1.75rem/700/-0.02em. Section titles 1.0625rem/700.
+  Labels 0.8125rem/600 muted. Chips/badges 0.75rem/600.
 
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,700;1,400&display=swap');
-```
-
-### Spacing Variables
+### Shape & Spacing
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+| `--radius-card` | `16px` | Cards, tiles, modals, drawers |
+| `--radius-control` | `10px` | Buttons, inputs, sliders, toggles |
+| `--space-xs/sm/md/lg/xl/2xl` | 4/8/16/24/32/48px | Spacing scale |
 
-### Shadow Depths
+Borders are 1px `var(--border)` on every raised surface. Shadows
+(`--shadow-sm/md/lg`) are soft and dark; glow effects are reserved for live
+light colors.
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+### Component Kit
 
----
+All primitives live in `client/src/components/ui/` (single stylesheet
+`ui.css`, classes prefixed `ui-`): Button, IconButton, Card, Slider (40px
+touch target, colored track fill via `--ui-slider-fill`/`--ui-slider-color`),
+Toggle (64×40 switch), Tabs, SegmentedControl, SearchInput, Select, Modal
+(focus trap, Esc/overlay close), Drawer (right slide-over ≥900px, full-height
+bottom sheet <900px), Toast (`useToast()`), Chip, Field, Skeleton.
+**Do not hand-roll new buttons/inputs/dialogs — extend the kit.**
 
-## Component Specs
+### Responsive & Navigation
 
-### Buttons
-
-```css
-/* Primary Button */
-.btn-primary {
-  background: #22C55E;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-/* Secondary Button */
-.btn-secondary {
-  background: transparent;
-  color: #1E293B;
-  border: 2px solid #1E293B;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-```
-
-### Cards
-
-```css
-.card {
-  background: #0F172A;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-```
-
-### Inputs
-
-```css
-.input {
-  padding: 12px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 200ms ease;
-}
-
-.input:focus {
-  border-color: #1E293B;
-  outline: none;
-  box-shadow: 0 0 0 3px #1E293B20;
-}
-```
-
-### Modals
-
-```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-}
-```
-
----
-
-## Style Guidelines
-
-**Style:** Dark Mode (OLED)
-
-**Keywords:** Dark theme, low light, high contrast, deep black, midnight blue, eye-friendly, OLED, night mode, power efficient
-
-**Best For:** Night-mode apps, coding platforms, entertainment, eye-strain prevention, OLED devices, low-light
-
-**Key Effects:** Minimal glow (text-shadow: 0 0 10px), dark-to-light transitions, low white emission, high readability, visible focus
-
-### Page Pattern
-
-**Pattern Name:** AI Personalization Landing
-
-- **Conversion Strategy:** 20%+ conversion with personalization. Requires analytics integration. Fallback for new users.
-- **CTA Placement:** Context-aware placement based on user segment
-- **Section Order:** 1. Dynamic hero (personalized), 2. Relevant features, 3. Tailored testimonials, 4. Smart CTA
+- Breakpoint: **900px**. Desktop = left sidebar (collapsible, icons+labels).
+  Phone = fixed bottom nav (7 items, icon-only, label on active item).
+- Every screen must work at 390px and 1440px. Touch targets ≥ 40px.
+- Icons: inline stroke SVGs from `client/src/components/icons.tsx`
+  (24px grid, `stroke-width: 2`, round caps). No icon fonts, no emoji icons.
 
 ---
 
 ## Anti-Patterns (Do NOT Use)
 
-- ❌ Slow updates
-- ❌ No automation
-
-### Additional Forbidden Patterns
-
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
+- ❌ **Google Fonts / any CDN asset** — LAN-only app
+- ❌ **Emojis as icons** — use the shared inline SVG set
+- ❌ **Missing cursor:pointer** on clickable elements
+- ❌ **Layout-shifting hovers** — no scale transforms that reflow
+- ❌ **Low contrast text** — 4.5:1 minimum
+- ❌ **Instant state changes** — transitions 150–300ms
+- ❌ **Invisible focus states** — `:focus-visible` ring is global, don't remove it
+- ❌ **New `--color-*` legacy variables** — tokens.css names only
 
 ---
 
@@ -196,13 +98,11 @@
 
 Before delivering any UI code, verify:
 
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
+- [ ] Styled with tokens.css variables (`--bg`, `--surface`, `--accent`, ...) only
+- [ ] Uses components/ui primitives instead of bespoke controls
 - [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
+- [ ] `prefers-reduced-motion` respected (global rule covers animations/transitions)
+- [ ] Responsive at 390px and 900px+ (bottom nav clearance on phone)
+- [ ] Touch targets ≥ 40px
+- [ ] No content hidden behind the fixed bottom nav
 - [ ] No horizontal scroll on mobile

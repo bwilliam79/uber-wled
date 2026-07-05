@@ -1,0 +1,43 @@
+/* ============================================================
+   uber-wled design tokens — sleek smart-home direction.
+   Binding values from docs/superpowers/plans/
+   2026-07-04-control-plane-redesign/00-master.md — do not edit
+   the color/radius values without updating the master contract.
+   ============================================================ */
+
+:root {
+  /* Surfaces & text */
+  --bg: #0B0F1A;
+  --surface: #131A2A;
+  --surface-2: #1A2338;
+  --border: rgba(148,163,184,.10);
+  --text: #E6EAF2;
+  --text-muted: #8A94A8;
+
+  /* Accent & status */
+  --accent: #7C6CFF;
+  --accent-soft: rgba(124,108,255,.16);
+  --success: #22C55E;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+
+  /* Shape */
+  --radius-card: 16px;
+  --radius-control: 10px;
+
+  /* Type — self-hosted via @fontsource (imported in main.tsx) */
+  --font-sans: 'Plus Jakarta Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* Spacing scale (carried over — old sections depend on these names) */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+}

@@ -1,28 +1,33 @@
 import { useEffect, useState } from 'react';
-import { Sidebar, SECTIONS, type SectionKey } from './Sidebar';
+import { Sidebar } from './Sidebar';
+import { BottomNav } from './BottomNav';
+import { SECTIONS, type SectionKey } from './nav';
 import { HomeSection } from './HomeSection';
 import { ControllersSection } from './ControllersSection';
-import { GroupManager } from './GroupManager';
 import { ThemeManager } from './ThemeManager';
 import { LayoutSection } from './LayoutSection';
 import { ScheduleSection } from './ScheduleSection';
 import { FirmwareSection } from './FirmwareSection';
 import { SettingsSection } from './SettingsSection';
-import { listControllers, getFirmwareStatus } from '../api/client';
+import { useFirmwareUpdateAvailable } from '../api/queries';
+import './appshell.css';
 
 const DEFAULT_SECTION: SectionKey = 'home';
 const KEYS = SECTIONS.map((s) => s.key);
-const FIRMWARE_CHECK_INTERVAL_MS = 60_000;
+
+/** Pre-1.0 bookmarks keep working: Controllers became Devices; Groups folded into Home. */
+const LEGACY_ALIASES: Record<string, SectionKey> = { controllers: 'devices', groups: 'home' };
 
 function sectionFromHash(): SectionKey {
-  const h = window.location.hash.replace(/^#\/?/, '') as SectionKey;
-  return (KEYS as string[]).includes(h) ? h : DEFAULT_SECTION;
+  const raw = window.location.hash.replace(/^#\/?/, '');
+  const mapped = LEGACY_ALIASES[raw] ?? raw;
+  return (KEYS as string[]).includes(mapped) ? (mapped as SectionKey) : DEFAULT_SECTION;
 }
 
 export function AppShell() {
   const [active, setActive] = useState<SectionKey>(sectionFromHash());
   const [collapsed, setCollapsed] = useState(false);
-  const [firmwareUpdateAvailable, setFirmwareUpdateAvailable] = useState(false);
+  const firmwareUpdateAvailable = useFirmwareUpdateAvailable();
 
   useEffect(() => {
     const onHash = () => setActive(sectionFromHash());
@@ -30,33 +35,12 @@ export function AppShell() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function checkForUpdates() {
-      try {
-        const controllers = await listControllers();
-        const statuses = await Promise.all(
-          controllers.map((c) => getFirmwareStatus(c.id).catch(() => null))
-        );
-        if (!cancelled) setFirmwareUpdateAvailable(statuses.some((s) => s?.updateAvailable));
-      } catch {
-        // Best-effort indicator only — leave the previous value on failure.
-      }
-    }
-
-    checkForUpdates();
-    const t = setInterval(checkForUpdates, FIRMWARE_CHECK_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      clearInterval(t);
-    };
-  }, []);
-
   function navigate(s: SectionKey) {
     window.location.hash = `#/${s}`;
     setActive(s);
   }
+
+  const badges = { firmware: firmwareUpdateAvailable };
 
   return (
     <div className="app-shell">
@@ -65,18 +49,18 @@ export function AppShell() {
         onNavigate={navigate}
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((c) => !c)}
-        badges={{ firmware: firmwareUpdateAvailable }}
+        badges={badges}
       />
       <main className="app-main">
         {active === 'home' && <HomeSection />}
         {active === 'layout' && <LayoutSection />}
-        {active === 'controllers' && <ControllersSection />}
-        {active === 'groups' && <GroupManager />}
+        {active === 'devices' && <ControllersSection />}
         {active === 'themes' && <ThemeManager />}
         {active === 'schedule' && <ScheduleSection />}
         {active === 'firmware' && <FirmwareSection />}
         {active === 'settings' && <SettingsSection />}
       </main>
+      <BottomNav active={active} onNavigate={navigate} badges={badges} />
     </div>
   );
 }
