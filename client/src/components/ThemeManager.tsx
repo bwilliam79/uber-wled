@@ -21,7 +21,6 @@ export function ThemeManager() {
   const [saving, setSaving] = useState(false);
   const [effects, setEffects] = useState<string[]>([]);
   const [palettes, setPalettes] = useState<string[]>([]);
-  const [sourceControllerName, setSourceControllerName] = useState<string | null>(null);
   const [loadingOptions, setLoadingOptions] = useState(true);
 
   useEffect(() => {
@@ -33,7 +32,6 @@ export function ThemeManager() {
       .then((r) => {
         setEffects(r.effects ?? []);
         setPalettes(r.palettes ?? []);
-        setSourceControllerName(r.sourceControllerName ?? null);
       })
       .catch(() => {
         // Leave effects/palettes at their empty defaults — the form stays
@@ -133,9 +131,6 @@ export function ThemeManager() {
                 <option key={i} value={i}>{effectName}</option>
               ))}
             </select>
-            {sourceControllerName && (
-              <span className="field-hint">From {sourceControllerName}</span>
-            )}
           </div>
           <div className="field">
             <label htmlFor="theme-palette">Palette</label>

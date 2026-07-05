@@ -56,7 +56,7 @@ describe('ThemeManager', () => {
     expect(screen.getByText('Add theme')).toBeTruthy();
     expect(screen.getByText('Breathe')).toBeTruthy();
     expect(screen.getByText('Forest')).toBeTruthy();
-    expect(screen.getByText('From Porch')).toBeTruthy();
+    expect(screen.queryByText(/^From /)).toBeNull();
   });
 
   it('adds a theme via addTheme and shows it in the list on success', async () => {
