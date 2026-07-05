@@ -63,6 +63,26 @@ if (typeof globalThis.PointerEvent === 'undefined') {
   globalThis.PointerEvent = PointerEventPolyfill;
 }
 
+// jsdom has no `EventSource`. `api/live.ts`'s `useLiveStatus` opens one
+// unconditionally whenever it is given a non-empty controller id list (Home
+// v2 wires this in for every controller, not just ones inside a group), so
+// any test that renders a component tree reaching `useLiveStatus` with
+// controllers present would otherwise throw `ReferenceError: EventSource is
+// not defined` from inside a passive effect. Tests that care about the SSE
+// wire protocol install their own richer fake via `vi.stubGlobal` (see
+// `api/live.test.tsx`) and that takes priority for the duration of those
+// tests; this is just a safe no-op fallback so unrelated tests don't crash.
+if (typeof globalThis.EventSource === 'undefined') {
+  class EventSourcePolyfill {
+    onerror: (() => void) | null = null;
+    addEventListener() {}
+    removeEventListener() {}
+    close() {}
+  }
+  // @ts-expect-error - minimal polyfill, not a spec-complete EventSource
+  globalThis.EventSource = EventSourcePolyfill;
+}
+
 afterEach(() => {
   cleanup();
 });
