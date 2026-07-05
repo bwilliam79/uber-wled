@@ -40,6 +40,20 @@ Object.defineProperty(globalThis, 'localStorage', {
   configurable: true,
 });
 
+// jsdom does not implement `PointerEvent` (see jsdom/jsdom#1508), so
+// `@testing-library`'s `fireEvent.pointerDown/Move/Up` silently falls back to
+// a bare `Event` that drops `clientX`/`clientY`. Polyfill a minimal
+// `PointerEvent` on top of `MouseEvent` (which jsdom does support) so tests
+// that simulate pointer drags receive real coordinates.
+if (typeof globalThis.PointerEvent === 'undefined') {
+  class PointerEvent extends MouseEvent {}
+  Object.defineProperty(globalThis, 'PointerEvent', {
+    value: PointerEvent,
+    writable: true,
+    configurable: true,
+  });
+}
+
 afterEach(() => {
   cleanup();
 });
