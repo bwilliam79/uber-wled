@@ -1,14 +1,38 @@
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
 import { createControllerStatusRepository } from './statusRepository.js';
-import { getInfo, getState } from '../wled/client.js';
+import {
+  getInfo,
+  getState,
+  getEffects,
+  getPalettes,
+  getFxData,
+  getPalettePreviews
+} from '../wled/client.js';
+import { maybeRefreshCapabilities, type CapabilityFetchers } from './capabilityService.js';
+
+export interface StatusPollerWled {
+  getInfo: typeof getInfo;
+  getState: typeof getState;
+  getEffects?: typeof getEffects;
+  getPalettes?: typeof getPalettes;
+  getFxData?: typeof getFxData;
+  getPalettePreviews?: typeof getPalettePreviews;
+}
 
 export async function pollAllControllerStatus(
   db: Database.Database,
-  wled: { getInfo: typeof getInfo; getState: typeof getState } = { getInfo, getState }
+  wled: StatusPollerWled = { getInfo, getState, getEffects, getPalettes, getFxData, getPalettePreviews }
 ): Promise<void> {
   const controllers = createControllerRepository(db);
   const statuses = createControllerStatusRepository(db);
+  const fetchers: CapabilityFetchers = {
+    getInfo: wled.getInfo,
+    getEffects: wled.getEffects ?? getEffects,
+    getPalettes: wled.getPalettes ?? getPalettes,
+    getFxData: wled.getFxData ?? getFxData,
+    getPalettePreviews: wled.getPalettePreviews ?? getPalettePreviews
+  };
 
   await Promise.all(
     controllers.list().map(async (controller) => {
@@ -19,6 +43,11 @@ export async function pollAllControllerStatus(
           wled.getState(controller.host)
         ]);
         statuses.upsert({ controllerId: controller.id, reachable: true, info, state, polledAt });
+        if (typeof info.vid === 'number') {
+          // First sighting or firmware change triggers a capability refresh;
+          // maybeRefreshCapabilities swallows its own errors.
+          await maybeRefreshCapabilities(db, controller, info.vid, fetchers);
+        }
       } catch {
         // Offline/unreachable controllers are cached as such rather than
         // leaving stale data or throwing — one unreachable controller must
