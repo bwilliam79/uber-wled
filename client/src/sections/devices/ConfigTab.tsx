@@ -12,13 +12,19 @@ import type { Cfg } from './configPatches';
 import { DiffConfirmModal } from './DiffConfirmModal';
 import { IdentityForm } from './config/IdentityForm';
 import { LedHardwareForm } from './config/LedHardwareForm';
+import { LedPrefsForm } from './config/LedPrefsForm';
+import { SyncForm } from './config/SyncForm';
+import { TimeForm } from './config/TimeForm';
 import { WifiForm } from './config/WifiForm';
 import './devices.css';
 
 const CONFIG_PAGES = [
   { id: 'identity', label: 'Identity' },
   { id: 'led', label: 'LED & Hardware' },
-  { id: 'wifi', label: 'WiFi' }
+  { id: 'wifi', label: 'WiFi' },
+  { id: 'sync', label: 'Sync' },
+  { id: 'time', label: 'Time' },
+  { id: 'prefs', label: 'LED Prefs' }
 ];
 
 interface PendingSave {
@@ -95,6 +101,9 @@ export function ConfigTab({ controllerId }: { controllerId: string }) {
       {page === 'identity' && <IdentityForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'led' && <LedHardwareForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'wifi' && <WifiForm cfg={cfg} busy={busy} onSave={requestSave} />}
+      {page === 'sync' && <SyncForm cfg={cfg} busy={busy} onSave={requestSave} />}
+      {page === 'time' && <TimeForm cfg={cfg} busy={busy} onSave={requestSave} />}
+      {page === 'prefs' && <LedPrefsForm cfg={cfg} busy={busy} onSave={requestSave} />}
       <DiffConfirmModal
         open={pending !== null}
         diff={pending?.diff ?? []}
