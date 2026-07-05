@@ -3,7 +3,6 @@ import request from 'supertest';
 import express from 'express';
 import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
-import { createThemeRepository } from '../../src/themes/repository.js';
 import { createGroupRepository } from '../../src/groups/repository.js';
 import { createControlRouter } from '../../src/control/routes.js';
 
@@ -47,101 +46,6 @@ describe('control routes', () => {
   });
 
   afterEach(() => vi.unstubAllGlobals());
-
-  it('applies brightness to every member and reports per-controller success', async () => {
-    stubFetchByHost({
-      [HOST_A]: (_url, init) => {
-        expect(JSON.parse(init?.body as string)).toEqual({ bri: 200 });
-        return { status: 200, body: { on: true, bri: 200, ps: -1, seg: [] } };
-      },
-      [HOST_B]: (_url, init) => {
-        expect(JSON.parse(init?.body as string)).toEqual({ bri: 200 });
-        return { status: 200, body: { on: true, bri: 200, ps: -1, seg: [] } };
-      }
-    });
-
-    const res = await request(app).post('/api/control/apply').send({
-      members: [
-        { controllerId: controllerA, wledSegId: 0 },
-        { controllerId: controllerB, wledSegId: 0 }
-      ],
-      action: { type: 'brightness', value: 200 }
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.body.results).toEqual([
-      { controllerId: controllerA, wledSegId: 0, ok: true },
-      { controllerId: controllerB, wledSegId: 0, ok: true }
-    ]);
-  });
-
-  it('isolates a failure to one controller and retries once before giving up', async () => {
-    const fetchMock = stubFetchByHost({
-      [HOST_A]: () => ({ status: 200, body: { on: true, bri: 200, ps: -1, seg: [] } }),
-      [HOST_B]: () => ({ status: 500, body: {} })
-    });
-
-    const res = await request(app).post('/api/control/apply').send({
-      members: [
-        { controllerId: controllerA, wledSegId: 0 },
-        { controllerId: controllerB, wledSegId: 0 }
-      ],
-      action: { type: 'brightness', value: 200 }
-    });
-
-    expect(res.status).toBe(200);
-    expect(res.body.results[0]).toEqual({ controllerId: controllerA, wledSegId: 0, ok: true });
-    expect(res.body.results[1].ok).toBe(false);
-    expect(res.body.results[1].error).toBeTruthy();
-
-    const hostBCalls = fetchMock.mock.calls.filter(([url]) => new URL(url as string).host === HOST_B);
-    expect(hostBCalls.length).toBe(2);
-  });
-
-  it('applies a custom theme by resolving its stored effect/palette/color/brightness', async () => {
-    const db = createDb(':memory:');
-    const controllers = createControllerRepository(db);
-    const themes = createThemeRepository(db);
-    const cId = controllers.add({ name: 'A', host: HOST_A, source: 'manual' }).id;
-    const theme = themes.add({ name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180 });
-
-    const themedApp = express();
-    themedApp.use(express.json());
-    themedApp.use('/api/control', createControlRouter(db));
-
-    stubFetchByHost({
-      [HOST_A]: (_url, init) => {
-        expect(JSON.parse(init?.body as string)).toEqual({
-          bri: 180,
-          seg: [{ fx: 2, pal: 5, col: [[255, 100, 0]] }]
-        });
-        return { status: 200, body: { on: true, bri: 180, ps: -1, seg: [] } };
-      }
-    });
-
-    const res = await request(themedApp).post('/api/control/apply').send({
-      members: [{ controllerId: cId, wledSegId: 0 }],
-      action: { type: 'theme', themeId: theme.id }
-    });
-
-    expect(res.body.results[0].ok).toBe(true);
-  });
-
-  it('applies a raw effect id, leaving palette/color/brightness untouched', async () => {
-    stubFetchByHost({
-      [HOST_A]: (_url, init) => {
-        expect(JSON.parse(init?.body as string)).toEqual({ seg: [{ fx: 9 }] });
-        return { status: 200, body: { on: true, bri: 128, ps: -1, seg: [] } };
-      }
-    });
-
-    const res = await request(app).post('/api/control/apply').send({
-      members: [{ controllerId: controllerA, wledSegId: 0 }],
-      action: { type: 'effect', effectId: 9 }
-    });
-
-    expect(res.body.results[0]).toEqual({ controllerId: controllerA, wledSegId: 0, ok: true });
-  });
 
   it('discriminates a v2 {targets,patch} body and writes with udpn nn:true', async () => {
     stubFetchByHost({
@@ -195,5 +99,14 @@ describe('control routes', () => {
   it('returns 400 when the body is neither v1 nor v2', async () => {
     const res = await request(app).post('/api/control/apply').send({ hello: 'world' });
     expect(res.status).toBe(400);
+  });
+
+  it('rejects the removed v1 {members, action} body shape with 400', async () => {
+    const res = await request(app).post('/api/control/apply').send({
+      members: [{ controllerId: controllerA, wledSegId: 0 }],
+      action: { type: 'power', on: true }
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/targets/);
   });
 });
