@@ -2,9 +2,9 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import {
   listControllers, listGroups, listThemes, getControllerStatus, getFirmwareStatus,
-  getCapabilities, listDevicePresets,
+  getCapabilities, listDevicePresets, listStrips, listRoomLabels,
   type Controller, type Group, type CustomTheme, type ControllerStatus,
-  type ControllerCapabilities, type DevicePreset
+  type ControllerCapabilities, type DevicePreset, type Strip, type RoomLabel
 } from './client';
 
 export function useControllers(): UseQueryResult<Controller[]> {
@@ -88,4 +88,12 @@ export function useFirmwareUpdateAvailable(): boolean {
     refetchInterval: FIRMWARE_CHECK_INTERVAL_MS
   });
   return query.data ?? false;
+}
+
+export function useStrips(): UseQueryResult<Strip[]> {
+  return useQuery({ queryKey: ['strips'], queryFn: listStrips });
+}
+
+export function useRoomLabels(): UseQueryResult<RoomLabel[]> {
+  return useQuery({ queryKey: ['room-labels'], queryFn: listRoomLabels });
 }
