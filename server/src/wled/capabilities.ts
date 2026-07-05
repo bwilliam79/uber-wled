@@ -115,3 +115,35 @@ function parseDefaults(sec: string): Record<string, number> {
   }
   return out;
 }
+
+/**
+ * One /json/palx page's `p` object → previews keyed by numeric palette id.
+ * Entry shapes observed on real hardware:
+ * - [[pos,r,g,b], ...]          → gradient stops
+ * - ['r','r',...]               → randomized palette
+ * - ['c1','c2',...]             → derived from the segment's color slots
+ */
+export function parsePalettePreviewPage(
+  p: Record<string, unknown>
+): Record<number, PalettePreview> {
+  const out: Record<number, PalettePreview> = {};
+  for (const [key, value] of Object.entries(p)) {
+    if (!Array.isArray(value)) continue;
+    out[Number(key)] = classifyPaletteEntry(value);
+  }
+  return out;
+}
+
+function classifyPaletteEntry(entry: unknown[]): PalettePreview {
+  if (entry.some((e) => e === 'r')) return { type: 'random' };
+  if (entry.some((e) => typeof e === 'string')) {
+    const slots = entry.filter(
+      (e): e is 'c1' | 'c2' | 'c3' => e === 'c1' || e === 'c2' || e === 'c3'
+    );
+    return { type: 'slots', slots };
+  }
+  return {
+    type: 'stops',
+    stops: entry.map((s) => (s as number[]).slice(0, 4) as [number, number, number, number])
+  };
+}

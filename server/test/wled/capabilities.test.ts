@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFxData } from '../../src/wled/capabilities.js';
+import { parseFxData, parsePalettePreviewPage } from '../../src/wled/capabilities.js';
 
 // Verbatim /json/eff + /json/fxdata entries captured from 192.168.1.86
 // (WLED 16.0.0 "Niji", vid 2605030) on 2026-07-04. Test index = effect id
@@ -144,5 +144,62 @@ describe('parseFxData', () => {
     expect(meta[1].name).toBe('RSVD');
     expect(meta[1].sliders.sx).toBe('Effect speed');
     expect(meta[1].usesPalette).toBe(false);
+  });
+});
+
+// Verbatim /json/palx?page=0 `p` payload (ids 0-5) captured from
+// 192.168.1.86 (WLED 16.0.0). Names for reference:
+// 0 'Default', 1 '* Random Cycle', 2 '* Color 1', 3 '* Colors 1&2',
+// 4 '* Color Gradient', 5 '* Colors Only'.
+const PALX_PAGE0_P: Record<string, unknown> = {
+  '0': [
+    [0, 155, 0, 213], [16, 189, 0, 184], [32, 218, 0, 146], [48, 243, 0, 92],
+    [64, 244, 85, 0], [80, 220, 143, 0], [96, 213, 180, 0], [112, 213, 213, 0],
+    [128, 213, 155, 0], [144, 239, 102, 0], [160, 249, 0, 68], [176, 225, 0, 134],
+    [192, 196, 0, 176], [208, 163, 0, 207], [224, 118, 0, 232], [240, 0, 50, 252]
+  ],
+  '1': ['r', 'r', 'r', 'r'],
+  '2': ['c1'],
+  '3': ['c1', 'c1', 'c2', 'c2'],
+  '4': ['c3', 'c2', 'c1'],
+  '5': ['c1', 'c1', 'c1', 'c1', 'c1', 'c2', 'c2', 'c2', 'c2', 'c2',
+        'c3', 'c3', 'c3', 'c3', 'c3', 'c1']
+};
+
+describe('parsePalettePreviewPage', () => {
+  const previews = parsePalettePreviewPage(PALX_PAGE0_P);
+
+  it('classifies gradient-stop arrays as stops with numeric ids', () => {
+    expect(previews[0]).toEqual({
+      type: 'stops',
+      stops: [
+        [0, 155, 0, 213], [16, 189, 0, 184], [32, 218, 0, 146], [48, 243, 0, 92],
+        [64, 244, 85, 0], [80, 220, 143, 0], [96, 213, 180, 0], [112, 213, 213, 0],
+        [128, 213, 155, 0], [144, 239, 102, 0], [160, 249, 0, 68], [176, 225, 0, 134],
+        [192, 196, 0, 176], [208, 163, 0, 207], [224, 118, 0, 232], [240, 0, 50, 252]
+      ]
+    });
+  });
+
+  it("classifies all-'r' entries as random", () => {
+    expect(previews[1]).toEqual({ type: 'random' });
+  });
+
+  it('classifies color-slot entries as slots, preserving order', () => {
+    expect(previews[2]).toEqual({ type: 'slots', slots: ['c1'] });
+    expect(previews[3]).toEqual({ type: 'slots', slots: ['c1', 'c1', 'c2', 'c2'] });
+    expect(previews[4]).toEqual({ type: 'slots', slots: ['c3', 'c2', 'c1'] });
+  });
+
+  it('handles the long mixed-slot palette (* Colors Only)', () => {
+    expect(previews[5]).toEqual({
+      type: 'slots',
+      slots: ['c1', 'c1', 'c1', 'c1', 'c1', 'c2', 'c2', 'c2', 'c2', 'c2',
+              'c3', 'c3', 'c3', 'c3', 'c3', 'c1']
+    });
+  });
+
+  it('returns an empty record for an empty page (the real device serves { m: 9, p: {} } for its final page)', () => {
+    expect(parsePalettePreviewPage({})).toEqual({});
   });
 });
