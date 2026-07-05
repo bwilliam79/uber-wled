@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  listGroups, listControllers, listThemes, applyControl, getSegmentsSnapshot,
+  listGroups, listControllers, listThemes, applyControl, getSegmentsSnapshot, getEffectsPalettes,
   type Group, type Controller, type CustomTheme, type ControlAction
 } from '../api/client';
 import { HomeTile } from './HomeTile';
@@ -18,12 +18,14 @@ export function HomeSection() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [controllers, setControllers] = useState<Controller[]>([]);
   const [themes, setThemes] = useState<CustomTheme[]>([]);
+  const [effects, setEffects] = useState<string[]>([]);
   const [snapshots, setSnapshots] = useState<Map<string, WledSegmentSnapshot[]>>(new Map());
 
   useEffect(() => {
     listGroups().then(setGroups);
     listControllers().then(setControllers);
     listThemes().then(setThemes);
+    getEffectsPalettes().then((r) => setEffects(r.effects ?? [])).catch(() => {});
   }, []);
 
   const refreshSnapshots = useCallback(async () => {
@@ -85,6 +87,7 @@ export function HomeSection() {
         members={tile.members}
         status={aggregateTileStatus(tile.members, snapshots)}
         themes={themes}
+        effects={effects}
         onApply={(action) => handleApply(tile.members, action)}
       />
     );

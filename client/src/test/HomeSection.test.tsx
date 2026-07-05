@@ -16,6 +16,12 @@ function stubFetch(segmentsByController: Record<string, unknown> = {}) {
     if (url === '/api/groups') return Promise.resolve({ ok: true, json: async () => GROUPS });
     if (url === '/api/controllers') return Promise.resolve({ ok: true, json: async () => CONTROLLERS });
     if (url === '/api/themes') return Promise.resolve({ ok: true, json: async () => [] });
+    if (url === '/api/themes/effects-palettes') {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ effects: ['Solid', 'Breathe'], palettes: [], sourceControllerId: 'c1', sourceControllerName: 'Kitchen Strip' })
+      });
+    }
     if (url === '/api/control/apply') return Promise.resolve({ ok: true, json: async () => ({ results: [] }) });
     const segMatch = url.match(/^\/api\/controllers\/(.+)\/segments$/);
     if (segMatch) {
@@ -36,6 +42,13 @@ describe('HomeSection', () => {
     await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
     expect(screen.getByText('Porch Strip')).toBeTruthy();
     expect(screen.getByText('Ungrouped')).toBeTruthy();
+  });
+
+  it('passes imported WLED effects through to every tile\'s dropdown', async () => {
+    stubFetch({ c1: SEG_ON, c2: [] });
+    render(<HomeSection />);
+    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
+    expect(screen.getAllByText('Breathe')).toHaveLength(2); // one per tile (Kitchen + Porch Strip)
   });
 
   it('shows an empty state when there are no controllers at all', async () => {
