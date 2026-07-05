@@ -6,7 +6,7 @@ import { HomeSection } from './HomeSection';
 import { ControllersSection } from './ControllersSection';
 import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from './LayoutSection';
-import { ScheduleSection } from './ScheduleSection';
+import { ScheduleSection } from '../sections/schedule/ScheduleSection';
 import { FirmwareSection } from './FirmwareSection';
 import { SettingsSection } from './SettingsSection';
 import { useFirmwareUpdateAvailable } from '../api/queries';
