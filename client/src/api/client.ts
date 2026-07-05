@@ -229,6 +229,7 @@ export interface Settings {
   discoveryRescanIntervalMinutes: number;
   scheduleImportDisableOnDeviceDefault: boolean;
   controllerStatusPollIntervalMinutes: number;
+  livePollIntervalSeconds: number;
 }
 
 export interface WledSegmentSnapshot {
