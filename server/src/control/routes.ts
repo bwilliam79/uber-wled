@@ -9,7 +9,8 @@ export type ControlAction =
   | { type: 'power'; on: boolean }
   | { type: 'brightness'; value: number }
   | { type: 'preset'; presetId: number }
-  | { type: 'theme'; themeId: string };
+  | { type: 'theme'; themeId: string }
+  | { type: 'effect'; effectId: number };
 
 export interface Member {
   controllerId: string;
@@ -34,6 +35,10 @@ async function applyToMember(
       if (!theme) throw new Error(`theme ${action.themeId} not found`);
       const segPatch: Partial<WledSegment> = { fx: theme.effect, pal: theme.palette, col: theme.colors };
       return setState(host, { bri: theme.brightness, seg: [segPatch] });
+    }
+    case 'effect': {
+      const segPatch: Partial<WledSegment> = { fx: action.effectId };
+      return setState(host, { seg: [segPatch] });
     }
   }
 }

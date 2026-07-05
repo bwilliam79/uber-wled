@@ -52,7 +52,8 @@ export type ControlAction =
   | { type: 'power'; on: boolean }
   | { type: 'brightness'; value: number }
   | { type: 'preset'; presetId: number }
-  | { type: 'theme'; themeId: string };
+  | { type: 'theme'; themeId: string }
+  | { type: 'effect'; effectId: number };
 
 export type DateRule =
   | { kind: 'fixed'; month: number; day: number }

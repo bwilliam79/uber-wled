@@ -18,8 +18,9 @@ Groups, Themes, Schedule, Firmware, Settings** — opening on Home by default.
 
 - **Home**: the everyday control surface and default screen. One tile per
   Group (room or scene) plus one per ungrouped controller, each with live
-  on/off + brightness, power/brightness controls, and a quick theme-apply
-  dropdown.
+  on/off + brightness, power/brightness controls, and a single dropdown
+  combining raw WLED effects (imported live, applied instantly with no
+  Theme needed) and your saved Themes.
 - **Layout canvas**: an imageless dark canvas of your house. Draw
   each LED strip as a multi-point path (traces corners/rooflines), drag to
   arrange, and drop loose room labels for grouping. Each strip binds to a
@@ -161,8 +162,9 @@ committed) that isn't already taken by another service on that host.
   room or scene for this purpose) plus one tile per controller not yet in
   any Group. Each tile shows live on/off + brightness (or "Mixed" if its
   members disagree, or an offline badge if a member is unreachable) and lets
-  you toggle power, adjust brightness, or apply a saved Theme — all without
-  leaving the page.
+  you toggle power, adjust brightness, or apply either a raw WLED effect
+  (instant, no setup) or a saved Theme from one combined dropdown — all
+  without leaving the page.
 - **Layout**: the spatial setup screen. Click "Draw strip" to trace a strip on the
   canvas and bind it to a controller + segment; drag strips and room labels
   to arrange. Click or box-select strips to control them from the docked

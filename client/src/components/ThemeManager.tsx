@@ -31,9 +31,9 @@ export function ThemeManager() {
   useEffect(() => {
     getEffectsPalettes()
       .then((r) => {
-        setEffects(r.effects);
-        setPalettes(r.palettes);
-        setSourceControllerName(r.sourceControllerName);
+        setEffects(r.effects ?? []);
+        setPalettes(r.palettes ?? []);
+        setSourceControllerName(r.sourceControllerName ?? null);
       })
       .catch(() => {
         // Leave effects/palettes at their empty defaults — the form stays
