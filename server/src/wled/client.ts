@@ -1,4 +1,11 @@
-import type { WledInfo, WledState, WledStatePatch, WledPreset, WledFullState } from './types.js';
+import type {
+  WledInfo,
+  WledState,
+  WledStatePatch,
+  WledPreset,
+  WledFullState,
+  WledNightlight
+} from './types.js';
 import { parsePalettePreviewPage, type PalettePreview } from './capabilities.js';
 import { assertValidHost } from '../controllers/validateHost.js';
 
@@ -83,4 +90,44 @@ export function getConfig(host: string): Promise<Record<string, unknown>> {
 
 export function getFullState(host: string): Promise<WledFullState> {
   return getJson<WledFullState>(host, '/json');
+}
+
+export function patchConfig(
+  host: string,
+  patch: Record<string, unknown>
+): Promise<{ success?: boolean }> {
+  return postJson<{ success?: boolean }>(host, '/json/cfg', patch);
+}
+
+export async function savePreset(
+  host: string,
+  opts: { id?: number; name: string; includeBrightness: boolean; saveSegmentBounds: boolean }
+): Promise<{ id: number }> {
+  let id = opts.id;
+  if (id === undefined) {
+    // Next free slot 1-250 (slot 0 is reserved by the device).
+    const taken = new Set((await getPresets(host)).map((p) => p.id));
+    id = 1;
+    while (id <= 250 && taken.has(id)) id++;
+    if (id > 250) throw new Error('no free preset slot (1-250)');
+  }
+  await postJson(host, '/json/state', {
+    psave: id,
+    n: opts.name,
+    ib: opts.includeBrightness,
+    sb: opts.saveSegmentBounds
+  });
+  return { id };
+}
+
+export async function deletePreset(host: string, presetId: number): Promise<void> {
+  await postJson(host, '/json/state', { pdel: presetId });
+}
+
+export async function reboot(host: string): Promise<void> {
+  await postJson(host, '/json/state', { rb: true });
+}
+
+export function setNightlight(host: string, nl: Partial<WledNightlight>): Promise<WledState> {
+  return setState(host, { nl });
 }
