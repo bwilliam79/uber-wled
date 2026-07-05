@@ -124,4 +124,20 @@ describe('control routes', () => {
 
     expect(res.body.results[0].ok).toBe(true);
   });
+
+  it('applies a raw effect id, leaving palette/color/brightness untouched', async () => {
+    stubFetchByHost({
+      [HOST_A]: (_url, init) => {
+        expect(JSON.parse(init?.body as string)).toEqual({ seg: [{ fx: 9 }] });
+        return { status: 200, body: { on: true, bri: 128, ps: -1, seg: [] } };
+      }
+    });
+
+    const res = await request(app).post('/api/control/apply').send({
+      members: [{ controllerId: controllerA, wledSegId: 0 }],
+      action: { type: 'effect', effectId: 9 }
+    });
+
+    expect(res.body.results[0]).toEqual({ controllerId: controllerA, wledSegId: 0, ok: true });
+  });
 });

@@ -14,6 +14,7 @@ export function HomeTile({
   members,
   status,
   themes,
+  effects,
   onApply
 }: {
   id: string;
@@ -21,6 +22,7 @@ export function HomeTile({
   members: TileMember[];
   status: TileStatus;
   themes: CustomTheme[];
+  effects: string[];
   onApply: (action: ControlAction) => void;
 }) {
   const disabled = members.length === 0;
@@ -69,18 +71,31 @@ export function HomeTile({
         />
       </div>
       <select
-        aria-label={`apply theme to ${title}`}
+        aria-label={`apply effect or theme to ${title}`}
         className="input"
         value=""
         disabled={disabled}
         onChange={(e) => {
-          if (e.target.value) onApply({ type: 'theme', themeId: e.target.value });
+          const [kind, value] = e.target.value.split(':');
+          if (kind === 'effect') onApply({ type: 'effect', effectId: Number(value) });
+          if (kind === 'theme') onApply({ type: 'theme', themeId: value });
         }}
       >
-        <option value="">Apply theme…</option>
-        {themes.map((t) => (
-          <option key={t.id} value={t.id}>{t.name}</option>
-        ))}
+        <option value="">Apply…</option>
+        {effects.length > 0 && (
+          <optgroup label="Effects">
+            {effects.map((effectName, i) => (
+              <option key={i} value={`effect:${i}`}>{effectName}</option>
+            ))}
+          </optgroup>
+        )}
+        {themes.length > 0 && (
+          <optgroup label="My Themes">
+            {themes.map((t) => (
+              <option key={t.id} value={`theme:${t.id}`}>{t.name}</option>
+            ))}
+          </optgroup>
+        )}
       </select>
     </div>
   );
