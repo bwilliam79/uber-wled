@@ -35,7 +35,10 @@ export function Sidebar({
     <nav className={`sidebar${collapsed ? ' collapsed' : ''}`} aria-label="Sections">
       <div className="sidebar-brand">
         <LightbulbIcon className="logo-mark" />
-        <span className="sidebar-brand-text">uber-wled</span>
+        <div className="sidebar-brand-info">
+          <span className="sidebar-brand-text">uber-wled</span>
+          <span className="sidebar-version">v{__APP_VERSION__}</span>
+        </div>
       </div>
       <ul className="sidebar-nav">
         {SECTIONS.map(({ key, label, Icon }) => (

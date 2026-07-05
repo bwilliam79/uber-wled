@@ -13,6 +13,7 @@ describe('AppShell', () => {
     for (const name of ['Home', 'Layout', 'Controllers', 'Groups', 'Themes', 'Schedule', 'Firmware', 'Settings']) {
       expect(screen.getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
+    expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy();
   });
 
   it('switches to the Themes section when its nav item is clicked', async () => {
