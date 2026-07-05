@@ -285,3 +285,58 @@ describe('HomeSection edit mode', () => {
     );
   });
 });
+
+describe('HomeSection room member editing', () => {
+  async function openMembers() {
+    stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(within(screen.getByTestId('edit-tile-g1')).getByText('Members'));
+  }
+
+  it('lists current members with controller name and segment id', async () => {
+    await openMembers();
+    await waitFor(() =>
+      expect(screen.getByText('Cabinet Lights · segment 0')).toBeTruthy()
+    );
+  });
+
+  it('adds a controller+segment pair, with segment ids from the cached status', async () => {
+    await openMembers();
+    const tile = screen.getByTestId('edit-tile-g1');
+    fireEvent.change(within(tile).getByRole('combobox', { name: 'controller to add to Kitchen' }), {
+      target: { value: 'c2' }
+    });
+    // status fetch for c2 resolves with one segment (id 0)
+    await waitFor(() =>
+      expect(within(tile).getByRole('combobox', { name: 'segment to add to Kitchen' })).toBeTruthy()
+    );
+    fireEvent.click(within(tile).getByText('Add member'));
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups/g1', expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({
+          members: [
+            { controllerId: 'c1', wledSegId: 0 },
+            { controllerId: 'c2', wledSegId: 0 }
+          ]
+        })
+      }))
+    );
+  });
+
+  it('removes a member', async () => {
+    await openMembers();
+    await waitFor(() => expect(screen.getByText('Cabinet Lights · segment 0')).toBeTruthy());
+    fireEvent.click(
+      screen.getByRole('button', { name: 'remove Cabinet Lights segment 0 from Kitchen' })
+    );
+    await waitFor(() =>
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/groups/g1', expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ members: [] })
+      }))
+    );
+  });
+});
