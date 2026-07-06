@@ -22,6 +22,7 @@ import { RoomCreateModal } from './RoomCreateModal';
 import { RoomEditTile } from './RoomEditTile';
 import { aggregateTileStatusLive, type TileStatusV2 } from '../../lib/tileStatus';
 import { dominantColor, OFF_GLOW, OFFLINE_GLOW } from '../../lib/dominantColor';
+import { swatchesForMembers, type LiveOutputSwatch } from '../../lib/liveOutputSwatches';
 import { throttle } from '../../lib/throttle';
 import { moveId, dropIndexForPoint } from './reorder';
 import './home.css';
@@ -205,6 +206,10 @@ export function HomeSection() {
     };
   }
 
+  function liveSwatchesFor(tile: HomeTileData): LiveOutputSwatch[] {
+    return swatchesForMembers(tile.members, live);
+  }
+
   function glowFor(tile: HomeTileData, status: TileStatusV2): string {
     if (status.allOffline) return OFFLINE_GLOW;
     for (const m of tile.members) {
@@ -308,6 +313,7 @@ export function HomeSection() {
                 tile={tile}
                 status={status}
                 glowColor={glowFor(tile, status)}
+                liveSwatches={liveSwatchesFor(tile)}
                 selectMode={selectMode}
                 selected={selectedIds.has(tile.id)}
                 onToggleSelect={toggleSelect}
