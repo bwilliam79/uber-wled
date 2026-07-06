@@ -3,3 +3,38 @@
 .settings-toggle-row { display: flex; align-items: center; gap: 10px; min-height: 40px; color: var(--text); }
 .settings-actions { display: flex; gap: 8px; }
 .settings-note { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
+
+/* Home location convenience helpers (geolocation button + address lookup) */
+.settings-location-helpers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+.settings-location-helper { display: flex; flex-direction: column; gap: 6px; }
+.settings-location-helper-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.settings-address-row { display: flex; gap: 8px; }
+.settings-address-row .input { flex: 1; }
+.settings-address-candidates {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.settings-address-candidate {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: 8px 10px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+.settings-address-candidate:hover { background: var(--surface); border-color: var(--accent); }
