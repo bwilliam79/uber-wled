@@ -1,9 +1,21 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { createRef } from 'react';
 import { LayoutCanvas, type LayoutCanvasProps } from '../../../sections/layout/LayoutCanvas';
 import { OFFLINE_STROKE, type LiveControllerStatus } from '../../../sections/layout/stripColors';
 import type { Strip } from '../../../api/client';
+
+// jsdom never lays anything out, so clientWidth/clientHeight are always 0 —
+// stub them so useElementSize (LayoutCanvas.tsx) sees a real canvas size,
+// same as it would in a browser. Grid-line tests below rely on this.
+beforeAll(() => {
+  Object.defineProperty(SVGElement.prototype, 'clientWidth', { configurable: true, value: 800 });
+  Object.defineProperty(SVGElement.prototype, 'clientHeight', { configurable: true, value: 600 });
+});
+afterAll(() => {
+  Reflect.deleteProperty(SVGElement.prototype, 'clientWidth');
+  Reflect.deleteProperty(SVGElement.prototype, 'clientHeight');
+});
 
 const strips: Strip[] = [
   { id: 's1', controllerId: 'c1', wledSegId: 0, points: [{ x: 10, y: 10 }, { x: 40, y: 10 }], label: 'Porch' },
@@ -110,20 +122,23 @@ describe('LayoutCanvas', () => {
     expect(screen.getByTestId('layout-grid')).toBeDefined();
   });
 
-  it('renders a major grid line every 4th cell and minor lines elsewhere', () => {
+  it('renders a major grid line every 4th step and minor lines elsewhere, spanning the actual canvas (not a fixed 0..100 box)', () => {
+    // Canvas is stubbed to 800x600 (see beforeAll above); at the default
+    // viewport (scale:1) that's also the visible world-space rect, well past
+    // where a hardcoded 0..100 box would have covered.
     render(<LayoutCanvas {...makeProps({ gridSnap: true })} />);
     const grid = screen.getByTestId('layout-grid');
-    const lines = grid.querySelectorAll('line');
+    const lines = Array.from(grid.querySelectorAll('line'));
     expect(lines.length).toBeGreaterThan(0);
+    const verticals = lines.filter((l) => l.getAttribute('x1') === l.getAttribute('x2'));
+    const xs = verticals.map((l) => Number(l.getAttribute('x1')));
+    expect(Math.max(...xs)).toBeGreaterThanOrEqual(800); // covers the real canvas width, not just 0..100
     const majorLines = grid.querySelectorAll('line.layout-grid-line-major');
     const minorOnlyLines = grid.querySelectorAll('line.layout-grid-line:not(.layout-grid-line-major)');
     expect(majorLines.length).toBeGreaterThan(0);
     expect(minorOnlyLines.length).toBeGreaterThan(0);
-    // x1=0 is idx 0, a multiple of 4 -> major on both the vertical and horizontal line.
+    // x1=0 is always a multiple of any step -> major on both axes.
     const originVertical = Array.from(lines).find((l) => l.getAttribute('x1') === '0' && l.getAttribute('x2') === '0');
     expect(originVertical?.classList.contains('layout-grid-line-major')).toBe(true);
-    // x1=2 is idx 1, not a multiple of 4 -> minor only.
-    const secondVertical = Array.from(lines).find((l) => l.getAttribute('x1') === '2' && l.getAttribute('x2') === '2');
-    expect(secondVertical?.classList.contains('layout-grid-line-major')).toBe(false);
   });
 });
