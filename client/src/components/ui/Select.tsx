@@ -12,10 +12,13 @@ export interface SelectProps {
   label?: string;
   id?: string;
   disabled?: boolean;
+  /** Set false when a wrapping <Field> (or similar) already renders this
+   *  select's visible label, to avoid showing it twice. */
+  showLabel?: boolean;
 }
 
-export function Select({ value, onChange, options, label, id, disabled }: SelectProps) {
-  return (
+export function Select({ value, onChange, options, label, id, disabled, showLabel = true }: SelectProps) {
+  const select = (
     <div className="ui-select-wrap">
       <select
         id={id}
@@ -30,6 +33,15 @@ export function Select({ value, onChange, options, label, id, disabled }: Select
         ))}
       </select>
       <ChevronDownIcon className="ui-select-chevron" />
+    </div>
+  );
+
+  if (!label || !showLabel) return select;
+
+  return (
+    <div className="ui-field">
+      <label className="ui-field-label" htmlFor={id}>{label}</label>
+      {select}
     </div>
   );
 }

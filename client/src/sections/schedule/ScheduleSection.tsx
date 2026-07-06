@@ -97,6 +97,7 @@ export function ScheduleSection({
                   checked={e.enabled}
                   onChange={(checked) => toggleEnabled(e.id, checked)}
                   label={`${e.name} enabled`}
+                  showLabel={false}
                 />
                 <span className="schedule-detail-event-name">{e.name}</span>
                 <Chip variant={e.category === 'holiday' ? 'accent' : 'default'}>{e.category}</Chip>
