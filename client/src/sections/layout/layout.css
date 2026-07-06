@@ -50,7 +50,12 @@
 
 .room-chip { cursor: grab; }
 .room-chip-bg { fill: var(--surface-2, #1a2338); stroke: var(--border, rgba(148, 163, 184, 0.25)); }
+.room-chip.selected .room-chip-bg { stroke: var(--accent, #7c6cff); stroke-width: 1.5px; }
 .room-chip-text { fill: var(--text, #e6eaf2); font-size: 12px; user-select: none; }
+.room-chip-delete { opacity: 0; pointer-events: none; cursor: pointer; }
+.room-chip:hover .room-chip-delete, .room-chip.selected .room-chip-delete { opacity: 1; pointer-events: auto; }
+.room-chip-delete-bg { fill: var(--danger, #ef4444); }
+.room-chip-delete-x { stroke: #fff; stroke-width: 1.5px; stroke-linecap: round; }
 .room-chip-input {
   width: 100%; min-height: 26px; padding: 0 6px;
   border-radius: 8px; border: 1px solid var(--accent, #7c6cff);
