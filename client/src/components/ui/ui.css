@@ -285,6 +285,17 @@
 
 /* ---------- Toggle ---------- */
 
+.ui-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ui-toggle-label {
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
 .ui-toggle {
   position: relative;
   width: 64px;
