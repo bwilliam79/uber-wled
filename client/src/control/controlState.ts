@@ -102,7 +102,7 @@ export function aggregateControlState(
 ): AggregatedControlState {
   const expanded = expandTargets(targets, groups, live);
   let anyUnreachable = false;
-  const segs: { controllerId: string; seg: LiveSegment }[] = [];
+  const segs: { controllerId: string; seg: LiveSegment; deviceOn: boolean }[] = [];
   const statefulControllers: string[] = []; // expansion order, deduped
 
   for (const pair of expanded) {
@@ -113,16 +113,21 @@ export function aggregateControlState(
     }
     if (!entry.state) continue;
     if (!statefulControllers.includes(pair.controllerId)) statefulControllers.push(pair.controllerId);
+    const deviceOn = entry.state.on;
     if (pair.wledSegId === null) {
-      for (const seg of entry.state.seg) segs.push({ controllerId: pair.controllerId, seg });
+      for (const seg of entry.state.seg) segs.push({ controllerId: pair.controllerId, seg, deviceOn });
     } else {
       const seg = entry.state.seg.find((s) => s.id === pair.wledSegId);
-      if (seg) segs.push({ controllerId: pair.controllerId, seg });
+      if (seg) segs.push({ controllerId: pair.controllerId, seg, deviceOn });
     }
   }
 
   const hasData = segs.length > 0;
-  const onValues = segs.map((s) => s.seg.on);
+  // WLED's per-segment `on` flag means "this segment is enabled" and stays
+  // true even while the device's master power (`state.on`) is off — it does
+  // NOT mean the segment is currently lit. A target only actually reads as
+  // "on" when both are true.
+  const onValues = segs.map((s) => s.deviceOn && s.seg.on);
   const powerReduced = reduceValues(onValues, scalarEq);
   const power: 'on' | 'off' | 'mixed' =
     powerReduced === null ? 'off' : powerReduced === 'mixed' ? 'mixed' : powerReduced ? 'on' : 'off';

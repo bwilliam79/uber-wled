@@ -172,7 +172,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 42 files / 297 tests
-cd client && npm test   # 74 files / 525 tests
+cd client && npm test   # 74 files / 527 tests
 ```
 
 ## Running the whole app locally via Docker

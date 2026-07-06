@@ -106,6 +106,26 @@ describe('aggregateControlState', () => {
     expect(agg.palName).toBe('mixed');
   });
 
+  it('reports power off when the device master power is off, even though WLED reports the segment itself as on', () => {
+    // Real WLED behavior: state.on is the master power switch; seg.on means
+    // "this segment is enabled" and stays true even while the device is
+    // master-powered off. A target only actually reads as "on" when both
+    // are true — otherwise a genuinely-off device shows as on in the UI.
+    const live = liveMap({
+      cA: liveEntry(makeState([makeSeg(0, { on: true })], { on: false }))
+    });
+    const agg = aggregateControlState([{ kind: 'controller', controllerId: 'cA' }], [], live, caps);
+    expect(agg.power).toBe('off');
+  });
+
+  it('reports power on only when both master power and the segment are on', () => {
+    const live = liveMap({
+      cA: liveEntry(makeState([makeSeg(0, { on: true })], { on: true }))
+    });
+    const agg = aggregateControlState([{ kind: 'controller', controllerId: 'cA' }], [], live, caps);
+    expect(agg.power).toBe('on');
+  });
+
   it('reports mixed effect params and colors', () => {
     const live = liveMap({
       cA: liveEntry(makeState([makeSeg(0, { sx: 10, o1: true, col: [[255, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] })])),

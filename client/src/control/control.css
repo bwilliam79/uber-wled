@@ -12,7 +12,14 @@
 .transition-value { min-width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
 .control-label { color: var(--text-muted); font-size: 0.85rem; }
 
-.nl-popover { position: absolute; z-index: 30; margin-top: 8px; padding: 16px;
+.nl-popover {
+  /* Explicit top/left (not just margin-top) because an absolutely
+     positioned child of a flex row has no reliable "static position" to
+     offset from with auto insets — browsers vary, and in practice this
+     rendered the popover offset from the wrong edge entirely, overlapping
+     and eating clicks on the "Nightlight" trigger button above it. Anchor
+     it explicitly to the bottom-left of its positioned row instead. */
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; padding: 16px;
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: var(--radius-card); display: flex; flex-direction: column; gap: 12px;
   min-width: 260px; }
