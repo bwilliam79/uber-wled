@@ -28,7 +28,11 @@ export function LiveOutputStrip({ swatches, size = 'md', className }: LiveOutput
         <span
           key={sw.key}
           className={`ui-live-swatch ui-live-swatch-${sw.state}`}
-          style={sw.state === 'on' || sw.state === 'off' ? { backgroundColor: sw.color } : undefined}
+          style={{
+            flexGrow: sw.len,
+            flexBasis: 0,
+            ...(sw.state === 'on' || sw.state === 'off' ? { backgroundColor: sw.color } : undefined)
+          }}
           title={STATE_LABEL[sw.state]}
           data-testid={`live-swatch-${sw.key}`}
         />
