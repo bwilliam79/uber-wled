@@ -13,35 +13,11 @@ function clampLivePoll(value: number): number {
   return Math.min(30, Math.max(1, Math.round(value)));
 }
 
-const GEO_TIMEOUT_MS = 10_000;
-
 function coordDisplayPrecision(value: number): number {
   // 6 decimal places is ~11cm precision — plenty for sunrise/sunset math,
-  // and matches what browsers' Geolocation API and Nominatim both return.
+  // and matches what Nominatim returns.
   return Number(value.toFixed(6));
 }
-
-function geolocationErrorMessage(err: GeolocationPositionError): string {
-  switch (err.code) {
-    case err.PERMISSION_DENIED:
-      // Browsers also report PERMISSION_DENIED — with no prompt ever shown —
-      // when the page isn't in a secure context (HTTPS or localhost). The
-      // isSecureContext check in handleUseMyLocation catches that case before
-      // this ever fires; this message only applies to a genuine user denial.
-      return 'Location permission was denied. Allow location access for this site in your browser settings, then try again.';
-    case err.POSITION_UNAVAILABLE:
-      return "Your device couldn't determine its location right now.";
-    case err.TIMEOUT:
-      return 'Timed out waiting for your device to report its location.';
-    default:
-      return "Couldn't determine your location.";
-  }
-}
-
-const GEO_INSECURE_CONTEXT_MESSAGE =
-  "Browsers only allow this API on HTTPS or localhost. This app is served over plain HTTP on your " +
-  'LAN, so Chrome silently refuses the request — no permission prompt ever appears. Type the ' +
-  'coordinates directly, or use "Look up an address" below (that one goes through the server, not the browser).';
 
 export function SettingsSection() {
   const settings = useSettings();
@@ -49,9 +25,6 @@ export function SettingsSection() {
   const [draft, setDraft] = useState<Settings | null>(null);
   const [rescanMessage, setRescanMessage] = useState<string | null>(null);
   const [rescanError, setRescanError] = useState<string | null>(null);
-
-  const [locating, setLocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
 
   const [addressQuery, setAddressQuery] = useState('');
   const [addressLoading, setAddressLoading] = useState(false);
@@ -77,34 +50,6 @@ export function SettingsSection() {
   function applyCoords(latitude: number, longitude: number) {
     patch('homeLatitude', coordDisplayPrecision(latitude));
     patch('homeLongitude', coordDisplayPrecision(longitude));
-  }
-
-  function handleUseMyLocation() {
-    setGeoError(null);
-    if (typeof window !== 'undefined' && window.isSecureContext === false) {
-      // Chrome (and most browsers) reject getCurrentPosition outright on an
-      // insecure origin — no permission prompt is ever shown, and the error
-      // it reports (PERMISSION_DENIED) is indistinguishable from a real user
-      // denial unless we check this ourselves first.
-      setGeoError(GEO_INSECURE_CONTEXT_MESSAGE);
-      return;
-    }
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoError("This browser doesn't support on-device geolocation.");
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocating(false);
-        applyCoords(pos.coords.latitude, pos.coords.longitude);
-      },
-      (err) => {
-        setLocating(false);
-        setGeoError(geolocationErrorMessage(err));
-      },
-      { timeout: GEO_TIMEOUT_MS, enableHighAccuracy: false }
-    );
   }
 
   function applyAddressCandidate(match: GeocodeMatch) {
@@ -202,24 +147,6 @@ export function SettingsSection() {
         </Field>
 
         <div className="settings-location-helpers">
-          <div className="settings-location-helper">
-            <div className="settings-location-helper-row">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={locating}
-                onClick={handleUseMyLocation}
-              >
-                {locating ? 'Locating…' : 'Use my current location'}
-              </Button>
-              <span className="settings-note">
-                Your device's own on-device location — never leaves your browser.
-              </span>
-            </div>
-            {geoError && <div className="error-banner" role="alert">{geoError}</div>}
-          </div>
-
           <div className="settings-location-helper">
             <Field
               label="Look up an address"
