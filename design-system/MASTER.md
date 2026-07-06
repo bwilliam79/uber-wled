@@ -27,13 +27,13 @@ it; if they ever disagree, tokens.css wins and this file must be fixed).
 | Hairline border | `rgba(148,163,184,.10)` | `--border` |
 | Text | `#E6EAF2` | `--text` |
 | Muted text | `#8A94A8` | `--text-muted` |
-| Accent / interactive / brand | `#7C6CFF` | `--accent` |
-| Accent wash (active backgrounds) | `rgba(124,108,255,.16)` | `--accent-soft` |
+| Accent / interactive / brand | `#3B82F6` | `--accent` |
+| Accent wash (active backgrounds) | `rgba(59,130,246,.16)` | `--accent-soft` |
 | Success | `#22C55E` | `--success` |
 | Danger | `#EF4444` | `--danger` |
 | Warning (update badges) | `#F59E0B` | `--warning` |
 
-**Color Notes:** Deep dark surfaces with an electric indigo-violet accent.
+**Color Notes:** Deep dark navy surfaces with a clean blue accent.
 Dynamic glows on Home tiles and Layout strips use the **lights' actual live
 colors**, never the static accent. Legacy `--color-*` variables still exist in
 `client/src/index.css` as aliases for not-yet-rebuilt sections — never use

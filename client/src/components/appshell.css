@@ -36,7 +36,24 @@
 }
 
 .sidebar.collapsed {
-  width: 68px;
+  width: 56px;
+}
+
+/* Rows stretch to fill the column's cross-axis (no align-items override
+   above), so with the label hidden, a lone left-aligned icon (flex's
+   default justify-content: flex-start) reads as off-center — all the
+   leftover row width piles up on its right. Center it explicitly, and
+   drop the wider label-accommodating padding/gap now that there's no
+   label to make room for. */
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
 }
 
 .sidebar-brand {
@@ -111,7 +128,7 @@
 .sidebar-link.active {
   color: var(--accent);
   background: var(--accent-soft);
-  border-color: rgba(124, 108, 255, 0.35);
+  border-color: rgba(59, 130, 246, 0.35);
 }
 
 .sidebar-link-icon-wrap {
