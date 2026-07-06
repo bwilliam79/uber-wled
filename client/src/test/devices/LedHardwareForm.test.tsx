@@ -34,14 +34,36 @@ describe('LedHardwareForm', () => {
     expect(onSave.mock.calls[0][0].hw.led.ins[0].order).toBe(33);
   });
 
-  it('total and max power map to the hw.led globals and rgbwm is never written', () => {
+  it('total is derived from the sum of output lengths, not independently editable', () => {
+    renderForm();
+    const totalInput = screen.getByLabelText('Total LED count (derived)') as HTMLInputElement;
+    expect(totalInput.value).toBe('48'); // 39 + 9
+    expect(totalInput.readOnly).toBe(true);
+    fireEvent.change(screen.getAllByLabelText('Length')[0], { target: { value: '40' } });
+    expect((screen.getByLabelText('Total LED count (derived)') as HTMLInputElement).value).toBe('49');
+  });
+
+  it('max power, global auto-white mode, and FPS map to the hw.led globals', () => {
     const onSave = renderForm();
-    fireEvent.change(screen.getByLabelText('Total LED count'), { target: { value: '49' } });
-    fireEvent.change(screen.getByLabelText('Max power (mA, 0 = unlimited)'), { target: { value: '850' } });
+    fireEvent.change(screen.getAllByLabelText(/Max current/)[0], { target: { value: '850' } });
+    fireEvent.change(screen.getByLabelText('Global auto-white mode'), { target: { value: '2' } });
+    fireEvent.change(screen.getByLabelText('Target FPS'), { target: { value: '60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save LED & hardware' }));
     const patch = onSave.mock.calls[0][0];
-    expect(patch.hw.led.total).toBe(49);
+    expect(patch.hw.led.total).toBe(48);
     expect(patch.hw.led.maxpwr).toBe(850);
-    expect('rgbwm' in patch.hw.led).toBe(false);
+    expect(patch.hw.led.rgbwm).toBe(2);
+    expect(patch.hw.led.fps).toBe(60);
+  });
+
+  it('seeds per-output ledma/maxpwr/freq and white-swap, and round-trips edits', () => {
+    const onSave = renderForm();
+    expect((screen.getAllByLabelText('mA per LED')[0] as HTMLInputElement).value).toBe('55');
+    expect((screen.getAllByLabelText(/Max current/)[1] as HTMLInputElement).value).toBe('0');
+    expect((screen.getAllByLabelText('PWM frequency (Hz)')[0] as HTMLInputElement).value).toBe('0');
+    expect((screen.getByLabelText('Output 1 white channel swap') as HTMLSelectElement).value).toBe('2');
+    fireEvent.change(screen.getAllByLabelText('mA per LED')[0], { target: { value: '12' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save LED & hardware' }));
+    expect(onSave.mock.calls[0][0].hw.led.ins[0].ledma).toBe(12);
   });
 });
