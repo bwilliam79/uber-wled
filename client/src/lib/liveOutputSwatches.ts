@@ -20,6 +20,10 @@ export interface LiveOutputSwatch {
   key: string;
   state: LiveSwatchState;
   color: string;
+  /** Segment's real LED count — renders as relative width so e.g. a 39-LED
+   *  run and a 9-LED trim run don't draw as identically-sized dots. Placeholder
+   *  (pending/unreachable) swatches use 1 since there's no real size to show yet. */
+  len: number;
 }
 
 /** Muted grey for a target that isn't reachable at all. */
@@ -33,6 +37,10 @@ export interface LiveSwatchSegment {
   on: boolean;
   bri: number;
   col: number[][];
+  // Optional because it mirrors LiveSegment.len, which WLED always sends in
+  // practice but the type hedges as optional — swatchesForSource falls back
+  // to equal weighting (1) when absent.
+  len?: number;
 }
 
 export interface LiveSwatchSource {
@@ -51,13 +59,13 @@ function swatchesForSource(
   keyPrefix: string
 ): LiveOutputSwatch[] {
   if (!source) {
-    return [{ key: `${keyPrefix}:pending`, state: 'pending', color: SWATCH_PENDING_COLOR }];
+    return [{ key: `${keyPrefix}:pending`, state: 'pending', color: SWATCH_PENDING_COLOR, len: 1 }];
   }
   if (!source.reachable) {
-    return [{ key: `${keyPrefix}:unreachable`, state: 'unreachable', color: SWATCH_UNREACHABLE_COLOR }];
+    return [{ key: `${keyPrefix}:unreachable`, state: 'unreachable', color: SWATCH_UNREACHABLE_COLOR, len: 1 }];
   }
   if (!source.state) {
-    return [{ key: `${keyPrefix}:pending`, state: 'pending', color: SWATCH_PENDING_COLOR }];
+    return [{ key: `${keyPrefix}:pending`, state: 'pending', color: SWATCH_PENDING_COLOR, len: 1 }];
   }
 
   const segs = wledSegId === null
@@ -68,7 +76,7 @@ function swatchesForSource(
     // Reachable and reporting state, but the segment we care about doesn't
     // exist (e.g. stale group membership after a re-segmentation) — treat
     // like unreachable rather than silently rendering nothing.
-    return [{ key: `${keyPrefix}:unreachable`, state: 'unreachable', color: SWATCH_UNREACHABLE_COLOR }];
+    return [{ key: `${keyPrefix}:unreachable`, state: 'unreachable', color: SWATCH_UNREACHABLE_COLOR, len: 1 }];
   }
 
   const masterOn = source.state.on;
@@ -77,7 +85,8 @@ function swatchesForSource(
     return {
       key: `${keyPrefix}:${seg.id}`,
       state: on ? 'on' : 'off',
-      color: segmentToCssColor({ on, bri: seg.bri, col: seg.col })
+      color: segmentToCssColor({ on, bri: seg.bri, col: seg.col }),
+      len: Math.max(1, seg.len ?? 1)
     };
   });
 }

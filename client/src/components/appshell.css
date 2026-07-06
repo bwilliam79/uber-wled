@@ -10,7 +10,12 @@
   flex: 1;
   min-width: 0;
   padding: var(--space-xl) var(--space-lg);
-  max-width: 1200px;
+  /* No max-width: was a flat 1200px regardless of screen size, leaving a
+     large unused strip on any monitor wider than ~1400px. Content now uses
+     whatever width the window actually gives it. This is safe because every
+     page either scales itself (Home tiles, Devices cards use auto-fit grids;
+     Layout is a canvas) or sets its own sensible cap where full width would
+     look wrong (.settings-form: 560px, .theme-form-source: 320px). */
 }
 
 /* ---------- Sidebar (desktop) ---------- */
