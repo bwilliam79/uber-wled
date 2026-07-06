@@ -57,8 +57,14 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   if (!status) return <p className="firmware-status controller-meta">Checking firmware…</p>;
   if (status.unreachable) return <p className="firmware-status controller-meta">Controller offline</p>;
 
-  const hasCandidates = (status.candidateAssets ?? []).length > 0;
-  const showUpdateButton = !hasCandidates && status.updateAvailable && !!status.pinnedAssetPattern;
+  const candidates = status.candidateAssets ?? [];
+  const hasCandidates = candidates.length > 0;
+  const isPinned = !!status.pinnedAssetPattern;
+  // The server now always returns candidateAssets, whether or not a pattern
+  // is already pinned, so the picker button stays reachable as an "override"
+  // affordance after the first pin — it's no longer a one-time flow.
+  const showUpdateButton = isPinned && status.updateAvailable;
+  const pickerLabel = isPinned ? 'Override firmware asset' : 'Pick firmware asset';
 
   return (
     <div className="firmware-status">
@@ -67,14 +73,18 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         <span className="badge badge-stale"> Update available ({status.latestTag})</span>
       )}
       {status.isPrerelease && <span className="badge">pre-release</span>}
+      {isPinned && (
+        <span className="controller-meta firmware-board-type">Board type: {status.pinnedAssetPattern}</span>
+      )}
       {hasCandidates && (
         <button type="button" className="btn btn-secondary" onClick={() => setPickerOpen(true)}>
-          Pick firmware asset
+          {pickerLabel}
         </button>
       )}
       {hasCandidates && pickerOpen && (
         <AssetPickerModal
-          assets={status.candidateAssets}
+          assets={candidates}
+          currentPattern={status.pinnedAssetPattern}
           onPick={handlePick}
           onCancel={() => setPickerOpen(false)}
         />
