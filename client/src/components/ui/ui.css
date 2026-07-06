@@ -186,9 +186,18 @@
 }
 
 .ui-field-label {
+  display: block;
   font-size: 0.8125rem;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--text-muted);
+  /* Reserve space for 2 lines always, so a short one-line label (e.g.
+     "Target FPS") and a long two-line one (e.g. "Max current (mA, 0 =
+     unlimited)") in the same grid row still start their input/select at
+     the same Y position — a grid row stretches every cell to equal
+     height, but within a cell a shorter label otherwise leaves the extra
+     space *below* the input instead of pushing the input down to match. */
+  min-height: 2.6em;
 }
 
 .ui-field-hint {

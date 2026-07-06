@@ -135,6 +135,20 @@ describe('SettingsSection v2', () => {
       await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/doesn't support/i));
     });
 
+    it('explains the HTTPS/localhost requirement — without ever calling getCurrentPosition — when the page is an insecure context', async () => {
+      stub();
+      const getCurrentPosition = stubGeolocation();
+      Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true });
+
+      renderWithQuery(<SettingsSection />);
+      fireEvent.click(await screen.findByText('Use my current location'));
+
+      await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/HTTPS or localhost/i));
+      expect(getCurrentPosition).not.toHaveBeenCalled();
+
+      Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
+    });
+
     it('surfaces a clear message when the user denies the permission prompt', async () => {
       stub();
       const getCurrentPosition = stubGeolocation();
