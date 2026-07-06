@@ -67,7 +67,7 @@ describe('firmware routes', () => {
     expect(res.body.candidateAssets).toHaveLength(2);
   });
 
-  it('returns no candidate assets once pinned and the pin still matches', async () => {
+  it('still returns candidate assets once pinned and the pin still matches, so the client can offer an override', async () => {
     const fetchMock = vi.fn(async (url: string) => {
       if (url.includes('api.github.com')) return { ok: true, json: async () => GITHUB_RESPONSE } as Response;
       if (url.endsWith('/json/info')) {
@@ -81,7 +81,10 @@ describe('firmware routes', () => {
 
     const res = await request(app).get(`/api/controllers/${controllerId}/firmware`);
     expect(res.body.pinnedAssetPattern).toBe('ESP02');
-    expect(res.body.candidateAssets).toEqual([]);
+    // Candidates are always computed now — the picker button must stay
+    // reachable as an "override" affordance after the first pin, not just
+    // before it.
+    expect(res.body.candidateAssets).toHaveLength(2);
   });
 
   it('surfaces candidate assets again when the pin no longer matches any asset', async () => {
