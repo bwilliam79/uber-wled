@@ -6,15 +6,22 @@ import type { RoomLabel } from '../../../api/client';
 const labels: RoomLabel[] = [{ id: 'l1', name: 'Kitchen', x: 50, y: 20 }];
 const toWorld = (clientX: number, clientY: number) => ({ x: clientX, y: clientY });
 
-function renderLayer(overrides: { onMove?: ReturnType<typeof vi.fn>; onRename?: ReturnType<typeof vi.fn> } = {}) {
+function renderLayer(
+  overrides: {
+    onMove?: ReturnType<typeof vi.fn>;
+    onRename?: ReturnType<typeof vi.fn>;
+    onDelete?: ReturnType<typeof vi.fn>;
+  } = {}
+) {
   const onMove = overrides.onMove ?? vi.fn();
   const onRename = overrides.onRename ?? vi.fn();
+  const onDelete = overrides.onDelete ?? vi.fn();
   render(
     <svg>
-      <RoomLabels labels={labels} toWorld={toWorld} onMove={onMove} onRename={onRename} />
+      <RoomLabels labels={labels} toWorld={toWorld} onMove={onMove} onRename={onRename} onDelete={onDelete} />
     </svg>
   );
-  return { onMove, onRename };
+  return { onMove, onRename, onDelete };
 }
 
 describe('RoomLabels', () => {
@@ -69,5 +76,34 @@ describe('RoomLabels', () => {
     fireEvent.change(input, { target: { value: '   ' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     expect(onRename).not.toHaveBeenCalled();
+  });
+
+  it('clicking the delete (x) button calls onDelete with the label id, without triggering a drag', () => {
+    const { onDelete, onMove } = renderLayer();
+    fireEvent.pointerDown(screen.getByTestId('room-label-delete-l1'), { clientX: 50, clientY: 20 });
+    fireEvent.click(screen.getByTestId('room-label-delete-l1'));
+    expect(onDelete).toHaveBeenCalledWith('l1');
+    fireEvent.pointerUp(screen.getByTestId('room-label-l1'));
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it('pointerdown on a label selects it (marks the chip selected)', () => {
+    renderLayer();
+    const chip = screen.getByTestId('room-label-l1');
+    expect(chip.getAttribute('class')).not.toContain('selected');
+    fireEvent.pointerDown(chip, { clientX: 50, clientY: 20 });
+    fireEvent.pointerUp(chip);
+    expect(chip.getAttribute('class')).toContain('selected');
+  });
+
+  it('Delete/Backspace removes the selected label but does nothing when none is selected', () => {
+    const { onDelete } = renderLayer();
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(onDelete).not.toHaveBeenCalled();
+    const chip = screen.getByTestId('room-label-l1');
+    fireEvent.pointerDown(chip, { clientX: 50, clientY: 20 });
+    fireEvent.pointerUp(chip);
+    fireEvent.keyDown(window, { key: 'Delete' });
+    expect(onDelete).toHaveBeenCalledWith('l1');
   });
 });

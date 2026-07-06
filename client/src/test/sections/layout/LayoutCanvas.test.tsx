@@ -40,6 +40,7 @@ function makeProps(overrides: Partial<LayoutCanvasProps> = {}): LayoutCanvasProp
     onCanvasDoubleClick: vi.fn(),
     onMoveLabel: vi.fn(),
     onRenameLabel: vi.fn(),
+    onDeleteLabel: vi.fn(),
     ...overrides
   };
 }

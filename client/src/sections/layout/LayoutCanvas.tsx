@@ -31,6 +31,7 @@ export interface LayoutCanvasProps {
   onCanvasDoubleClick(e: React.MouseEvent): void;
   onMoveLabel(id: string, x: number, y: number): void;
   onRenameLabel(id: string, name: string): void;
+  onDeleteLabel(id: string): void;
 }
 
 export function LayoutCanvas(props: LayoutCanvasProps) {
@@ -166,7 +167,13 @@ export function LayoutCanvas(props: LayoutCanvasProps) {
             vectorEffect="non-scaling-stroke"
           />
         )}
-        <RoomLabels labels={props.labels} toWorld={props.toWorld} onMove={props.onMoveLabel} onRename={props.onRenameLabel} />
+        <RoomLabels
+          labels={props.labels}
+          toWorld={props.toWorld}
+          onMove={props.onMoveLabel}
+          onRename={props.onRenameLabel}
+          onDelete={props.onDeleteLabel}
+        />
       </g>
     </svg>
   );

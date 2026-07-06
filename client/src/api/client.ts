@@ -255,7 +255,10 @@ export const addRoomLabel = (input: { name: string; x: number; y: number }) =>
   sendJson<RoomLabel>('/api/room-labels', 'POST', input);
 export const updateRoomLabel = (id: string, patch: Partial<Omit<RoomLabel, 'id'>>) =>
   sendJson<RoomLabel>(`/api/room-labels/${id}`, 'PATCH', patch);
-export const deleteRoomLabel = (id: string) => fetch(`/api/room-labels/${id}`, { method: 'DELETE' });
+export const deleteRoomLabel = async (id: string): Promise<void> => {
+  const res = await fetch(`/api/room-labels/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`DELETE /api/room-labels/${id} failed`);
+};
 
 export const getSettings = () => getJson<Settings>('/api/settings');
 export const updateSettings = (patch: Partial<Settings>) => sendJson<Settings>('/api/settings', 'PATCH', patch);

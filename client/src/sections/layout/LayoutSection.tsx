@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  addRoomLabel, addStrip, deleteStrip, updateRoomLabel, updateStrip,
+  addRoomLabel, addStrip, deleteRoomLabel, deleteStrip, updateRoomLabel, updateStrip,
   type RoomLabel, type Strip, type Target
 } from '../../api/client';
 import { useControllers, useRoomLabels, useStrips } from '../../api/queries';
 import { useLiveStatus } from '../../api/live';
 import { ControlSurface } from '../../control/ControlSurface';
+import { useToast } from '../../components/ui/Toast';
 import {
   IDENTITY_VIEWPORT, fitAllViewport, normalizeRect, panBy, polylineIntersectsRect,
   screenToWorld, snapAngle, snapToGrid, zoomAt, type Point, type Viewport
@@ -20,6 +21,7 @@ const WORLD_BOX_CORNERS: Point[] = [{ x: 0, y: 0 }, { x: 100, y: 100 }];
 
 export function LayoutSection() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const stripsQuery = useStrips();
   const labelsQuery = useRoomLabels();
   const controllersQuery = useControllers();
@@ -94,6 +96,15 @@ export function LayoutSection() {
     onSuccess: (created) => {
       queryClient.setQueryData<RoomLabel[]>(['room-labels'], (prev) => [...(prev ?? []), created]);
       setNewLabelName('');
+    }
+  });
+  const deleteLabelMut = useMutation({
+    mutationFn: (id: string) => deleteRoomLabel(id),
+    onSuccess: (_data, id) => {
+      queryClient.setQueryData<RoomLabel[]>(['room-labels'], (prev) => (prev ?? []).filter((l) => l.id !== id));
+    },
+    onError: () => {
+      toast.show({ title: 'Could not delete room label', variant: 'error' });
     }
   });
 
@@ -379,6 +390,7 @@ export function LayoutSection() {
           onCanvasDoubleClick={handleCanvasDoubleClick}
           onMoveLabel={(id, x, y) => moveLabelMut.mutate({ id, x, y })}
           onRenameLabel={(id, name) => renameLabelMut.mutate({ id, name })}
+          onDeleteLabel={(id) => deleteLabelMut.mutate(id)}
         />
         {strips.length === 0 && !isDrawing && (
           <p className="layout-hint">
