@@ -15,6 +15,7 @@ import {
   type Target
 } from '../../api/client';
 import { useLiveStatus } from '../../api/live';
+import { useLiveWsPixels } from '../../api/liveWsPixels';
 import { ControlSurface } from '../../control/ControlSurface';
 import { Modal } from '../../components/ui/Modal';
 import { HomeTile, type HomeTileData } from './HomeTile';
@@ -76,6 +77,28 @@ export function HomeSection() {
 
   const controllerIds = useMemo(() => controllers.map((c) => c.id), [controllers]);
   const live = useLiveStatus(controllerIds);
+
+  // Real per-pixel live view (see api/liveWsPixels.ts) only for controllers
+  // that are actually reachable and lit — an off or unreachable device has
+  // nothing more to show than the flat/muted swatch already covers, so don't
+  // pay for a WebSocket connection to it.
+  const litHosts = useMemo(() => {
+    const hosts: string[] = [];
+    for (const c of controllers) {
+      const entry = live.get(c.id);
+      if (entry?.reachable && entry.state?.on) hosts.push(c.host);
+    }
+    return hosts;
+  }, [controllers, live]);
+  const livePixelsByHost = useLiveWsPixels(litHosts);
+  const livePixelsByController = useMemo(() => {
+    const map = new Map<string, Uint8Array>();
+    for (const c of controllers) {
+      const px = livePixelsByHost.get(c.host);
+      if (px) map.set(c.id, px);
+    }
+    return map;
+  }, [controllers, livePixelsByHost]);
 
   const [controlTargets, setControlTargets] = useState<Target[] | null>(null);
   const [overrides, setOverrides] = useState<Map<string, QuickOverride>>(new Map());
@@ -207,7 +230,7 @@ export function HomeSection() {
   }
 
   function liveSwatchesFor(tile: HomeTileData): LiveOutputSwatch[] {
-    return swatchesForMembers(tile.members, live);
+    return swatchesForMembers(tile.members, live, livePixelsByController);
   }
 
   function glowFor(tile: HomeTileData, status: TileStatusV2): string {

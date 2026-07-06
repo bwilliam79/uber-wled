@@ -83,6 +83,27 @@ if (typeof globalThis.EventSource === 'undefined') {
   globalThis.EventSource = EventSourcePolyfill;
 }
 
+// jsdom has no `WebSocket`. api/liveWsPixels.ts's useLiveWsPixels opens one
+// unconditionally for any non-empty host list, and it's wired into
+// HomeSection/DeviceCard/InfoTab — same rationale as the EventSource
+// polyfill above: a safe no-op fallback so tests that don't care about the
+// live-pixel wire protocol don't crash. Tests that do care install their own
+// richer fake via vi.stubGlobal (see api/liveWsPixels.test.tsx).
+if (typeof globalThis.WebSocket === 'undefined') {
+  class WebSocketPolyfill {
+    static OPEN = 1;
+    static CLOSED = 3;
+    readyState = 3;
+    binaryType = 'blob';
+    addEventListener() {}
+    removeEventListener() {}
+    send() {}
+    close() {}
+  }
+  // @ts-expect-error - minimal polyfill, not a spec-complete WebSocket
+  globalThis.WebSocket = WebSocketPolyfill;
+}
+
 afterEach(() => {
   cleanup();
 });

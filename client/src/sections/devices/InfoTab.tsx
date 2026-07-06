@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   deleteController, importSchedules, rebootController, type Controller
 } from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
+import { useLiveWsPixels } from '../../api/liveWsPixels';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
@@ -22,6 +23,12 @@ export interface InfoTabProps {
 
 export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
   const info = live?.info;
+  const litHosts = useMemo(
+    () => (live?.reachable && live.state?.on ? [controller.host] : []),
+    [live?.reachable, live?.state?.on, controller.host]
+  );
+  const livePixelsByHost = useLiveWsPixels(litHosts);
+  const livePixels = livePixelsByHost.get(controller.host);
   const toast = useToast();
   const queryClient = useQueryClient();
   const [showPeek, setShowPeek] = useState(false);
@@ -97,7 +104,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
       <Card>
         <h3>Live output</h3>
         <p className="info-live-hint">Updates in real time from the control plane's live feed.</p>
-        <LiveOutputStrip swatches={swatchesForEntry(live)} />
+        <LiveOutputStrip swatches={swatchesForEntry(live, livePixels)} />
         <div className="info-live-native">
           {showPeek ? (
             <iframe
@@ -106,8 +113,11 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
               title={`Live output of ${controller.name}`}
             />
           ) : (
-            // Opt-in: the embedded native /liveview page polls the device on its
-            // own and renders black on firmware without /json/live (e.g. 16.0).
+            // Opt-in: embeds the device's own native /liveview page. (The
+            // strip above gets its real-time colors from the same live-view
+            // WebSocket this native page uses internally — /json/live, an
+            // unrelated HTTP polling endpoint, returns 501 on this firmware,
+            // but that's not what either live view actually relies on.)
             <Button variant="secondary" onClick={() => setShowPeek(true)}>
               Open native live view
             </Button>
