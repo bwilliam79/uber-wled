@@ -25,12 +25,16 @@ bar on phones — with seven sections, opening on Home:
    Edit mode creates/renames/deletes rooms, assigns controller+segment
    members inline, and drag-reorders tiles.
 2. **Layout** — an imageless canvas of the house. Draw each strip as a
-   multi-point path (click to place vertices, Enter to finish, Esc to
-   cancel, Shift for 45° angles, optional grid snap), drag strips or
-   individual vertices to arrange, wheel/pinch zoom and pan, "fit all".
-   Strips render in their real live color from the live stream. Click or
-   marquee-select strips to open the Control surface for exactly those
-   (controller, segment) targets.
+   multi-point path (click to place vertices, then either click the
+   "Finish line" button or press Enter/double-click to finish, Esc/Cancel
+   to abandon, Shift for 45° angles, optional grid snap with visible minor
+   and major grid lines), drag strips or individual vertices to arrange,
+   wheel/pinch zoom and pan, "fit all". Strips render in their real live
+   color from the live stream. Click or marquee-select strips to open the
+   Control surface for exactly those (controller, segment) targets. Room
+   labels can be dragged, double-clicked to rename inline, and clicked/
+   hovered to reveal a delete (×) button (Delete/Backspace also removes
+   the selected label).
 3. **Devices** — one card per controller: name, host, firmware chip, live
    WiFi signal, FPS, power, uptime, stale/offline and update-available
    badges. The detail page has five tabs: **Info** (identity, network,
@@ -150,7 +154,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 41 files / 280 tests
-cd client && npm test   # 71 files / 462 tests
+cd client && npm test   # 71 files / 474 tests
 ```
 
 ## Running the whole app locally via Docker
