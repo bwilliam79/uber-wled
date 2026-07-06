@@ -4,6 +4,8 @@ import { useFirmwareStatus } from '../../api/queries';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
+import { LiveOutputStrip } from '../../components/ui/LiveOutputStrip';
+import { swatchesForEntry } from '../../lib/liveOutputSwatches';
 import { humanizeUptime, signalBars } from './format';
 import './devices.css';
 
@@ -54,6 +56,7 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
           <span className="device-card-metric">Up {humanizeUptime(info.uptime)}</span>
         )}
       </div>
+      <LiveOutputStrip swatches={swatchesForEntry(live)} size="sm" className="device-card-live-strip" />
       <div className="device-card-actions">
         <Button variant="primary" size="sm" onClick={() => onControl(controller.id)}
           aria-label={`Control ${controller.name}`}>
