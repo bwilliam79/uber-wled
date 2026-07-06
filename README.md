@@ -63,7 +63,13 @@ bar on phones — with seven sections, opening on Home:
 7. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
-   streaming sessions, and the WLED schedule-import default.
+   streaming sessions, and the WLED schedule-import default. Home
+   latitude/longitude can still be typed directly, or filled in via two
+   opt-in convenience actions: "Use my current location" (the browser's own
+   on-device Geolocation API — no network call this app is party to) or
+   "Look up an address" (geocoded via OpenStreetMap's Nominatim, proxied
+   through the server so it can send Nominatim's required identifying
+   User-Agent).
 
 ## The Control surface
 
@@ -132,7 +138,13 @@ included). Guardrails, because full parity includes footguns:
   `docker-compose.yml`. `network_mode: host` so mDNS discovery can see WLED
   devices on the LAN — the container binds directly to a host port.
 - **Security posture**: no auth, no HTTPS, no cloud dependency — a
-  deliberate LAN-only design relying on the home network's perimeter.
+  deliberate LAN-only design relying on the home network's perimeter. The
+  only outbound internet calls the server makes are narrow, named
+  exceptions: checking GitHub for WLED firmware releases (periodic,
+  cached — see Firmware) and, only if you click "Look up an address" in
+  Settings, a one-off geocoding lookup against OpenStreetMap's Nominatim.
+  The address lookup is opt-in and user-triggered only — it never runs
+  automatically or in the background.
 
 ## Local development
 
@@ -153,8 +165,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 41 files / 280 tests
-cd client && npm test   # 72 files / 495 tests
+cd server && npm test   # 42 files / 286 tests
+cd client && npm test   # 72 files / 503 tests
 ```
 
 ## Running the whole app locally via Docker
