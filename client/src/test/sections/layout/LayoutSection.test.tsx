@@ -138,6 +138,33 @@ describe('draw flow', () => {
     expect(fetchMock.mock.calls.some(([u, i]) => u === '/api/strips' && (i as RequestInit)?.method === 'POST')).toBe(false);
   });
 
+  it('the Finish line button is disabled below 2 points and dispatches FINISH_DRAW once enabled', async () => {
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    const finishBtn = screen.getByRole('button', { name: 'Finish line' }) as HTMLButtonElement;
+    expect(finishBtn.disabled).toBe(true);
+    fireEvent.click(canvas, { clientX: 10, clientY: 10 });
+    expect(finishBtn.disabled).toBe(true);
+    fireEvent.click(canvas, { clientX: 50, clientY: 10 });
+    expect(finishBtn.disabled).toBe(false);
+    fireEvent.click(finishBtn);
+    await screen.findByTestId('strip-save-panel');
+  });
+
+  it('Cancel in the draw action bar discards the in-progress line', async () => {
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.click(canvas, { clientX: 10, clientY: 10 });
+    fireEvent.click(canvas, { clientX: 50, clientY: 10 });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByTestId('draw-preview')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Draw strip' })).toBeDefined();
+  });
+
   it('double-click finishes the path without keeping the duplicate vertex', async () => {
     renderSection();
     await screen.findByTestId('strip-s1');
