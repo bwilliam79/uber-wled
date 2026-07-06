@@ -93,7 +93,8 @@ export function ThemesSection() {
           <label htmlFor="theme-source">Source controller</label>
           <Select
             id="theme-source"
-            aria-label="Source controller"
+            label="Source controller"
+            showLabel={false}
             value={effectiveSource ?? ''}
             onChange={(v) => setSourceId(v)}
             options={(controllers.data ?? []).map((c) => ({

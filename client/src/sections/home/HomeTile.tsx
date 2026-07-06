@@ -142,6 +142,7 @@ export function HomeTile({
           checked={status.power === 'on'}
           disabled={status.allOffline}
           label={`power for ${tile.title}`}
+          showLabel={false}
           onChange={(next: boolean) => onPower(tile, next)}
         />
         <Slider
