@@ -22,6 +22,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
   const info = live?.info;
   const toast = useToast();
   const queryClient = useQueryClient();
+  const [showPeek, setShowPeek] = useState(false);
   const [confirmReboot, setConfirmReboot] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -93,11 +94,19 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
       {live !== undefined && !live.reachable && <Chip variant="danger">Offline</Chip>}
       <Card>
         <h3>Live output</h3>
-        <iframe
-          className="info-liveview"
-          src={`http://${controller.host}/liveview`}
-          title={`Live output of ${controller.name}`}
-        />
+        {showPeek ? (
+          <iframe
+            className="info-liveview"
+            src={`http://${controller.host}/liveview`}
+            title={`Live output of ${controller.name}`}
+          />
+        ) : (
+          // Opt-in: the embedded native /liveview page polls the device on its
+          // own and renders black on firmware without /json/live (e.g. 16.0).
+          <Button variant="secondary" onClick={() => setShowPeek(true)}>
+            Show live preview
+          </Button>
+        )}
       </Card>
       <Card>
         <h3>Device facts</h3>
