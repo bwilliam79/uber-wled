@@ -104,6 +104,19 @@ if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = WebSocketPolyfill;
 }
 
+// jsdom has no `ResizeObserver`. sections/layout/LayoutCanvas.tsx's
+// useElementSize observes the SVG canvas's size unconditionally whenever it
+// mounts, so any test rendering the Layout section would otherwise throw
+// `ReferenceError: ResizeObserver is not defined` from a passive effect.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverPolyfill {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = ResizeObserverPolyfill;
+}
+
 afterEach(() => {
   cleanup();
 });

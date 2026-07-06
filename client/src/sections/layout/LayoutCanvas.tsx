@@ -1,11 +1,70 @@
-import type { RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import type { RoomLabel, Strip } from '../../api/client';
-import { GRID_SIZE, HIT_TOLERANCE_PX, type Point, type Rect, type Viewport } from './geometry';
+import { GRID_SIZE, HIT_TOLERANCE_PX, screenToWorld, type Point, type Rect, type Viewport } from './geometry';
 import { stripStrokeColor, type LiveControllerStatus } from './stripColors';
 import { RoomLabels } from './RoomLabels';
 
-/** Legacy world box: existing strip data lives in 0..100. */
-const WORLD_BOX = 100;
+/** Tracks an element's CSS pixel size (0,0 until the ref mounts). */
+function useElementSize(ref: RefObject<Element | null>): { width: number; height: number } {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const update = () => setSize({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return size;
+}
+
+/** Max grid lines drawn per axis — beyond this the step doubles (coarser
+ *  grid) so a far-zoomed-out view doesn't render thousands of lines. */
+export const MAX_GRID_LINES_PER_AXIS = 150;
+
+export interface GridLine { pos: number; major: boolean }
+
+/** World-space coordinates of every grid line that should be visible for the
+ *  given canvas size + viewport — was previously a hardcoded 0..100 box that
+ *  had nothing to do with where strips actually are (real strip coordinates
+ *  match screen pixels at the default scale:1 viewport, i.e. commonly in the
+ *  hundreds), which made the grid render as a tiny corner square instead of
+ *  covering the visible canvas. Major lines land on absolute multiples of the
+ *  step so alignment stays stable as the user pans, not just relative to
+ *  whatever's currently in view. Exported for direct unit testing. */
+export function computeGridLines(
+  canvasSize: { width: number; height: number },
+  vp: Viewport
+): { vertical: GridLine[]; horizontal: GridLine[] } {
+  const corner1 = screenToWorld(vp, { x: 0, y: 0 });
+  const corner2 = screenToWorld(vp, { x: canvasSize.width, y: canvasSize.height });
+  const minXRaw = Math.min(corner1.x, corner2.x);
+  const maxXRaw = Math.max(corner1.x, corner2.x);
+  const minYRaw = Math.min(corner1.y, corner2.y);
+  const maxYRaw = Math.max(corner1.y, corner2.y);
+
+  let step = GRID_SIZE;
+  while (
+    (maxXRaw - minXRaw) / step > MAX_GRID_LINES_PER_AXIS ||
+    (maxYRaw - minYRaw) / step > MAX_GRID_LINES_PER_AXIS
+  ) {
+    step *= 2;
+  }
+  const majorStep = step * 4;
+
+  const build = (minRaw: number, maxRaw: number): GridLine[] => {
+    const min = Math.floor(minRaw / step) * step;
+    const max = Math.ceil(maxRaw / step) * step;
+    const lines: GridLine[] = [];
+    for (let pos = min; pos <= max; pos += step) {
+      lines.push({ pos, major: pos % majorStep === 0 });
+    }
+    return lines;
+  };
+
+  return { vertical: build(minXRaw, maxXRaw), horizontal: build(minYRaw, maxYRaw) };
+}
 
 export interface LayoutCanvasProps {
   strips: Strip[];
@@ -36,6 +95,7 @@ export interface LayoutCanvasProps {
 
 export function LayoutCanvas(props: LayoutCanvasProps) {
   const vp = props.viewport;
+  const canvasSize = useElementSize(props.svgRef);
   const drawing = props.drawVertices !== null;
   const lastDrawVertex =
     props.drawVertices && props.drawVertices.length > 0
@@ -72,20 +132,27 @@ export function LayoutCanvas(props: LayoutCanvasProps) {
         onPointerDown={props.onBackgroundPointerDown}
       />
       <g data-testid="world-group" transform={`translate(${vp.tx} ${vp.ty}) scale(${vp.scale})`}>
-        {props.gridSnap && (
-          <g data-testid="layout-grid" className="layout-grid">
-            {Array.from({ length: WORLD_BOX / GRID_SIZE + 1 }, (_, idx) => {
-              const c = idx * GRID_SIZE;
-              const lineClass = `layout-grid-line${idx % 4 === 0 ? ' layout-grid-line-major' : ''}`;
-              return (
-                <g key={c}>
-                  <line className={lineClass} x1={c} y1={0} x2={c} y2={WORLD_BOX} vectorEffect="non-scaling-stroke" />
-                  <line className={lineClass} x1={0} y1={c} x2={WORLD_BOX} y2={c} vectorEffect="non-scaling-stroke" />
-                </g>
-              );
-            })}
-          </g>
-        )}
+        {props.gridSnap && canvasSize.width > 0 && canvasSize.height > 0 && (() => {
+          const { vertical, horizontal } = computeGridLines(canvasSize, vp);
+          const minY = horizontal.length > 0 ? horizontal[0].pos : 0;
+          const maxY = horizontal.length > 0 ? horizontal[horizontal.length - 1].pos : 0;
+          const minX = vertical.length > 0 ? vertical[0].pos : 0;
+          const maxX = vertical.length > 0 ? vertical[vertical.length - 1].pos : 0;
+          return (
+            <g data-testid="layout-grid" className="layout-grid">
+              {vertical.map(({ pos, major }) => (
+                <line key={`v${pos}`}
+                  className={`layout-grid-line${major ? ' layout-grid-line-major' : ''}`}
+                  x1={pos} y1={minY} x2={pos} y2={maxY} vectorEffect="non-scaling-stroke" />
+              ))}
+              {horizontal.map(({ pos, major }) => (
+                <line key={`h${pos}`}
+                  className={`layout-grid-line${major ? ' layout-grid-line-major' : ''}`}
+                  x1={minX} y1={pos} x2={maxX} y2={pos} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+          );
+        })()}
         {props.strips.map((s) => {
           const isSelected = props.selection.includes(s.id);
           const stroke = stripStrokeColor(s, props.live);
