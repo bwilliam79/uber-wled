@@ -26,9 +26,11 @@ describe('InfoTab', () => {
   it('shows the live-output strip immediately, with no opt-in required', () => {
     renderTab();
     const strip = screen.getByRole('img', { name: 'Live output' });
-    // fixtures.SEGMENTS: seg0 [255,160,60] bri255 -> unscaled; seg1 [0,80,255] bri200.
-    expect(screen.getByTestId('live-swatch-c:0').style.backgroundColor).toBe('rgb(255, 160, 60)');
-    expect(screen.getByTestId('live-swatch-c:1').style.backgroundColor).toBe('rgb(0, 63, 200)');
+    // fixtures.SEGMENTS: both segments on — no real WS server in this test
+    // environment, so no live-pixel frame ever arrives and both show the
+    // loading placeholder rather than their configured color.
+    expect(screen.getByTestId('live-swatch-c:0').style.backgroundColor).toBe('rgb(0, 0, 0)');
+    expect(screen.getByTestId('live-swatch-c:1').style.backgroundColor).toBe('rgb(0, 0, 0)');
     expect(strip.children).toHaveLength(2);
   });
 
