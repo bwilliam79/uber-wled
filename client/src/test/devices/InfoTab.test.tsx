@@ -23,8 +23,10 @@ describe('InfoTab', () => {
     expect(screen.getByText('AudioReactive')).toBeTruthy();
   });
 
-  it('embeds the liveview peek iframe pointing at the device', () => {
+  it('mounts the liveview peek iframe only after the user opts in', () => {
     renderTab();
+    expect(screen.queryByTitle('Live output of Cabinet Lights')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show live preview' }));
     const frame = screen.getByTitle('Live output of Cabinet Lights') as HTMLIFrameElement;
     expect(frame.src).toBe('http://192.168.1.86/liveview');
   });
