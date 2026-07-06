@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 
 export function AssetPickerModal({
   assets,
+  currentPattern,
   onPick,
   onCancel
 }: {
   assets: { name: string; downloadUrl: string }[];
+  currentPattern?: string | null;
   onPick: (assetName: string) => void;
   onCancel: () => void;
 }) {
@@ -17,12 +19,18 @@ export function AssetPickerModal({
     return () => window.removeEventListener('keydown', handleKey);
   }, [onCancel]);
 
+  const isOverride = !!currentPattern;
+
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div role="dialog" aria-modal="true" aria-labelledby="asset-picker-heading" className="asset-picker-modal">
-        <h4 id="asset-picker-heading">Pick the correct firmware asset for this controller</h4>
+        <h4 id="asset-picker-heading">
+          {isOverride ? 'Override the firmware asset for this controller' : 'Pick the correct firmware asset for this controller'}
+        </h4>
         <p className="controller-meta">
-          Ambiguous chip family — choose the exact asset for this device. This is remembered for future updates.
+          {isOverride
+            ? `Currently pinned to "${currentPattern}". Choosing a different asset below replaces that pin for future updates.`
+            : 'Ambiguous chip family — choose the exact asset for this device. This is remembered for future updates.'}
         </p>
         <ul className="asset-picker-list">
           {assets.map((a) => (
