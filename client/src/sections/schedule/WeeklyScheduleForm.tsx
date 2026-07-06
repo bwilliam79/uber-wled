@@ -75,13 +75,13 @@ export function WeeklyScheduleForm({
       </Field>
       <Field label="Group" htmlFor="weekly-schedule-group">
         <Select
-          id="weekly-schedule-group" label="group" value={groupId} onChange={setGroupId}
+          id="weekly-schedule-group" label="group" showLabel={false} value={groupId} onChange={setGroupId}
           options={groups.map((g) => ({ value: g.id, label: g.name }))}
         />
       </Field>
       <Field label="Theme" htmlFor="weekly-schedule-theme">
         <Select
-          id="weekly-schedule-theme" label="theme" value={themeId} onChange={setThemeId}
+          id="weekly-schedule-theme" label="theme" showLabel={false} value={themeId} onChange={setThemeId}
           options={themes.map((t) => ({ value: t.id, label: t.name }))}
         />
       </Field>

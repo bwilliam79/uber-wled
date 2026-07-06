@@ -80,13 +80,13 @@ export function CalendarEventForm({
       </div>
       <Field label="Group" htmlFor="calendar-event-group">
         <Select
-          id="calendar-event-group" label="event group" value={groupId} onChange={setGroupId}
+          id="calendar-event-group" label="event group" showLabel={false} value={groupId} onChange={setGroupId}
           options={groups.map((g) => ({ value: g.id, label: g.name }))}
         />
       </Field>
       <Field label="Theme" htmlFor="calendar-event-theme">
         <Select
-          id="calendar-event-theme" label="event theme" value={themeId} onChange={setThemeId}
+          id="calendar-event-theme" label="event theme" showLabel={false} value={themeId} onChange={setThemeId}
           options={themes.map((t) => ({ value: t.id, label: t.name }))}
         />
       </Field>
