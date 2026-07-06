@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { rescanNow, updateSettings, type Settings } from '../../api/client';
+import { geocodeAddress, rescanNow, updateSettings, type GeocodeMatch, type Settings } from '../../api/client';
 import { useSettings } from '../../api/queries';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -13,12 +13,41 @@ function clampLivePoll(value: number): number {
   return Math.min(30, Math.max(1, Math.round(value)));
 }
 
+const GEO_TIMEOUT_MS = 10_000;
+
+function coordDisplayPrecision(value: number): number {
+  // 6 decimal places is ~11cm precision — plenty for sunrise/sunset math,
+  // and matches what browsers' Geolocation API and Nominatim both return.
+  return Number(value.toFixed(6));
+}
+
+function geolocationErrorMessage(err: GeolocationPositionError): string {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      return 'Location permission was denied. Allow location access for this site in your browser settings, then try again.';
+    case err.POSITION_UNAVAILABLE:
+      return "Your device couldn't determine its location right now.";
+    case err.TIMEOUT:
+      return 'Timed out waiting for your device to report its location.';
+    default:
+      return "Couldn't determine your location.";
+  }
+}
+
 export function SettingsSection() {
   const settings = useSettings();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Settings | null>(null);
   const [rescanMessage, setRescanMessage] = useState<string | null>(null);
   const [rescanError, setRescanError] = useState<string | null>(null);
+
+  const [locating, setLocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const [addressQuery, setAddressQuery] = useState('');
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState<string | null>(null);
+  const [addressCandidates, setAddressCandidates] = useState<GeocodeMatch[] | null>(null);
 
   useEffect(() => {
     if (settings.data && draft === null) setDraft(settings.data);
@@ -34,6 +63,62 @@ export function SettingsSection() {
 
   function patch<K extends keyof Settings>(key: K, value: Settings[K]) {
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
+  }
+
+  function applyCoords(latitude: number, longitude: number) {
+    patch('homeLatitude', coordDisplayPrecision(latitude));
+    patch('homeLongitude', coordDisplayPrecision(longitude));
+  }
+
+  function handleUseMyLocation() {
+    setGeoError(null);
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoError(
+        "This browser doesn't support on-device geolocation here — possibly because the page " +
+          'isn’t served over HTTPS or localhost, which some browsers require for this API.'
+      );
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        applyCoords(pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        setLocating(false);
+        setGeoError(geolocationErrorMessage(err));
+      },
+      { timeout: GEO_TIMEOUT_MS, enableHighAccuracy: false }
+    );
+  }
+
+  function applyAddressCandidate(match: GeocodeMatch) {
+    applyCoords(match.latitude, match.longitude);
+    setAddressCandidates(null);
+    setAddressError(null);
+  }
+
+  async function handleFindAddress() {
+    const q = addressQuery.trim();
+    if (!q) return;
+    setAddressError(null);
+    setAddressCandidates(null);
+    setAddressLoading(true);
+    try {
+      const results = await geocodeAddress(q);
+      if (results.length === 0) {
+        setAddressError('No matches found for that address.');
+      } else if (results.length === 1) {
+        applyAddressCandidate(results[0]);
+      } else {
+        setAddressCandidates(results);
+      }
+    } catch (e: unknown) {
+      setAddressError(e instanceof Error ? e.message : 'Address lookup failed.');
+    } finally {
+      setAddressLoading(false);
+    }
   }
 
   async function handleRescan() {
@@ -100,6 +185,76 @@ export function SettingsSection() {
             }
           />
         </Field>
+
+        <div className="settings-location-helpers">
+          <div className="settings-location-helper">
+            <div className="settings-location-helper-row">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={locating}
+                onClick={handleUseMyLocation}
+              >
+                {locating ? 'Locating…' : 'Use my current location'}
+              </Button>
+              <span className="settings-note">
+                Your device's own on-device location — never leaves your browser.
+              </span>
+            </div>
+            {geoError && <div className="error-banner" role="alert">{geoError}</div>}
+          </div>
+
+          <div className="settings-location-helper">
+            <Field
+              label="Look up an address"
+              htmlFor="settings-address-lookup"
+              hint="Sends this query to OpenStreetMap's Nominatim geocoding service over the internet — the only outbound call this app makes besides checking for firmware updates."
+            >
+              <div className="settings-address-row">
+                <input
+                  id="settings-address-lookup"
+                  className="input"
+                  type="text"
+                  placeholder="123 Main St, Anytown, USA"
+                  value={addressQuery}
+                  onChange={(e) => setAddressQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleFindAddress();
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={addressLoading || addressQuery.trim() === ''}
+                  onClick={handleFindAddress}
+                >
+                  {addressLoading ? 'Finding…' : 'Find'}
+                </Button>
+              </div>
+            </Field>
+            {addressError && <div className="error-banner" role="alert">{addressError}</div>}
+            {addressCandidates && addressCandidates.length > 1 && (
+              <ul className="settings-address-candidates">
+                {addressCandidates.map((match, i) => (
+                  <li key={`${match.latitude},${match.longitude},${i}`}>
+                    <button
+                      type="button"
+                      className="settings-address-candidate"
+                      onClick={() => applyAddressCandidate(match)}
+                    >
+                      {match.displayName}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
 
         <Field label="Discovery re-scan interval (minutes)" htmlFor="settings-interval">
           <input
