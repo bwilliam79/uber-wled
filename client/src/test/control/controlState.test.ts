@@ -3,7 +3,7 @@ import type { Target, Group, ControllerCapabilities } from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
 import {
   expandTargets, targetControllerIds, aggregateControlState,
-  mergeEffects, mergePalettes, applyOverrides
+  mergeEffects, mergePalettes, applyOverrides, targetsEqual
 } from '../../control/controlState';
 import { CAPS_A, CAPS_B, makeSeg, makeState, liveEntry } from '../fixtures/capabilities';
 
@@ -219,5 +219,31 @@ describe('applyOverrides', () => {
     const live = liveMap({ cA: liveEntry(makeState([makeSeg(0, { on: false })])) });
     const agg = aggregateControlState([{ kind: 'controller', controllerId: 'cA' }], [], live, caps);
     expect(applyOverrides(agg, { power: true }).power).toBe('on');
+  });
+});
+
+describe('targetsEqual', () => {
+  it('treats value-equal lists as equal regardless of identity', () => {
+    expect(targetsEqual(
+      [{ kind: 'controller', controllerId: 'c1' }, { kind: 'segment', controllerId: 'c2', wledSegId: 1 }],
+      [{ kind: 'controller', controllerId: 'c1' }, { kind: 'segment', controllerId: 'c2', wledSegId: 1 }]
+    )).toBe(true);
+    expect(targetsEqual([], [])).toBe(true);
+  });
+
+  it('detects differences in kind, ids, length, and order', () => {
+    expect(targetsEqual([{ kind: 'controller', controllerId: 'c1' }], [])).toBe(false);
+    expect(targetsEqual(
+      [{ kind: 'controller', controllerId: 'c1' }],
+      [{ kind: 'group', groupId: 'c1' }]
+    )).toBe(false);
+    expect(targetsEqual(
+      [{ kind: 'segment', controllerId: 'c1', wledSegId: 0 }],
+      [{ kind: 'segment', controllerId: 'c1', wledSegId: 2 }]
+    )).toBe(false);
+    expect(targetsEqual(
+      [{ kind: 'group', groupId: 'g1' }, { kind: 'group', groupId: 'g2' }],
+      [{ kind: 'group', groupId: 'g2' }, { kind: 'group', groupId: 'g1' }]
+    )).toBe(false);
   });
 });

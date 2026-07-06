@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import type { UseQueryResult } from '@tanstack/react-query';
 import {
@@ -73,11 +74,20 @@ export function useCapabilitiesMap(controllerIds: string[]): Map<string, Control
       staleTime: 5 * 60_000
     }))
   });
-  const map = new Map<string, ControllerCapabilities>();
-  results.forEach((r, i) => {
-    if (r.data) map.set(controllerIds[i], r.data);
-  });
-  return map;
+  // Stable identity: rebuild the Map only when an underlying result actually
+  // updates (dataUpdatedAt moves) or the id list changes. A fresh Map every
+  // render fed effect dependencies downstream (ControlSurface) and caused an
+  // infinite render loop.
+  const signature = controllerIds.join(',') + '|' + results.map((r) => r.dataUpdatedAt).join(',');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => {
+    const map = new Map<string, ControllerCapabilities>();
+    results.forEach((r, i) => {
+      if (r.data) map.set(controllerIds[i], r.data);
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
 }
 
 export function useDevicePresets(controllerId: string | null): UseQueryResult<DevicePreset[]> {

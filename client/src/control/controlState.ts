@@ -3,6 +3,23 @@ import type { LiveStatusEntry, LiveSegment } from '../api/live';
 
 export interface ExpandedTarget { controllerId: string; wledSegId: number | null }
 
+/** Value equality for target lists (order-sensitive) — lets consumers keep a
+ *  stable state identity when a caller rebuilds an equal array each render. */
+export function targetsEqual(a: Target[], b: Target[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  return a.every((t, i) => {
+    const o = b[i];
+    if (t.kind !== o.kind) return false;
+    if (t.kind === 'group' && o.kind === 'group') return t.groupId === o.groupId;
+    if (t.kind !== 'group' && o.kind !== 'group') {
+      return t.controllerId === o.controllerId &&
+        (t.kind === 'segment' && o.kind === 'segment' ? t.wledSegId === o.wledSegId : true);
+    }
+    return false;
+  });
+}
+
 export function expandTargets(
   targets: Target[],
   groups: Group[],

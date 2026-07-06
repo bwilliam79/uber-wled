@@ -9,7 +9,7 @@ import {
 import { useLiveStatus } from '../api/live';
 import {
   aggregateControlState, applyOverrides, expandTargets, mergeEffects, mergePalettes,
-  targetControllerIds, type ControlOverrides
+  targetControllerIds, targetsEqual, type ControlOverrides
 } from './controlState';
 import { throttleTrailing, type Throttled } from '../lib/throttle';
 import { Drawer } from '../components/ui/Drawer';
@@ -54,7 +54,12 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const { data: themes = [] } = useThemes();
 
   const [localTargets, setLocalTargets] = useState<Target[]>(targets);
-  useEffect(() => { setLocalTargets(targets); }, [targets, open]);
+  useEffect(() => {
+    // Bail out on value-equal target lists: callers may pass a freshly built
+    // array each render, and adopting its identity would churn every
+    // downstream memo/effect keyed on localTargets.
+    setLocalTargets((prev) => (targetsEqual(prev, targets) ? prev : targets));
+  }, [targets, open]);
   const localTargetsRef = useRef(localTargets);
   localTargetsRef.current = localTargets;
 
@@ -66,7 +71,9 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const caps = useCapabilitiesMap(controllerIds);
 
   const [overrides, setOverrides] = useState<ControlOverrides>({});
-  useEffect(() => { setOverrides({}); }, [open, localTargets]);
+  useEffect(() => {
+    setOverrides((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+  }, [open, localTargets]);
 
   const agg = useMemo(
     () => aggregateControlState(localTargets, groups, live, caps),
@@ -102,7 +109,17 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const [nlDraft, setNlDraft] = useState<{ on: boolean; dur: number; mode: 0 | 1 | 2 | 3; tbri: number }>(
     { on: false, dur: 60, mode: 1, tbri: 0 }
   );
-  useEffect(() => { if (agg.nl) setNlDraft(agg.nl); }, [agg.nl]);
+  const aggNl = agg.nl;
+  useEffect(() => {
+    if (!aggNl) return;
+    setNlDraft((prev) =>
+      prev.on === aggNl.on && prev.dur === aggNl.dur && prev.mode === aggNl.mode && prev.tbri === aggNl.tbri
+        ? prev
+        : { on: aggNl.on, dur: aggNl.dur, mode: aggNl.mode, tbri: aggNl.tbri }
+    );
+    // Primitive deps: `agg` is rebuilt whenever live/caps identities move, so
+    // depending on the object identity would refire this on every SSE tick.
+  }, [aggNl?.on, aggNl?.dur, aggNl?.mode, aggNl?.tbri]);
 
   const doApply = useCallback((patch: ControlPatch, targetsOverride?: Target[]) => {
     applyControl(targetsOverride ?? localTargetsRef.current, patch)
