@@ -105,7 +105,7 @@ export const DEVICE_PRESETS: DevicePreset[] = [
 
 export const FIRMWARE_OK: FirmwareStatus = {
   installedVersion: '16.0.0', latestTag: 'v16.1.0', updateAvailable: true,
-  isPrerelease: false, pinnedAssetPattern: 'ESP32', candidateAssets: []
+  isPrerelease: false, pinnedAssetPattern: 'ESP32', candidateAssets: [], detectedArch: 'esp32'
 };
 
 export function liveEntry(overrides: Partial<LiveStatusEntry> = {}): LiveStatusEntry {

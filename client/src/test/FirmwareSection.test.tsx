@@ -5,14 +5,17 @@ import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 
 afterEach(() => vi.unstubAllGlobals());
 
-function stub({ pinnedAssetPattern }: { pinnedAssetPattern: string | null } = { pinnedAssetPattern: 'ESP32' }) {
+function stub({
+  pinnedAssetPattern, detectedArch
+}: { pinnedAssetPattern: string | null; detectedArch?: string | null } = { pinnedAssetPattern: 'ESP32' }) {
   const fetchMock = vi.fn((url: string) => {
     if (url === '/api/controllers/c1/firmware') {
       return Promise.resolve({
         ok: true,
         json: async () => ({
           installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
-          isPrerelease: false, pinnedAssetPattern, candidateAssets: []
+          isPrerelease: false, pinnedAssetPattern, candidateAssets: [],
+          detectedArch: detectedArch ?? null
         })
       });
     }
@@ -58,5 +61,18 @@ describe('FirmwareSection v2', () => {
     renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
     await waitFor(() => expect(screen.getByText('Porch')).toBeTruthy());
     expect(screen.queryByText('Board type overridden')).toBeNull();
+  });
+
+  it('shows the detected hardware architecture in the fleet row when known', async () => {
+    stub({ pinnedAssetPattern: 'ESP32', detectedArch: 'esp32' });
+    renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Hardware: esp32')).toBeTruthy());
+  });
+
+  it('omits the hardware row when the architecture is not yet known', async () => {
+    stub({ pinnedAssetPattern: 'ESP32', detectedArch: null });
+    renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Porch')).toBeTruthy());
+    expect(screen.queryByText(/Hardware:/)).toBeNull();
   });
 });

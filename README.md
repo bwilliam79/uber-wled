@@ -62,9 +62,14 @@ bar on phones — with seven sections, opening on Home:
    overrides overlapping schedules for that day. Editors preview a theme
    live against the real lights and revert exactly on approve or discard.
 6. **Firmware** — fleet view of installed vs. latest stable version
-   (pre-releases opt-in via Settings). First update per controller pins the
-   correct release asset; later updates reuse the pin. OTA push via WLED's
-   own endpoint, with post-update version polling.
+   (pre-releases opt-in via Settings), plus the detected hardware
+   architecture (e.g. `esp32`) reported by each device, so it's clear what
+   the asset matching is actually keyed on. First update per controller pins
+   the correct release asset — shown by its real filename, not just the
+   pattern it's pinned to — with an unambiguous single candidate flagged as
+   the suggested default and genuine ambiguity (multiple matching assets)
+   flagged explicitly rather than guessed; later updates reuse the pin. OTA
+   push via WLED's own endpoint, with post-update version polling.
 7. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
@@ -183,8 +188,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 42 files / 297 tests
-cd client && npm test   # 76 files / 552 tests
+cd server && npm test   # 42 files / 298 tests
+cd client && npm test   # 76 files / 557 tests
 ```
 
 ## Running the whole app locally via Docker

@@ -41,7 +41,9 @@ describe('UpdateTab', () => {
       }
     });
     renderDevices(<UpdateTab controllerId="c1" />);
-    expect(await screen.findByText('Board type: ESP32')).toBeTruthy();
+    // Resolves the pinned pattern to the actual matching asset filename —
+    // the real thing /update will push — not just the terse pattern fragment.
+    expect(await screen.findByText('Asset: WLED_16.1.0_ESP32.bin')).toBeTruthy();
     expect(await screen.findByRole('button', { name: 'Override firmware asset' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Pick firmware asset' })).toBeNull();
   });

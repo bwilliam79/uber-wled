@@ -66,6 +66,13 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   const showUpdateButton = isPinned && status.updateAvailable;
   const pickerLabel = isPinned ? 'Override firmware asset' : 'Pick firmware asset';
 
+  // The pin is a substring pattern (e.g. "ESP02"), not a full filename —
+  // resolve it to the actual matching candidate so we can show the real
+  // asset name that /update will push, not just the terse pattern fragment.
+  const pinnedAsset = isPinned
+    ? candidates.find((a) => a.name.toUpperCase().includes(status.pinnedAssetPattern!.toUpperCase()))
+    : undefined;
+
   return (
     <div className="firmware-status">
       <span className="controller-meta">Installed: {status.installedVersion}</span>
@@ -73,8 +80,21 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         <span className="badge badge-stale"> Update available ({status.latestTag})</span>
       )}
       {status.isPrerelease && <span className="badge">pre-release</span>}
+      {status.detectedArch && (
+        <span className="controller-meta firmware-board-type">Detected hardware: {status.detectedArch}</span>
+      )}
       {isPinned && (
-        <span className="controller-meta firmware-board-type">Board type: {status.pinnedAssetPattern}</span>
+        <span className="controller-meta firmware-board-type">
+          Asset: {pinnedAsset?.name ?? status.pinnedAssetPattern}
+        </span>
+      )}
+      {!isPinned && candidates.length === 1 && (
+        <span className="controller-meta firmware-board-type">Default asset: {candidates[0].name}</span>
+      )}
+      {!isPinned && candidates.length > 1 && (
+        <span className="controller-meta firmware-board-type">
+          {candidates.length} possible assets for this hardware — pick one below
+        </span>
       )}
       {hasCandidates && (
         <button type="button" className="btn btn-secondary" onClick={() => setPickerOpen(true)}>
