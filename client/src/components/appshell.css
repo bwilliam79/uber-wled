@@ -20,12 +20,12 @@
   top: 0;
   align-self: flex-start;
   height: 100svh;
-  width: 230px;
+  width: 210px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-lg) var(--space-md);
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-sm);
   background: var(--surface);
   border-right: 1px solid var(--border);
 }
@@ -86,14 +86,15 @@
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
-  padding: 0.625rem 0.75rem;
-  min-height: 44px;
+  padding: 0.5rem 0.625rem;
+  min-height: var(--control-height);
   border: 1px solid transparent;
   border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.9375rem;
   transition: background-color 180ms ease, color 180ms ease;
 }
 
@@ -135,8 +136,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);

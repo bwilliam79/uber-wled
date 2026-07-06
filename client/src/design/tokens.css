@@ -40,4 +40,22 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
   --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  /* Control heights — touch-target sized by default (phone bottom-nav
+     breakpoint is <900px); tightened for mouse input at ≥900px below. */
+  --control-height: 44px;
+  --control-height-sm: 36px;
+}
+
+/* Desktop density: phone keeps full touch-target sizing (thumbs need the
+   room); mouse input at ≥900px doesn't, so cards/controls/gaps tighten up
+   here instead of reading as oversized on a large monitor. */
+@media (min-width: 900px) {
+  :root {
+    --space-md: 0.875rem;
+    --space-lg: 1.125rem;
+    --space-xl: 1.5rem;
+    --control-height: 36px;
+    --control-height-sm: 30px;
+  }
 }
