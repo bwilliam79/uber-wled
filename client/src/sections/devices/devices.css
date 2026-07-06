@@ -44,6 +44,8 @@
 
 .device-card-metric { color: var(--text-muted); font-size: 0.85rem; }
 
+.device-card-live-strip { margin: -2px 0 2px; }
+
 .device-card-actions { display: flex; gap: var(--space-sm); margin-top: auto; }
 
 .signal-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
