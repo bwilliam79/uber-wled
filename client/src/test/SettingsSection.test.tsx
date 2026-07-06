@@ -5,7 +5,6 @@ import { SettingsSection } from '../sections/settings/SettingsSection';
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  clearGeolocationStub();
 });
 
 const initial = {
@@ -37,26 +36,6 @@ function stub(
   });
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
-}
-
-/** Installs a stub `navigator.geolocation.getCurrentPosition` and returns the
- *  underlying mock so each test can drive it via mockImplementation. */
-function stubGeolocation() {
-  const getCurrentPosition = vi.fn();
-  Object.defineProperty(navigator, 'geolocation', {
-    value: { getCurrentPosition },
-    configurable: true,
-    writable: true
-  });
-  return getCurrentPosition;
-}
-
-function clearGeolocationStub() {
-  Object.defineProperty(navigator, 'geolocation', {
-    value: undefined,
-    configurable: true,
-    writable: true
-  });
 }
 
 describe('SettingsSection v2', () => {
@@ -103,77 +82,6 @@ describe('SettingsSection v2', () => {
     renderWithQuery(<SettingsSection />);
     fireEvent.click(await screen.findByText('Re-scan now'));
     await waitFor(() => expect(screen.getByText(/Re-scan complete — 2 controller/i)).toBeTruthy());
-  });
-
-  describe('"Use my current location" (browser Geolocation API)', () => {
-    it('populates latitude/longitude from a successful getCurrentPosition call', async () => {
-      stub();
-      const getCurrentPosition = stubGeolocation();
-      getCurrentPosition.mockImplementation((success: PositionCallback) => {
-        success({
-          coords: { latitude: 47.60621, longitude: -122.33207 }
-        } as GeolocationPosition);
-      });
-
-      renderWithQuery(<SettingsSection />);
-      fireEvent.click(await screen.findByText('Use my current location'));
-
-      await waitFor(() =>
-        expect((screen.getByLabelText('Home latitude') as HTMLInputElement).value).toBe('47.60621')
-      );
-      expect((screen.getByLabelText('Home longitude') as HTMLInputElement).value).toBe('-122.33207');
-      expect(getCurrentPosition).toHaveBeenCalledTimes(1);
-    });
-
-    it('shows a clear inline message when the browser has no geolocation support', async () => {
-      stub();
-      clearGeolocationStub();
-
-      renderWithQuery(<SettingsSection />);
-      fireEvent.click(await screen.findByText('Use my current location'));
-
-      await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/doesn't support/i));
-    });
-
-    it('explains the HTTPS/localhost requirement — without ever calling getCurrentPosition — when the page is an insecure context', async () => {
-      stub();
-      const getCurrentPosition = stubGeolocation();
-      Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true });
-
-      renderWithQuery(<SettingsSection />);
-      fireEvent.click(await screen.findByText('Use my current location'));
-
-      await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/HTTPS or localhost/i));
-      expect(getCurrentPosition).not.toHaveBeenCalled();
-
-      Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true });
-    });
-
-    it('surfaces a clear message when the user denies the permission prompt', async () => {
-      stub();
-      const getCurrentPosition = stubGeolocation();
-      getCurrentPosition.mockImplementation((_success: PositionCallback, error?: PositionErrorCallback) => {
-        error?.({ code: 1, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
-      });
-
-      renderWithQuery(<SettingsSection />);
-      fireEvent.click(await screen.findByText('Use my current location'));
-
-      await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/permission was denied/i));
-    });
-
-    it('surfaces a clear message on timeout', async () => {
-      stub();
-      const getCurrentPosition = stubGeolocation();
-      getCurrentPosition.mockImplementation((_success: PositionCallback, error?: PositionErrorCallback) => {
-        error?.({ code: 3, PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
-      });
-
-      renderWithQuery(<SettingsSection />);
-      fireEvent.click(await screen.findByText('Use my current location'));
-
-      await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/timed out/i));
-    });
   });
 
   describe('"Look up an address" (server-proxied Nominatim geocoding)', () => {

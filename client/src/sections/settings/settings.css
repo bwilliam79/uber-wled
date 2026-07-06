@@ -4,7 +4,7 @@
 .settings-actions { display: flex; gap: 8px; }
 .settings-note { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
 
-/* Home location convenience helpers (geolocation button + address lookup) */
+/* Home location convenience helper (address lookup) */
 .settings-location-helpers {
   display: flex;
   flex-direction: column;
@@ -15,7 +15,6 @@
   background: var(--surface-2);
 }
 .settings-location-helper { display: flex; flex-direction: column; gap: 6px; }
-.settings-location-helper-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .settings-address-row { display: flex; gap: 8px; }
 .settings-address-row .input { flex: 1; }
 .settings-address-candidates {

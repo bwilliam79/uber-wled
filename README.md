@@ -69,12 +69,13 @@ bar on phones — with seven sections, opening on Home:
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
    streaming sessions, and the WLED schedule-import default. Home
-   latitude/longitude can still be typed directly, or filled in via two
-   opt-in convenience actions: "Use my current location" (the browser's own
-   on-device Geolocation API — no network call this app is party to) or
+   latitude/longitude can still be typed directly, or filled in via
    "Look up an address" (geocoded via OpenStreetMap's Nominatim, proxied
    through the server so it can send Nominatim's required identifying
-   User-Agent).
+   User-Agent — the only outbound call this app makes besides checking for
+   firmware updates). The browser's own on-device Geolocation API was
+   deliberately left out: it requires HTTPS or localhost, which this
+   LAN-only, plain-HTTP app never is, so it would always fail.
 
 ## The Control surface
 
@@ -170,8 +171,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 42 files / 286 tests
-cd client && npm test   # 72 files / 503 tests
+cd server && npm test   # 42 files / 295 tests
+cd client && npm test   # 74 files / 525 tests
 ```
 
 ## Running the whole app locally via Docker
