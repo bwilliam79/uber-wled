@@ -2,7 +2,9 @@ import { useRef } from 'react';
 import { Toggle } from '../../components/ui/Toggle';
 import { Slider } from '../../components/ui/Slider';
 import { Chip } from '../../components/ui/Chip';
+import { LiveOutputStrip } from '../../components/ui/LiveOutputStrip';
 import type { TileStatusV2, TileTargetMember } from '../../lib/tileStatus';
+import type { LiveOutputSwatch } from '../../lib/liveOutputSwatches';
 
 export interface HomeTileData {
   id: string; // group id, or controller id for ungrouped tiles
@@ -26,6 +28,7 @@ export function HomeTile({
   tile,
   status,
   glowColor,
+  liveSwatches,
   selectMode,
   selected,
   onToggleSelect,
@@ -37,6 +40,7 @@ export function HomeTile({
   tile: HomeTileData;
   status: TileStatusV2;
   glowColor: string;
+  liveSwatches: LiveOutputSwatch[];
   selectMode: boolean;
   selected: boolean;
   onToggleSelect: (id: string) => void;
@@ -136,6 +140,7 @@ export function HomeTile({
           )}
           {status.allOffline && <span>offline</span>}
         </div>
+        <LiveOutputStrip swatches={liveSwatches} size="sm" className="home-tile-live" />
       </div>
       <div className="home-tile-controls">
         <Toggle
