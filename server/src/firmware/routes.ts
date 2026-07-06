@@ -32,7 +32,8 @@ export function createFirmwareRouter(db: Database.Database): Router {
         updateAvailable: false,
         isPrerelease: false,
         pinnedAssetPattern: controller.pinnedAssetPattern,
-        candidateAssets: []
+        candidateAssets: [],
+        detectedArch: null
       });
     }
 
@@ -48,7 +49,8 @@ export function createFirmwareRouter(db: Database.Database): Router {
         updateAvailable: false,
         isPrerelease: false,
         pinnedAssetPattern: controller.pinnedAssetPattern,
-        candidateAssets: []
+        candidateAssets: [],
+        detectedArch: info.arch
       });
     }
 
@@ -67,7 +69,8 @@ export function createFirmwareRouter(db: Database.Database): Router {
       updateAvailable: normalizedInstalled !== release.tag,
       isPrerelease: release.prerelease,
       pinnedAssetPattern: controller.pinnedAssetPattern,
-      candidateAssets: assets
+      candidateAssets: assets,
+      detectedArch: info.arch
     });
   });
 

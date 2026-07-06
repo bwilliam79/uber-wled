@@ -46,6 +46,25 @@ describe('firmware routes', () => {
     expect(res.body.unreachable).toBe(true);
     expect(res.body.installedVersion).toBeNull();
     expect(res.body.updateAvailable).toBe(false);
+    expect(res.body.detectedArch).toBeNull();
+  });
+
+  it('reports the installed version and detected hardware even when GitHub is unreachable', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes('api.github.com')) throw new Error('ENOTFOUND');
+      if (url.endsWith('/json/info')) {
+        return { ok: true, json: async () => ({ name: 'Porch', ver: '0.14.0', leds: { count: 60 }, arch: 'esp32' }) } as Response;
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await request(app).get(`/api/controllers/${controllerId}/firmware`);
+    expect(res.status).toBe(200);
+    expect(res.body.installedVersion).toBe('0.14.0');
+    expect(res.body.latestTag).toBeNull();
+    expect(res.body.updateAvailable).toBe(false);
+    expect(res.body.detectedArch).toBe('esp32');
   });
 
   it('reports update availability and candidate assets when unpinned', async () => {
@@ -65,6 +84,7 @@ describe('firmware routes', () => {
     expect(res.body.updateAvailable).toBe(true);
     expect(res.body.pinnedAssetPattern).toBeNull();
     expect(res.body.candidateAssets).toHaveLength(2);
+    expect(res.body.detectedArch).toBe('esp8266');
   });
 
   it('still returns candidate assets once pinned and the pin still matches, so the client can offer an override', async () => {

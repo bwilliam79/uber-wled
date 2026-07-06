@@ -29,6 +29,9 @@ function FirmwareRow({
             <span className="firmware-row-meta">
               Installed: {status.data.installedVersion ?? 'unknown'}
             </span>
+            {status.data.detectedArch && (
+              <span className="firmware-row-meta">Hardware: {status.data.detectedArch}</span>
+            )}
             {status.data.isPrerelease && <Chip variant="accent">pre-release</Chip>}
             {status.data.updateAvailable && (
               <Chip variant="warning">Update available ({status.data.latestTag})</Chip>

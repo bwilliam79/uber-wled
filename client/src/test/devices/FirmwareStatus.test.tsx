@@ -52,6 +52,50 @@ describe('FirmwareStatus', () => {
     expect(screen.getByText('WLED_0.15.0_ESP02.bin')).toBeTruthy();
   });
 
+  it('shows the detected hardware architecture whenever it is known, regardless of pin state', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.15.0', latestTag: 'v0.15.0', updateAvailable: false,
+        isPrerelease: false, pinnedAssetPattern: null, candidateAssets: [], detectedArch: 'esp32'
+      })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText('Detected hardware: esp32')).toBeTruthy());
+  });
+
+  it('suggests the sole candidate as the default asset when unpinned and unambiguous', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false, pinnedAssetPattern: null,
+        candidateAssets: [{ name: 'WLED_0.15.0_ESP32.bin', downloadUrl: 'https://example.com/a.bin' }],
+        detectedArch: 'esp32'
+      })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText('Default asset: WLED_0.15.0_ESP32.bin')).toBeTruthy());
+  });
+
+  it('flags genuine ambiguity instead of guessing when unpinned with multiple candidates', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false, pinnedAssetPattern: null,
+        candidateAssets: [
+          { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
+          { name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }
+        ],
+        detectedArch: 'esp8266'
+      })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText(/2 possible assets for this hardware/)).toBeTruthy());
+    expect(screen.queryByText(/Default asset:/)).toBeNull();
+  });
+
   it('shows a one-click Update button once pinned and matched, with no update available', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -150,7 +194,9 @@ describe('FirmwareStatus', () => {
 
     render(<FirmwareStatus controllerId="c1" />);
 
-    await waitFor(() => expect(screen.getByText('Board type: ESP02')).toBeTruthy());
+    // Shows the actual resolved asset filename, not just the terse pinned
+    // pattern fragment — that's the real thing /update will push.
+    await waitFor(() => expect(screen.getByText('Asset: WLED_0.15.0_ESP02.bin')).toBeTruthy());
     // The picker must stay reachable after the first pin (as an override),
     // not disappear once candidateAssets is non-empty again.
     expect(screen.queryByText('Pick firmware asset')).toBeNull();
@@ -186,7 +232,7 @@ describe('FirmwareStatus', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<FirmwareStatus controllerId="c1" />);
-    await waitFor(() => expect(screen.getByText('Board type: ESP02')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Asset: WLED_0.15.0_ESP02.bin')).toBeTruthy());
 
     fireEvent.click(screen.getByRole('button', { name: 'Override firmware asset' }));
     expect(screen.getByText(/Currently pinned to "ESP02"/)).toBeTruthy();
@@ -202,7 +248,7 @@ describe('FirmwareStatus', () => {
     const pinCall = fetchMock.mock.calls.find(([u]) => u === '/api/controllers/c1/firmware/pin')!;
     expect(JSON.parse((pinCall[1] as RequestInit).body as string)).toEqual({ assetPattern: 'ESP8266' });
 
-    await waitFor(() => expect(screen.getByText('Board type: ESP8266')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('Asset: WLED_0.15.0_ESP8266.bin')).toBeTruthy());
   });
 
   it('shows a pre-release indicator when the latest resolved release is a pre-release', async () => {
