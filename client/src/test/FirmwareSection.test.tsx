@@ -5,14 +5,14 @@ import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 
 afterEach(() => vi.unstubAllGlobals());
 
-function stub() {
+function stub({ pinnedAssetPattern }: { pinnedAssetPattern: string | null } = { pinnedAssetPattern: 'ESP32' }) {
   const fetchMock = vi.fn((url: string) => {
     if (url === '/api/controllers/c1/firmware') {
       return Promise.resolve({
         ok: true,
         json: async () => ({
           installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
-          isPrerelease: false, pinnedAssetPattern: 'ESP32', candidateAssets: []
+          isPrerelease: false, pinnedAssetPattern, candidateAssets: []
         })
       });
     }
@@ -20,7 +20,7 @@ function stub() {
       return Promise.resolve({
         ok: true,
         json: async () => [
-          { id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' }
+          { id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern }
         ]
       });
     }
@@ -45,5 +45,18 @@ describe('FirmwareSection v2', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
     renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
     await waitFor(() => expect(screen.getByText('No controllers yet.')).toBeTruthy());
+  });
+
+  it('shows a "Board type overridden" badge when the controller has a pinned asset pattern', async () => {
+    stub({ pinnedAssetPattern: 'ESP32' });
+    renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Board type overridden')).toBeTruthy());
+  });
+
+  it('does not show the "Board type overridden" badge when no asset pattern is pinned', async () => {
+    stub({ pinnedAssetPattern: null });
+    renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
+    await waitFor(() => expect(screen.getByText('Porch')).toBeTruthy());
+    expect(screen.queryByText('Board type overridden')).toBeNull();
   });
 });
