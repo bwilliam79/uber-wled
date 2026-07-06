@@ -144,6 +144,28 @@ export function buildSegPatch(
   return { seg };
 }
 
+// Per-host write queue: a whole-controller patch does a GET (enumerate
+// segment ids) then a POST as two separate round trips. Without this, two
+// overlapping applyControlPatch calls for the *same* controller (rapid
+// successive UI actions, a retry racing a fresh call, multiple browser
+// tabs/users) can interleave their GET/POST pairs — e.g. call A's POST can
+// land between call B's GET and POST, and then B's write, built from its
+// now-stale segment/whatever-else snapshot, can clobber part of what A just
+// set. Chaining every write for a given host onto one promise makes the
+// GET+POST pair atomic with respect to other writes to that same device;
+// writes to different hosts are unaffected and still run fully in parallel.
+const hostWriteQueues = new Map<string, Promise<unknown>>();
+
+function withHostLock<T>(host: string, fn: () => Promise<T>): Promise<T> {
+  const previous = hostWriteQueues.get(host) ?? Promise.resolve();
+  const next = previous.then(fn, fn);
+  // Swallow rejections in the queue chain itself (they still propagate to
+  // this call's own caller via `next`) so one failed write never wedges
+  // every subsequent write to that host.
+  hostWriteQueues.set(host, next.catch(() => undefined));
+  return next;
+}
+
 async function writeTarget(
   host: string,
   target: ResolvedTarget,
@@ -156,17 +178,20 @@ async function writeTarget(
   if (patch.transition !== undefined) body.transition = patch.transition;
   if (patch.ps !== undefined) body.ps = patch.ps;
   if (patch.nl !== undefined) body.nl = patch.nl;
-  if (segPatch) {
-    if (target.wledSegId === null) {
-      // Whole-controller target: enumerate the device's current segment ids
-      // (one GET per controller per apply, per the master contract).
-      const state = await getState(host);
-      body.seg = state.seg.map((s) => ({ id: s.id, ...segPatch }));
-    } else {
-      body.seg = [{ id: target.wledSegId, ...segPatch }];
+
+  await withHostLock(host, async () => {
+    if (segPatch) {
+      if (target.wledSegId === null) {
+        // Whole-controller target: enumerate the device's current segment ids
+        // (one GET per controller per apply, per the master contract).
+        const state = await getState(host);
+        body.seg = state.seg.map((s) => ({ id: s.id, ...segPatch }));
+      } else {
+        body.seg = [{ id: target.wledSegId, ...segPatch }];
+      }
     }
-  }
-  await setState(host, body);
+    await setState(host, body);
+  });
 }
 
 export async function applyControlPatch(
