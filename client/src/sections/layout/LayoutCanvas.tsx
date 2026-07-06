@@ -75,10 +75,11 @@ export function LayoutCanvas(props: LayoutCanvasProps) {
           <g data-testid="layout-grid" className="layout-grid">
             {Array.from({ length: WORLD_BOX / GRID_SIZE + 1 }, (_, idx) => {
               const c = idx * GRID_SIZE;
+              const lineClass = `layout-grid-line${idx % 4 === 0 ? ' layout-grid-line-major' : ''}`;
               return (
                 <g key={c}>
-                  <line className="layout-grid-line" x1={c} y1={0} x2={c} y2={WORLD_BOX} vectorEffect="non-scaling-stroke" />
-                  <line className="layout-grid-line" x1={0} y1={c} x2={WORLD_BOX} y2={c} vectorEffect="non-scaling-stroke" />
+                  <line className={lineClass} x1={c} y1={0} x2={c} y2={WORLD_BOX} vectorEffect="non-scaling-stroke" />
+                  <line className={lineClass} x1={0} y1={c} x2={WORLD_BOX} y2={c} vectorEffect="non-scaling-stroke" />
                 </g>
               );
             })}
