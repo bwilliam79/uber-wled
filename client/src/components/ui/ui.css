@@ -746,6 +746,12 @@
   border: 1px solid var(--border);
   background: var(--surface-2);
   flex-shrink: 1;
+  /* Live-pixel gradient updates land every ~120ms (see liveWsPixels.ts) and
+     snap to the new value instantly with no interpolation, which reads as
+     choppy for a moving effect even though the sampling itself is smooth
+     enough — cross-fading each update into the next sells continuous motion
+     at a much lower, cheaper sampling rate. */
+  transition: background 150ms linear;
 }
 
 .ui-live-strip-sm .ui-live-swatch {

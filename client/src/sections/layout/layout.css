@@ -55,7 +55,7 @@
 .draw-line { stroke: var(--accent, #7c6cff); stroke-width: 2px; }
 .draw-rubber { stroke: var(--accent, #7c6cff); stroke-width: 1.5px; stroke-dasharray: 4 4; }
 .draw-vertex { fill: var(--accent, #7c6cff); }
-.marquee-rect { fill: rgba(124, 108, 255, 0.12); stroke: var(--accent, #7c6cff); stroke-width: 1px; stroke-dasharray: 4 3; }
+.marquee-rect { fill: rgba(59, 130, 246, 0.12); stroke: var(--accent, #3b82f6); stroke-width: 1px; stroke-dasharray: 4 3; }
 
 .room-chip { cursor: grab; }
 .room-chip-bg { fill: var(--surface-2, #1a2338); stroke: var(--border, rgba(148, 163, 184, 0.25)); }
