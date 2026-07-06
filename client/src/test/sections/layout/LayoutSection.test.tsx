@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { Controller, RoomLabel, Strip } from '../../../api/client';
+import { ToastProvider } from '../../../components/ui/Toast';
 
 const { liveMap } = vi.hoisted(() => ({ liveMap: new Map() }));
 
@@ -60,6 +61,7 @@ beforeEach(() => {
       const body = JSON.parse(String(init?.body));
       return jsonResponse({ ...(labels.find((l) => l.id === id) as RoomLabel), ...body });
     }
+    if (url.startsWith('/api/room-labels/') && method === 'DELETE') return jsonResponse(null, 204);
     if (url === '/api/controllers' && method === 'GET') return jsonResponse(controllers);
     throw new Error(`unmocked fetch: ${method} ${url}`);
   });
@@ -79,7 +81,9 @@ function renderSection() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <LayoutSection />
+      <ToastProvider>
+        <LayoutSection />
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
@@ -243,6 +247,54 @@ describe('editing', () => {
     await selectStripByPointer('s1', 20, 10);
     fireEvent.keyDown(window, { key: 'Delete' });
     expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit)?.method === 'DELETE')).toBe(false);
+  });
+
+  it('clicking a room label reveals its delete button, which DELETEs it and removes it from the canvas', async () => {
+    renderSection();
+    await screen.findByTestId('room-label-l1');
+    fireEvent.pointerDown(screen.getByTestId('room-label-l1'), { clientX: 50, clientY: 20 });
+    fireEvent.pointerUp(screen.getByTestId('room-label-l1'));
+    const deleteBtn = screen.getByTestId('room-label-delete-l1');
+    fireEvent.click(deleteBtn);
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([u, i]) => u === '/api/room-labels/l1' && (i as RequestInit)?.method === 'DELETE')
+      ).toBe(true);
+    });
+    await waitFor(() => expect(screen.queryByTestId('room-label-l1')).toBeNull());
+  });
+
+  it('Backspace deletes the selected room label', async () => {
+    renderSection();
+    await screen.findByTestId('room-label-l1');
+    fireEvent.pointerDown(screen.getByTestId('room-label-l1'), { clientX: 50, clientY: 20 });
+    fireEvent.pointerUp(screen.getByTestId('room-label-l1'));
+    fireEvent.keyDown(window, { key: 'Backspace' });
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([u, i]) => u === '/api/room-labels/l1' && (i as RequestInit)?.method === 'DELETE')
+      ).toBe(true);
+    });
+    await waitFor(() => expect(screen.queryByTestId('room-label-l1')).toBeNull());
+  });
+
+  it('toasts an error and keeps the label when the delete request fails', async () => {
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      const method = init?.method ?? 'GET';
+      if (url === '/api/strips' && method === 'GET') return jsonResponse(strips);
+      if (url === '/api/room-labels' && method === 'GET') return jsonResponse(labels);
+      if (url === '/api/controllers' && method === 'GET') return jsonResponse(controllers);
+      if (url.startsWith('/api/room-labels/') && method === 'DELETE') return jsonResponse({ error: 'nope' }, 500);
+      throw new Error(`unmocked fetch: ${method} ${url}`);
+    });
+    renderSection();
+    await screen.findByTestId('room-label-l1');
+    fireEvent.pointerDown(screen.getByTestId('room-label-l1'), { clientX: 50, clientY: 20 });
+    fireEvent.pointerUp(screen.getByTestId('room-label-l1'));
+    fireEvent.click(screen.getByTestId('room-label-delete-l1'));
+    await screen.findByText('Could not delete room label');
+    expect(screen.getByTestId('room-label-l1')).toBeDefined();
   });
 
   it('renaming a room label inline PATCHes the name', async () => {
