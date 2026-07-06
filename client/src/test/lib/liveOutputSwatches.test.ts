@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   swatchesForEntry, swatchesForMembers,
-  SWATCH_PENDING_COLOR, SWATCH_UNREACHABLE_COLOR,
+  SWATCH_PENDING_COLOR, SWATCH_UNREACHABLE_COLOR, SWATCH_LIVE_LOADING_COLOR,
   type LiveSwatchSource
 } from '../../lib/liveOutputSwatches';
 
@@ -24,7 +24,7 @@ describe('swatchesForEntry', () => {
     ]);
   });
 
-  it('renders one swatch per segment, colored when on, sized by the segment\'s real LED count', () => {
+  it('sizes swatches by the segment\'s real LED count, using the loading placeholder for on segments with no live pixels yet', () => {
     const source: LiveSwatchSource = {
       reachable: true,
       state: {
@@ -36,8 +36,8 @@ describe('swatchesForEntry', () => {
       }
     };
     expect(swatchesForEntry(source)).toEqual([
-      { key: 'c:0', state: 'on', color: 'rgb(255, 0, 0)', len: 39 },
-      { key: 'c:1', state: 'on', color: 'rgb(0, 0, 128)', len: 9 }
+      { key: 'c:0', state: 'on', color: SWATCH_LIVE_LOADING_COLOR, len: 39 },
+      { key: 'c:1', state: 'on', color: SWATCH_LIVE_LOADING_COLOR, len: 9 }
     ]);
   });
 
@@ -106,6 +106,17 @@ describe('swatchesForEntry — live-pixel gradients', () => {
     const swatches = swatchesForEntry(source, shortPixels);
     expect(swatches[0].gradient).toBeUndefined();
   });
+
+  it('uses the loading placeholder (not the configured color) while there is no gradient yet', () => {
+    const shortPixels = new Uint8Array([10, 20, 30]);
+    expect(swatchesForEntry(source)[0].color).toBe(SWATCH_LIVE_LOADING_COLOR);
+    expect(swatchesForEntry(source, shortPixels)[0].color).toBe(SWATCH_LIVE_LOADING_COLOR);
+  });
+
+  it('falls back to the configured color once a real gradient is available', () => {
+    const swatches = swatchesForEntry(source, pixels);
+    expect(swatches[0].color).toBe('rgb(255, 0, 0)');
+  });
 });
 
 describe('swatchesForMembers', () => {
@@ -155,7 +166,7 @@ describe('swatchesForMembers', () => {
       live
     );
     expect(swatches).toEqual([
-      { key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)', len: 39 },
+      { key: 'c1:0', state: 'on', color: SWATCH_LIVE_LOADING_COLOR, len: 39 },
       { key: 'c2:unreachable', state: 'unreachable', color: SWATCH_UNREACHABLE_COLOR, len: 1 }
     ]);
   });

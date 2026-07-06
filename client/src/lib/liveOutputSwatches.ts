@@ -36,6 +36,15 @@ export interface LiveOutputSwatch {
 export const SWATCH_UNREACHABLE_COLOR = '#3A3F4B'; // matches dominantColor's OFFLINE_GLOW
 /** Placeholder tone before the first SSE event has arrived for a target. */
 export const SWATCH_PENDING_COLOR = '#232B3F';
+/** Placeholder for an 'on' segment before its first live-pixel frame arrives.
+ *  Every real caller of swatchesForEntry/swatchesForMembers wires up live
+ *  pixels (see api/liveWsPixels.ts), so the old fallback here — the segment's
+ *  *configured* color slot — only ever showed briefly during the WS connect
+ *  window, and for anything but a plain solid color it was frequently wrong
+ *  anyway (that mismatch is the whole reason live pixels exist). Showing that
+ *  momentarily-wrong color (e.g. flashing red because col[0] happens to be
+ *  red) reads as a glitch; black-until-real-data doesn't. */
+export const SWATCH_LIVE_LOADING_COLOR = '#000000';
 
 /** Structural subset of LiveState — only what swatch derivation reads. */
 export interface LiveSwatchSegment {
@@ -111,12 +120,13 @@ function swatchesForSource(
   return segs.map((seg) => {
     const on = masterOn && seg.on;
     const len = Math.max(1, seg.len ?? 1);
+    const gradient = on && livePixels ? pixelsToGradient(livePixels, seg.start, len) : undefined;
     return {
       key: `${keyPrefix}:${seg.id}`,
       state: on ? 'on' : 'off',
-      color: segmentToCssColor({ on, bri: seg.bri, col: seg.col }),
+      color: on && !gradient ? SWATCH_LIVE_LOADING_COLOR : segmentToCssColor({ on, bri: seg.bri, col: seg.col }),
       len,
-      gradient: on && livePixels ? pixelsToGradient(livePixels, seg.start, len) : undefined
+      gradient
     };
   });
 }
