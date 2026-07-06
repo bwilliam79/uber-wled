@@ -313,4 +313,83 @@ describe('applyControlPatch', () => {
     expect(results).toEqual([{ controllerId: 'ghost', wledSegId: 0, ok: false, error: 'controller not found' }]);
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it('serializes two overlapping whole-controller writes to the same host so their GET+POST pairs never interleave', async () => {
+    // Regression test: a whole-controller seg patch does GET (enumerate
+    // segment ids) then POST as two separate round trips. Without a lock,
+    // two concurrent calls for the same controller interleave as
+    // GET-A, GET-B, POST-A, POST-B (both calls reach their first `await`
+    // before either resolves) — a live symptom of this was one call's color
+    // landing on only one of a device's two segments while the other kept
+    // an older value. With the lock, B's GET must not fire until A's whole
+    // GET+POST pair has finished.
+    const { db, id } = setup();
+    const order: string[] = [];
+    let getCount = 0;
+
+    const fetchMock = stubFetchByHost({
+      [HOST]: (_url, init) => {
+        if (!init || init.method === undefined) {
+          getCount += 1;
+          order.push(getCount === 1 ? 'GET-A' : 'GET-B');
+          return { status: 200, body: LIVE_STATE };
+        }
+        const body = JSON.parse(init.body as string);
+        order.push(body.seg[0].col[0][0] === 1 ? 'POST-A' : 'POST-B');
+        return { status: 200, body: LIVE_STATE };
+      }
+    });
+
+    const [resultsA, resultsB] = await Promise.all([
+      applyControlPatch(db, [{ kind: 'controller', controllerId: id }], { seg: { col: [[1, 0, 0, 0]] } }),
+      applyControlPatch(db, [{ kind: 'controller', controllerId: id }], { seg: { col: [[2, 0, 0, 0]] } })
+    ]);
+
+    expect(resultsA[0].ok).toBe(true);
+    expect(resultsB[0].ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    // The critical assertion: each call's GET is immediately followed by its
+    // own POST — never GET-A, GET-B, POST-A, POST-B.
+    expect(order).toEqual(['GET-A', 'POST-A', 'GET-B', 'POST-B']);
+  });
+
+  it('does not serialize writes to different hosts — one host stalling never blocks a write to another', async () => {
+    const { db, id } = setup();
+    const other = createControllerRepository(db).add({ name: 'Other', host: '10.0.0.51', source: 'manual' }).id;
+
+    let releaseFirstHostGet: () => void = () => {};
+    const firstHostGetGate = new Promise<void>((resolve) => { releaseFirstHostGet = resolve; });
+    let secondHostDone = false;
+
+    // stubFetchByHost's handler contract is synchronous (it destructures
+    // {status, body} from the handler's own return value), so it can't
+    // express "this GET hangs until released" — use a raw fetch mock here.
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const host = new URL(url).host;
+      if (host === HOST && (!init || init.method === undefined)) {
+        await firstHostGetGate;
+      }
+      return { ok: true, status: 200, json: async () => LIVE_STATE } as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const stuckCall = applyControlPatch(
+      db, [{ kind: 'controller', controllerId: id }], { seg: { col: [[1, 0, 0, 0]] } }
+    );
+    const otherCall = applyControlPatch(
+      db, [{ kind: 'controller', controllerId: other }], { seg: { col: [[2, 0, 0, 0]] } }
+    ).then((r) => { secondHostDone = true; return r; });
+
+    // Let microtasks/timers settle without ever releasing the first host's
+    // gate — if hosts were (bug-for-bug) sharing one queue, otherCall would
+    // still be stuck behind it and secondHostDone would be false here.
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(secondHostDone).toBe(true);
+
+    releaseFirstHostGet();
+    const [resultsA, resultsB] = await Promise.all([stuckCall, otherCall]);
+    expect(resultsA[0].ok).toBe(true);
+    expect(resultsB[0].ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
 });
