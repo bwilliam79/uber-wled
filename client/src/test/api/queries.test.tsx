@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import {
-  useControllers, useControllerStatuses, useCapabilities, useDevicePresets
+  useControllers, useControllerStatuses, useCapabilities, useCapabilitiesMap, useDevicePresets
 } from '../../api/queries';
 
 const CONTROLLERS = [
@@ -73,5 +73,16 @@ describe('api/queries', () => {
     expect(idle.result.current.fetchStatus).toBe('idle');
     const active = renderHook(() => useDevicePresets('c1'), { wrapper });
     await waitFor(() => expect(active.result.current.data).toEqual(presets));
+  });
+
+  it('useCapabilitiesMap keeps a stable Map identity across re-renders when data is unchanged (regression: render loop)', async () => {
+    const caps = { vid: 2605030, effects: ['Solid'], palettes: ['Default'], fxMeta: [], palettePreviews: {}, fetchedAt: 'x' };
+    stubFetch({ '/api/controllers/c1/capabilities': { ok: true, body: caps } });
+    const { result, rerender } = renderHook(() => useCapabilitiesMap(['c1']), { wrapper: makeWrapper() });
+    await waitFor(() => expect(result.current.get('c1')).toEqual(caps));
+    const first = result.current;
+    rerender();
+    rerender();
+    expect(result.current).toBe(first);
   });
 });
