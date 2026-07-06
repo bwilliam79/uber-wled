@@ -207,7 +207,7 @@ them (deletion happens in the phase that ships the replacement).
 ```css
 --bg:#0B0F1A; --surface:#131A2A; --surface-2:#1A2338;
 --border:rgba(148,163,184,.10); --text:#E6EAF2; --text-muted:#8A94A8;
---accent:#3B82F6; --accent-soft:rgba(59,130,246,.16);
+--accent:#6B7280; --accent-soft:rgba(107,114,128,.16);
 --success:#22C55E; --danger:#EF4444; --warning:#F59E0B;
 --radius-card:16px; --radius-control:10px;
 font: 'Plus Jakarta Sans' (via @fontsource), fallback system-ui;

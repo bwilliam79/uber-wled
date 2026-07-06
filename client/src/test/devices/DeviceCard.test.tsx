@@ -21,9 +21,11 @@ describe('DeviceCard', () => {
     expect(screen.getByText('Up 32d 7h')).toBeTruthy();
     expect(screen.getByRole('img', { name: 'WiFi signal 4 of 4 bars' })).toBeTruthy();
     const strip = screen.getByRole('img', { name: 'Live output' });
-    // fixtures.SEGMENTS has 2 segments, both on: seg0 [255,160,60] bri255, seg1 [0,80,255] bri200.
-    expect(screen.getByTestId('live-swatch-c:0').style.backgroundColor).toBe('rgb(255, 160, 60)');
-    expect(screen.getByTestId('live-swatch-c:1').style.backgroundColor).toBe('rgb(0, 63, 200)');
+    // fixtures.SEGMENTS has 2 segments, both on — no real WS server in this
+    // test environment, so no live-pixel frame ever arrives and both show
+    // the loading placeholder rather than their configured color.
+    expect(screen.getByTestId('live-swatch-c:0').style.backgroundColor).toBe('rgb(0, 0, 0)');
+    expect(screen.getByTestId('live-swatch-c:1').style.backgroundColor).toBe('rgb(0, 0, 0)');
     expect(strip.children).toHaveLength(2);
   });
 
