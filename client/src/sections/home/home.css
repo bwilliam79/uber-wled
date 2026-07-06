@@ -69,6 +69,7 @@
   white-space: nowrap;
 }
 .home-tile-status { display: flex; gap: 10px; color: var(--text-muted); font-size: 13px; }
+.home-tile-live { margin-top: 2px; }
 .home-tile-controls { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
 .home-tile-controls > :last-child { flex: 1; }
 
