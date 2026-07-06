@@ -108,4 +108,21 @@ describe('LayoutCanvas', () => {
     rerender(<LayoutCanvas {...makeProps({ gridSnap: true })} />);
     expect(screen.getByTestId('layout-grid')).toBeDefined();
   });
+
+  it('renders a major grid line every 4th cell and minor lines elsewhere', () => {
+    render(<LayoutCanvas {...makeProps({ gridSnap: true })} />);
+    const grid = screen.getByTestId('layout-grid');
+    const lines = grid.querySelectorAll('line');
+    expect(lines.length).toBeGreaterThan(0);
+    const majorLines = grid.querySelectorAll('line.layout-grid-line-major');
+    const minorOnlyLines = grid.querySelectorAll('line.layout-grid-line:not(.layout-grid-line-major)');
+    expect(majorLines.length).toBeGreaterThan(0);
+    expect(minorOnlyLines.length).toBeGreaterThan(0);
+    // x1=0 is idx 0, a multiple of 4 -> major on both the vertical and horizontal line.
+    const originVertical = Array.from(lines).find((l) => l.getAttribute('x1') === '0' && l.getAttribute('x2') === '0');
+    expect(originVertical?.classList.contains('layout-grid-line-major')).toBe(true);
+    // x1=2 is idx 1, not a multiple of 4 -> minor only.
+    const secondVertical = Array.from(lines).find((l) => l.getAttribute('x1') === '2' && l.getAttribute('x2') === '2');
+    expect(secondVertical?.classList.contains('layout-grid-line-major')).toBe(false);
+  });
 });
