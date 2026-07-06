@@ -80,7 +80,8 @@ bar on phones — with seven sections, opening on Home:
 ## The Control surface
 
 One shared component, three entry points (Home tiles, Layout selection,
-Devices "Control" button). Desktop: a ~480px right slide-over. Phone: a
+Devices "Control" button). Desktop: a ~760px right slide-over with a
+two-column Colors tab and multi-column effect/palette/preset lists. Phone: a
 full-height draggable bottom sheet.
 
 - A selection is a list of targets — whole controllers or
@@ -172,7 +173,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 42 files / 297 tests
-cd client && npm test   # 74 files / 527 tests
+cd client && npm test   # 74 files / 529 tests
 ```
 
 ## Running the whole app locally via Docker

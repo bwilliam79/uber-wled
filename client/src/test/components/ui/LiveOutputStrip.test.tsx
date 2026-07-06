@@ -4,10 +4,10 @@ import { LiveOutputStrip } from '../../../components/ui/LiveOutputStrip';
 import type { LiveOutputSwatch } from '../../../lib/liveOutputSwatches';
 
 const SWATCHES: LiveOutputSwatch[] = [
-  { key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)' },
-  { key: 'c1:1', state: 'off', color: '#334155' },
-  { key: 'c2:unreachable', state: 'unreachable', color: '#3A3F4B' },
-  { key: 'c3:pending', state: 'pending', color: '#232B3F' }
+  { key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)', len: 39 },
+  { key: 'c1:1', state: 'off', color: '#334155', len: 9 },
+  { key: 'c2:unreachable', state: 'unreachable', color: '#3A3F4B', len: 1 },
+  { key: 'c3:pending', state: 'pending', color: '#232B3F', len: 1 }
 ];
 
 describe('LiveOutputStrip', () => {
@@ -52,5 +52,14 @@ describe('LiveOutputStrip', () => {
   it('applies the sm size modifier class', () => {
     render(<LiveOutputStrip swatches={SWATCHES} size="sm" />);
     expect(screen.getByRole('img', { name: 'Live output' }).className).toContain('ui-live-strip-sm');
+  });
+
+  it('sizes each swatch proportionally to its segment length via flex-grow', () => {
+    render(<LiveOutputStrip swatches={SWATCHES} />);
+    const wide = screen.getByTestId('live-swatch-c1:0');
+    const narrow = screen.getByTestId('live-swatch-c1:1');
+    expect(wide.style.flexGrow).toBe('39');
+    expect(narrow.style.flexGrow).toBe('9');
+    expect(wide.style.flexBasis).toBe('0px');
   });
 });

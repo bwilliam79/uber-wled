@@ -4,6 +4,7 @@
 .cs-header { display: flex; flex-direction: column; gap: 12px; }
 .cs-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .cs-row { display: flex; align-items: center; gap: 12px; }
+.cs-row-power .ui-slider { flex: 1; min-width: 120px; }
 .cs-mixed-note { color: var(--warning); font-size: 0.85rem; margin: 4px 0; }
 .cs-subhead { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;
   letter-spacing: 0.06em; margin: 12px 0 4px; }
@@ -50,6 +51,7 @@
 .preset-swatches { display: flex; gap: 4px; }
 
 .color-tab { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+.color-tab-wheel-col, .color-tab-controls-col { display: flex; flex-direction: column; gap: 14px; }
 .color-wheel { align-self: center; }
 .slot-row { display: flex; gap: 8px; align-items: center; }
 .slot-swatch { min-width: 56px; min-height: 40px; border-radius: var(--radius-control);
@@ -76,4 +78,29 @@
 
 @media (max-width: 900px) {
   .palette-preview { width: 56px; }
+}
+
+@media (min-width: 900px) {
+  /* The wider drawer (see .ui-drawer) gives real room to stop stacking
+     everything in one long vertical column. */
+
+  .color-tab {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 24px;
+  }
+
+  .effect-list, .palette-list, .preset-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 6px 12px;
+  }
+
+  /* A selected effect's inline speed/intensity/option controls need real
+     width to be usable — let that one row span the full grid instead of
+     being squeezed into a single ~260px column. */
+  .effect-list li:has(.effect-row.selected) {
+    grid-column: 1 / -1;
+  }
 }
