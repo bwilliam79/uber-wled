@@ -23,6 +23,9 @@ export function SyncForm({ cfg, busy, onSave }: ConfigFormProps) {
   const [sendDir, setSendDir] = useState(Boolean(send.dir));
   const [sendHue, setSendHue] = useState(Boolean(send.hue));
   const [sendGroups, setSendGroups] = useState(String(send.grp ?? 1));
+  const [espnow, setEspnow] = useState(Boolean(sync.espnow));
+  const [sendBtn, setSendBtn] = useState(Boolean(send.btn));
+  const [sendVa, setSendVa] = useState(Boolean(send.va));
 
   return (
     <Card className="config-form">
@@ -54,14 +57,18 @@ export function SyncForm({ cfg, busy, onSave }: ConfigFormProps) {
         <Toggle label="Receive segment bounds" checked={recvSb} onChange={setRecvSb} />
         <Toggle label="Send on change" checked={sendEn} onChange={setSendEn} />
         <Toggle label="Notify on direct change" checked={sendDir} onChange={setSendDir} />
+        <Toggle label="Notify on button press" checked={sendBtn} onChange={setSendBtn} />
+        <Toggle label="Notify on Alexa change" checked={sendVa} onChange={setSendVa} />
         <Toggle label="Sync with Hue" checked={sendHue} onChange={setSendHue} />
+        <Toggle label="Sync also over ESP-NOW" checked={espnow} onChange={setEspnow} />
       </div>
       <Button variant="primary" disabled={busy}
         onClick={() =>
           onSave(buildSyncPatch({
             port0: Number(port0), port1: Number(port1),
             recvBri, recvCol, recvFx, recvPal, recvSeg, recvSb, recvGroups: Number(recvGroups),
-            sendEn, sendDir, sendHue, sendGroups: Number(sendGroups)
+            sendEn, sendDir, sendHue, sendGroups: Number(sendGroups),
+            espnow, sendBtn, sendVa
           }))
         }>
         Save sync

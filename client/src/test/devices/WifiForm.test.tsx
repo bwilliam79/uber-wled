@@ -39,4 +39,15 @@ describe('WifiForm', () => {
     expect((screen.getByRole('button', { name: 'Save WiFi' }) as HTMLButtonElement).disabled).toBe(true);
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it('seeds and saves the top-level wifi radio settings (sleep/phy/txpwr), previously unbound entirely', () => {
+    const onSave = renderForm();
+    expect((screen.getByLabelText('TX power') as HTMLSelectElement).value).toBe('78');
+    expect(screen.getByRole('switch', { name: /modem-sleep/ }).getAttribute('aria-checked')).toBe('false');
+    fireEvent.change(screen.getByLabelText('TX power'), { target: { value: '44' } });
+    fireEvent.click(screen.getByRole('switch', { name: /modem-sleep/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save WiFi' }));
+    const patch = onSave.mock.calls[0][0];
+    expect(patch.wifi).toEqual({ sleep: true, phy: false, txpwr: 44 });
+  });
 });
