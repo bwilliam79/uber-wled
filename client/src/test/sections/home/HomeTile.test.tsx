@@ -47,6 +47,7 @@ function renderTile(overrides: Record<string, unknown> = {}) {
     tile: TILE,
     status: STATUS_ON,
     glowColor: 'rgb(128, 40, 0)',
+    liveSwatches: [{ key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)' }],
     selectMode: false,
     selected: false,
     onToggleSelect: vi.fn(),
@@ -137,5 +138,24 @@ describe('HomeTile', () => {
     });
     expect((screen.getByRole('switch', { name: 'power for Kitchen' }) as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByTestId('home-tile-g1').className).toContain('home-tile-offline');
+  });
+
+  it('renders the live-output strip alongside the glow, sized for the tile', () => {
+    renderTile();
+    const strip = screen.getByRole('img', { name: 'Live output' });
+    expect(strip.className).toContain('home-tile-live');
+    expect(strip.className).toContain('ui-live-strip-sm');
+    expect(screen.getByTestId('live-swatch-c1:0').style.backgroundColor).toBe('rgb(255, 0, 0)');
+  });
+
+  it('renders unreachable/pending swatches distinctly when live data says so', () => {
+    renderTile({
+      liveSwatches: [
+        { key: 'c1:unreachable', state: 'unreachable', color: '#3A3F4B' },
+        { key: 'c2:pending', state: 'pending', color: '#232B3F' }
+      ]
+    });
+    expect(screen.getByTestId('live-swatch-c1:unreachable').className).toContain('ui-live-swatch-unreachable');
+    expect(screen.getByTestId('live-swatch-c2:pending').className).toContain('ui-live-swatch-pending');
   });
 });

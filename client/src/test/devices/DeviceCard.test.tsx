@@ -20,6 +20,11 @@ describe('DeviceCard', () => {
     expect(screen.getByText('42 FPS')).toBeTruthy();
     expect(screen.getByText('Up 32d 7h')).toBeTruthy();
     expect(screen.getByRole('img', { name: 'WiFi signal 4 of 4 bars' })).toBeTruthy();
+    const strip = screen.getByRole('img', { name: 'Live output' });
+    // fixtures.SEGMENTS has 2 segments, both on: seg0 [255,160,60] bri255, seg1 [0,80,255] bri200.
+    expect(screen.getByTestId('live-swatch-c:0').style.backgroundColor).toBe('rgb(255, 160, 60)');
+    expect(screen.getByTestId('live-swatch-c:1').style.backgroundColor).toBe('rgb(0, 63, 200)');
+    expect(strip.children).toHaveLength(2);
   });
 
   it('shows the update badge from the firmware query', async () => {
@@ -36,13 +41,15 @@ describe('DeviceCard', () => {
     expect(screen.getByText('Offline')).toBeTruthy();
     expect(screen.queryByText('On')).toBeNull();
     expect(screen.queryByText('Off')).toBeNull();
+    expect(screen.getByTestId('live-swatch-c:unreachable').className).toContain('ui-live-swatch-unreachable');
   });
 
-  it('a stale controller without live data shows the Stale chip', () => {
+  it('a stale controller without live data shows the Stale chip and a pending swatch', () => {
     stubFetchRoutes({ 'GET /api/controllers/c2/firmware': NO_UPDATE });
     renderDevices(<DeviceCard controller={CONTROLLERS[1]} live={undefined}
       onControl={vi.fn()} onOpen={vi.fn()} />);
     expect(screen.getByText('Stale')).toBeTruthy();
+    expect(screen.getByTestId('live-swatch-c:pending').className).toContain('ui-live-swatch-pending');
   });
 
   it('the Control button reports the controller id', () => {
