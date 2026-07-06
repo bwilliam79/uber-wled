@@ -172,6 +172,9 @@ export interface FirmwareStatus {
   isPrerelease: boolean;
   pinnedAssetPattern: string | null;
   candidateAssets: { name: string; downloadUrl: string }[];
+  /** Raw WLED-reported chip architecture (e.g. "esp32"), null when the
+   *  controller is unreachable and nothing was detected yet. */
+  detectedArch: string | null;
   unreachable?: boolean;
 }
 
