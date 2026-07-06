@@ -52,13 +52,12 @@ export function createFirmwareRouter(db: Database.Database): Router {
       });
     }
 
-    let assets: ReleaseAsset[] = [];
-    if (!controller.pinnedAssetPattern) {
-      assets = candidateAssets(release, info.arch);
-    } else {
-      const resolved = resolvePinnedAsset(release, controller.pinnedAssetPattern);
-      if (!resolved) assets = candidateAssets(release, info.arch);
-    }
+    // Always compute the candidate list, whether or not a pattern is already
+    // pinned: the client uses it both for the first-time picker and for the
+    // "override firmware asset" flow once a pin already exists, so this data
+    // must stay available across the pin's whole lifecycle, not just before
+    // the first pin.
+    const assets: ReleaseAsset[] = candidateAssets(release, info.arch);
 
     const normalizedInstalled = info.ver.startsWith('v') ? info.ver : `v${info.ver}`;
 

@@ -133,6 +133,78 @@ describe('FirmwareStatus', () => {
     );
   });
 
+  it('shows the pinned board type and an "Override firmware asset" button once pinned, even with candidates present', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.15.0', latestTag: 'v0.15.0', updateAvailable: false,
+        isPrerelease: false,
+        pinnedAssetPattern: 'ESP02',
+        candidateAssets: [
+          { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
+          { name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }
+        ]
+      })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<FirmwareStatus controllerId="c1" />);
+
+    await waitFor(() => expect(screen.getByText('Board type: ESP02')).toBeTruthy());
+    // The picker must stay reachable after the first pin (as an override),
+    // not disappear once candidateAssets is non-empty again.
+    expect(screen.queryByText('Pick firmware asset')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Override firmware asset' })).toBeTruthy();
+  });
+
+  it('re-pins to a new asset via the override button and updates the displayed board type after refresh', async () => {
+    // A single stateful mock server: GET reflects whatever was last pinned,
+    // POST /pin updates that state, so the component's own post-pin refresh()
+    // call (not a second act from the test) is what drives the re-render.
+    let pinnedAssetPattern = 'ESP02';
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/controllers/c1/firmware/pin' && init?.method === 'POST') {
+        pinnedAssetPattern = JSON.parse(init.body as string).assetPattern;
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      if (url === '/api/controllers/c1/firmware') {
+        return {
+          ok: true,
+          json: async () => ({
+            installedVersion: '0.15.0', latestTag: 'v0.15.0', updateAvailable: false,
+            isPrerelease: false,
+            pinnedAssetPattern,
+            candidateAssets: [
+              { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
+              { name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }
+            ]
+          })
+        } as Response;
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText('Board type: ESP02')).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Override firmware asset' }));
+    expect(screen.getByText(/Currently pinned to "ESP02"/)).toBeTruthy();
+
+    fireEvent.click(screen.getByText('WLED_0.15.0_ESP8266.bin'));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/controllers/c1/firmware/pin',
+        expect.objectContaining({ method: 'POST' })
+      )
+    );
+    const pinCall = fetchMock.mock.calls.find(([u]) => u === '/api/controllers/c1/firmware/pin')!;
+    expect(JSON.parse((pinCall[1] as RequestInit).body as string)).toEqual({ assetPattern: 'ESP8266' });
+
+    await waitFor(() => expect(screen.getByText('Board type: ESP8266')).toBeTruthy());
+  });
+
   it('shows a pre-release indicator when the latest resolved release is a pre-release', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
