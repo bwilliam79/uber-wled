@@ -115,7 +115,11 @@
 
 .segment-grid, .config-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  /* auto-fit (not auto-fill): a row with fewer items than fit in the
+     container collapses the unused tracks to 0 instead of reserving their
+     minimum width, so e.g. a single lone Select actually stretches to fill
+     the row instead of being cramped to ~140px. */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--space-sm) var(--space-md);
 }
 

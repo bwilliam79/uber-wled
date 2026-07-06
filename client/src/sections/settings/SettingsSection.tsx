@@ -24,6 +24,10 @@ function coordDisplayPrecision(value: number): number {
 function geolocationErrorMessage(err: GeolocationPositionError): string {
   switch (err.code) {
     case err.PERMISSION_DENIED:
+      // Browsers also report PERMISSION_DENIED — with no prompt ever shown —
+      // when the page isn't in a secure context (HTTPS or localhost). The
+      // isSecureContext check in handleUseMyLocation catches that case before
+      // this ever fires; this message only applies to a genuine user denial.
       return 'Location permission was denied. Allow location access for this site in your browser settings, then try again.';
     case err.POSITION_UNAVAILABLE:
       return "Your device couldn't determine its location right now.";
@@ -33,6 +37,11 @@ function geolocationErrorMessage(err: GeolocationPositionError): string {
       return "Couldn't determine your location.";
   }
 }
+
+const GEO_INSECURE_CONTEXT_MESSAGE =
+  "Browsers only allow this API on HTTPS or localhost. This app is served over plain HTTP on your " +
+  'LAN, so Chrome silently refuses the request — no permission prompt ever appears. Type the ' +
+  'coordinates directly, or use "Look up an address" below (that one goes through the server, not the browser).';
 
 export function SettingsSection() {
   const settings = useSettings();
@@ -72,11 +81,16 @@ export function SettingsSection() {
 
   function handleUseMyLocation() {
     setGeoError(null);
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
+      // Chrome (and most browsers) reject getCurrentPosition outright on an
+      // insecure origin — no permission prompt is ever shown, and the error
+      // it reports (PERMISSION_DENIED) is indistinguishable from a real user
+      // denial unless we check this ourselves first.
+      setGeoError(GEO_INSECURE_CONTEXT_MESSAGE);
+      return;
+    }
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoError(
-        "This browser doesn't support on-device geolocation here — possibly because the page " +
-          'isn’t served over HTTPS or localhost, which some browsers require for this API.'
-      );
+      setGeoError("This browser doesn't support on-device geolocation.");
       return;
     }
     setLocating(true);
