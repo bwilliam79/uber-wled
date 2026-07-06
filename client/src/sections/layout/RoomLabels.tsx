@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RoomLabel } from '../../api/client';
 
 export interface RoomLabelsProps {
@@ -7,17 +7,37 @@ export interface RoomLabelsProps {
   toWorld(clientX: number, clientY: number): { x: number; y: number };
   onMove(id: string, x: number, y: number): void;
   onRename(id: string, name: string): void;
+  onDelete(id: string): void;
 }
 
-export function RoomLabels({ labels, toWorld, onMove, onRename }: RoomLabelsProps) {
+export function RoomLabels({ labels, toWorld, onMove, onRename, onDelete }: RoomLabelsProps) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Delete/Backspace deletes the selected label, mirroring the strip-selection
+  // shortcut in LayoutSection. Scoped to only listen while a label is selected.
+  useEffect(() => {
+    if (!selectedId) return;
+    function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        onDelete(selectedId as string);
+        setSelectedId(null);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedId, onDelete]);
 
   function handlePointerDown(e: React.PointerEvent, id: string) {
     if (editingId) return;
     e.stopPropagation();
+    setSelectedId(id);
     setDragId(id);
   }
 
@@ -67,11 +87,12 @@ export function RoomLabels({ labels, toWorld, onMove, onRename }: RoomLabelsProp
           );
         }
         const chipWidth = label.name.length * 7.5 + 20;
+        const isSelected = selectedId === label.id;
         return (
           <g
             key={label.id}
             data-testid={`room-label-${label.id}`}
-            className="room-chip"
+            className={`room-chip${isSelected ? ' selected' : ''}`}
             transform={`translate(${x} ${y})`}
             onPointerDown={(e) => handlePointerDown(e, label.id)}
             onDoubleClick={() => startEdit(label)}
@@ -80,6 +101,20 @@ export function RoomLabels({ labels, toWorld, onMove, onRename }: RoomLabelsProp
             <text className="room-chip-text" textAnchor="middle" dominantBaseline="central">
               {label.name}
             </text>
+            <g
+              className="room-chip-delete"
+              data-testid={`room-label-delete-${label.id}`}
+              transform={`translate(${chipWidth / 2 - 3} ${-11})`}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(label.id);
+                if (isSelected) setSelectedId(null);
+              }}
+            >
+              <circle className="room-chip-delete-bg" r={8} />
+              <path className="room-chip-delete-x" d="M-3 -3 L3 3 M3 -3 L-3 3" />
+            </g>
           </g>
         );
       })}
