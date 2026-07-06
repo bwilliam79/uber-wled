@@ -162,6 +162,7 @@ export function SettingsSection() {
             checked={draft.includePrereleaseFirmware}
             onChange={(c) => patch('includePrereleaseFirmware', c)}
             label="Include pre-release firmware builds"
+            showLabel={false}
           />
           <span>Include pre-release firmware builds</span>
         </div>
@@ -270,6 +271,7 @@ export function SettingsSection() {
             checked={draft.scheduleImportDisableOnDeviceDefault}
             onChange={(c) => patch('scheduleImportDisableOnDeviceDefault', c)}
             label="Default disable on device for schedule import"
+            showLabel={false}
           />
           <span>Default "disable on device" when importing WLED schedules</span>
         </div>
