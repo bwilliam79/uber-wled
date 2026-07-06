@@ -208,12 +208,10 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
             ))}
             {agg.anyUnreachable && <Chip variant="warning">Some targets offline</Chip>}
           </div>
-          <div className="cs-row">
+          <div className="cs-row cs-row-power">
             {/* mixed power renders the switch off (write-only); the chip flags it */}
             <Toggle label="Power" checked={eff.power === 'on'} onChange={setPower} />
             {eff.power === 'mixed' && <Chip variant="warning">Mixed</Chip>}
-          </div>
-          <div className="cs-row">
             {/* mixed brightness → deterministic 128 fallback until the user drags */}
             <Slider label="Brightness" min={1} max={255}
               value={typeof eff.bri === 'number' ? eff.bri : 128}
