@@ -150,7 +150,7 @@ export function LayoutSection() {
       if (target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)) return;
       if (state.mode.name === 'draw') {
         if (e.key === 'Enter') dispatch({ type: 'FINISH_DRAW' });
-        if (e.key === 'Escape') { dispatch({ type: 'CANCEL' }); setDrawCursor(null); }
+        if (e.key === 'Escape') handleCancelDraw();
         if (e.key === 'Backspace') { e.preventDefault(); dispatch({ type: 'UNDO_VERTEX' }); }
         return;
       }
@@ -288,6 +288,11 @@ export function LayoutSection() {
     dispatch({ type: 'START_DRAW' });
   }
 
+  function handleCancelDraw() {
+    dispatch({ type: 'CANCEL' });
+    setDrawCursor(null);
+  }
+
   function handleSaveStrip() {
     if (state.mode.name !== 'confirmStrip' || !formControllerId) return;
     addStripMut.mutate({
@@ -333,6 +338,7 @@ export function LayoutSection() {
   }, [strips, state.selection]);
 
   const isDrawing = state.mode.name === 'draw';
+  const drawVertexCount = state.mode.name === 'draw' ? state.mode.vertices.length : 0;
   const marqueeRect = state.mode.name === 'marquee' ? normalizeRect(state.mode.origin, state.mode.current) : null;
 
   return (
@@ -361,9 +367,22 @@ export function LayoutSection() {
             </button>
           )}
           {isDrawing && (
-            <span className="layout-draw-hint">
-              Click to place · Enter or double-click to finish · Esc cancels · Backspace undoes · Shift = 45°
-            </span>
+            <div className="layout-draw-actions" data-testid="draw-actions">
+              <button
+                type="button"
+                className="layout-btn primary"
+                onClick={() => dispatch({ type: 'FINISH_DRAW' })}
+                disabled={drawVertexCount < 2}
+              >
+                Finish line
+              </button>
+              <button type="button" className="layout-btn" onClick={handleCancelDraw}>
+                Cancel
+              </button>
+              <span className="layout-draw-hint">
+                Enter/double-click also finishes · Backspace undoes · Shift = 45°
+              </span>
+            </div>
           )}
         </div>
       </div>
