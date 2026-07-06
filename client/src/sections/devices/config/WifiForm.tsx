@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Card } from '../../../components/ui/Card';
 import { Field } from '../../../components/ui/Field';
+import { Select } from '../../../components/ui/Select';
 import { Toggle } from '../../../components/ui/Toggle';
-import { buildWifiPatch, formatIpv4, parseIpv4, type Cfg } from '../configPatches';
+import {
+  TX_POWER_OPTIONS, buildWifiPatch, formatIpv4, parseIpv4, type Cfg
+} from '../configPatches';
 import type { ConfigFormProps } from './types';
 
 const IP_ERROR = 'Use dotted-quad form, e.g. 192.168.1.50';
@@ -11,6 +14,7 @@ const IP_ERROR = 'Use dotted-quad form, e.g. 192.168.1.50';
 export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
   const row0 = (cfg.nw?.ins?.[0] ?? {}) as Cfg;
   const ap = (cfg.ap ?? {}) as Cfg;
+  const wifi = (cfg.wifi ?? {}) as Cfg;
   const [ssid, setSsid] = useState(String(row0.ssid ?? ''));
   const [password, setPassword] = useState('');
   const [staticIp, setStaticIp] = useState(formatIpv4(row0.ip));
@@ -20,6 +24,9 @@ export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
   const [apPassword, setApPassword] = useState('');
   const [apChannel, setApChannel] = useState(String(ap.chan ?? 1));
   const [apHide, setApHide] = useState(Boolean(ap.hide));
+  const [wifiSleep, setWifiSleep] = useState(Boolean(wifi.sleep));
+  const [wifiForceG, setWifiForceG] = useState(Boolean(wifi.phy));
+  const [txPower, setTxPower] = useState(String(wifi.txpwr ?? 78));
 
   const ipError = parseIpv4(staticIp) === null ? IP_ERROR : null;
   const gwError = parseIpv4(gateway) === null ? IP_ERROR : null;
@@ -74,11 +81,20 @@ export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
         </Field>
       </div>
       <Toggle label="Hide AP SSID" checked={apHide} onChange={setApHide} />
+      <h4>Radio</h4>
+      <div className="config-form-grid">
+        <Select label="TX power" value={txPower} onChange={setTxPower}
+          options={TX_POWER_OPTIONS.map((t) => ({ value: String(t.value), label: t.label }))} />
+      </div>
+      <Toggle label="WiFi modem-sleep (saves power, adds latency)" checked={wifiSleep}
+        onChange={setWifiSleep} />
+      <Toggle label="Force 802.11g-only mode" checked={wifiForceG} onChange={setWifiForceG} />
       <Button variant="primary" disabled={busy || !valid}
         onClick={() =>
           onSave(buildWifiPatch(cfg, {
             ssid, password, staticIp, gateway, subnet,
-            apSsid, apPassword, apChannel: Number(apChannel), apHide
+            apSsid, apPassword, apChannel: Number(apChannel), apHide,
+            wifiSleep, wifiForceG, txPower: Number(txPower)
           }))
         }>
         Save WiFi

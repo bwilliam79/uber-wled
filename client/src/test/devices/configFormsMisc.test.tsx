@@ -24,7 +24,18 @@ describe('SyncForm', () => {
       bri: true, col: true, fx: true, pal: true, seg: true, sb: false, grp: 1
     });
     expect(patch.if.sync.port0).toBe(21324);
-    expect('espnow' in patch.if.sync).toBe(false);
+  });
+
+  it('seeds and saves espnow + the previously-unbound button/Alexa send notifications', () => {
+    const onSave = vi.fn();
+    render(<SyncForm cfg={probedCfg()} busy={false} onSave={onSave} />);
+    expect(screen.getByRole('switch', { name: 'Sync also over ESP-NOW' }).getAttribute('aria-checked'))
+      .toBe('false');
+    fireEvent.click(screen.getByRole('switch', { name: 'Notify on button press' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save sync' }));
+    const patch = onSave.mock.calls[0][0];
+    expect(patch.if.sync.send.btn).toBe(true);
+    expect(patch.if.sync.espnow).toBe(false);
   });
 });
 
@@ -62,7 +73,20 @@ describe('LedPrefsForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save LED preferences' }));
     expect(onSave.mock.calls[0][0]).toEqual({
       def: { ps: 1, on: false, bri: 128 },
-      light: { 'scale-bri': 100, gc: { col: 2.8 }, tr: { dur: 12 } }
+      light: {
+        'scale-bri': 100, gc: { col: 2.8 }, tr: { dur: 12 },
+        nl: { mode: 1, dur: 60, tbri: 0, macro: 0 }
+      }
     });
+  });
+
+  it('seeds and saves the nightlight defaults (previously entirely unbound)', () => {
+    const onSave = vi.fn();
+    render(<LedPrefsForm cfg={probedCfg()} busy={false} onSave={onSave} />);
+    expect((screen.getByLabelText('Nightlight mode') as HTMLSelectElement).value).toBe('1');
+    expect((screen.getByLabelText('Nightlight duration (minutes)') as HTMLInputElement).value).toBe('60');
+    fireEvent.change(screen.getByLabelText('Nightlight target brightness'), { target: { value: '32' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save LED preferences' }));
+    expect(onSave.mock.calls[0][0].light.nl).toEqual({ mode: 1, dur: 60, tbri: 32, macro: 0 });
   });
 });
