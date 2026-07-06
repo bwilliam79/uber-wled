@@ -44,6 +44,8 @@
 
 .device-card-metric { color: var(--text-muted); font-size: 0.85rem; }
 
+.device-card-live-strip { margin: -2px 0 2px; }
+
 .device-card-actions { display: flex; gap: var(--space-sm); margin-top: auto; }
 
 .signal-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
@@ -86,6 +88,18 @@
 }
 
 .fact dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+
+.info-live-hint {
+  margin: -6px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.info-live-native {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
 
 .info-liveview {
   width: 100%;

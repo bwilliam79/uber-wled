@@ -622,6 +622,50 @@
   }
 }
 
+/* ---------- LiveOutputStrip ---------- */
+
+.ui-live-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.ui-live-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  flex-shrink: 0;
+}
+
+.ui-live-strip-sm .ui-live-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.ui-live-swatch-off {
+  opacity: 0.5;
+}
+
+.ui-live-swatch-unreachable {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--surface-2),
+    var(--surface-2) 3px,
+    var(--bg) 3px,
+    var(--bg) 6px
+  );
+  opacity: 0.7;
+}
+
+.ui-live-swatch-pending {
+  border-style: dashed;
+  opacity: 0.45;
+}
+
 /* ---------- Toast ---------- */
 
 .ui-toast-stack {
