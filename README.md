@@ -115,6 +115,17 @@ configurable in Settings) and stops it when the last subscriber disconnects.
 The separate background status poller (default every 5 minutes) still
 provides glanceable data when nobody is watching.
 
+The per-segment live-output swatches (Home tiles, Devices cards, Device Info
+tab) additionally connect straight from the browser to each lit controller's
+own `ws://<host>/ws` — WLED's native live-view protocol (the same channel the
+official WLED app's "Peek" feature and the device's own `/liveview` page use).
+Sending `{"lv":true}` gets a stream of binary frames with the device's real
+current per-LED colors, which render as an actual gradient instead of the
+flat, configured color slot — the only way to show what an animated effect
+(Rainbow, Colorloop, a chase...) is really doing, since that never touches
+`col[0]`. (`/json/live`, an unrelated HTTP polling endpoint, returns 501 on
+this firmware — that's not what either live view relies on.)
+
 ## Device config parity + guardrails
 
 The Devices → Config tab edits the device's full `cfg.json`: structured
@@ -173,7 +184,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 42 files / 297 tests
-cd client && npm test   # 74 files / 529 tests
+cd client && npm test   # 75 files / 544 tests
 ```
 
 ## Running the whole app locally via Docker
