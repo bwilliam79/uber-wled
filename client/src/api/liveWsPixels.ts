@@ -1,12 +1,19 @@
 import { useEffect, useState } from 'react';
+import { throttleTrailing, type Throttled } from '../lib/throttle';
 
 const MAX_BACKOFF_MS = 15_000;
+// WLED streams live-view frames as fast as the device's own refresh rate
+// (commonly 30-40+ fps) — committing a React state update, and re-rendering
+// every gradient swatch on screen, at that rate reads as choppy rather than
+// smooth. A glanceable strip doesn't need more than this.
+const FRAME_UPDATE_INTERVAL_MS = 120;
 
 interface HostConnection {
   ws: WebSocket | null;
   timer: ReturnType<typeof setTimeout> | null;
   attempts: number;
   stopped: boolean;
+  throttledUpdate: Throttled<[Uint8Array]> | null;
 }
 
 /**
@@ -35,9 +42,17 @@ export function useLiveWsPixels(hosts: string[]): Map<string, Uint8Array> {
     const connect = (host: string) => {
       const conn = connections.get(host);
       if (!conn || conn.stopped) return;
+      conn.throttledUpdate?.cancel(); // drop any pending update from a prior connection attempt
       const ws = new WebSocket(`ws://${host}/ws`);
       ws.binaryType = 'arraybuffer';
       conn.ws = ws;
+      conn.throttledUpdate = throttleTrailing((frame: Uint8Array) => {
+        setPixels((prev) => {
+          const next = new Map(prev);
+          next.set(host, frame);
+          return next;
+        });
+      }, FRAME_UPDATE_INTERVAL_MS);
       ws.addEventListener('open', () => {
         conn.attempts = 0;
         ws.send(JSON.stringify({ lv: true }));
@@ -46,12 +61,7 @@ export function useLiveWsPixels(hosts: string[]): Map<string, Uint8Array> {
         if (typeof ev.data === 'string') return; // JSON acks/state, not a pixel frame
         const bytes = new Uint8Array(ev.data as ArrayBuffer);
         if (bytes.length < 2 || bytes[0] !== 0x4c) return; // not an 'L'ive frame
-        const frame = bytes.subarray(2);
-        setPixels((prev) => {
-          const next = new Map(prev);
-          next.set(host, frame);
-          return next;
-        });
+        conn.throttledUpdate?.call(bytes.subarray(2));
       });
       ws.addEventListener('close', () => scheduleReconnect(host));
       ws.addEventListener('error', () => ws.close());
@@ -66,7 +76,7 @@ export function useLiveWsPixels(hosts: string[]): Map<string, Uint8Array> {
     };
 
     for (const host of uniqueHosts) {
-      connections.set(host, { ws: null, timer: null, attempts: 0, stopped: false });
+      connections.set(host, { ws: null, timer: null, attempts: 0, stopped: false, throttledUpdate: null });
       connect(host);
     }
 
@@ -74,6 +84,7 @@ export function useLiveWsPixels(hosts: string[]): Map<string, Uint8Array> {
       for (const conn of connections.values()) {
         conn.stopped = true;
         if (conn.timer !== null) clearTimeout(conn.timer);
+        conn.throttledUpdate?.cancel();
         if (conn.ws) {
           if (conn.ws.readyState === WebSocket.OPEN) {
             try { conn.ws.send(JSON.stringify({ lv: false })); } catch { /* connection already gone */ }
