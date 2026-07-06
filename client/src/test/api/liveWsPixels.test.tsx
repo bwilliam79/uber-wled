@@ -128,6 +128,20 @@ describe('useLiveWsPixels', () => {
     expect(FakeWebSocket.instances[1].url).toBe('ws://5.6.7.8/ws');
   });
 
+  it('throttles rapid frames to at most one state commit per interval, keeping only the latest', () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useLiveWsPixels(['1.2.3.4']));
+    const ws = FakeWebSocket.instances[0];
+    ws.open();
+    act(() => ws.emitFrame(frameBytes([[1, 1, 1]]))); // first frame commits immediately
+    expect(Array.from(result.current.get('1.2.3.4')!)).toEqual([1, 1, 1]);
+    act(() => ws.emitFrame(frameBytes([[2, 2, 2]]))); // within the throttle window — queued
+    act(() => ws.emitFrame(frameBytes([[3, 3, 3]]))); // supersedes the queued frame
+    expect(Array.from(result.current.get('1.2.3.4')!)).toEqual([1, 1, 1]); // not yet applied
+    act(() => { vi.advanceTimersByTime(120); });
+    expect(Array.from(result.current.get('1.2.3.4')!)).toEqual([3, 3, 3]); // trailing frame wins
+  });
+
   it('clears a host\'s pixels once it is removed from the list', () => {
     const { result, rerender } = renderHook(({ hosts }) => useLiveWsPixels(hosts), {
       initialProps: { hosts: ['1.2.3.4'] }
