@@ -7,8 +7,10 @@ import type { LiveStatusEntry } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
+import { LiveOutputStrip } from '../../components/ui/LiveOutputStrip';
 import { Modal } from '../../components/ui/Modal';
 import { useToast } from '../../components/ui/Toast';
+import { swatchesForEntry } from '../../lib/liveOutputSwatches';
 import { humanizeUptime, signalBars } from './format';
 import './devices.css';
 
@@ -94,19 +96,23 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
       {live !== undefined && !live.reachable && <Chip variant="danger">Offline</Chip>}
       <Card>
         <h3>Live output</h3>
-        {showPeek ? (
-          <iframe
-            className="info-liveview"
-            src={`http://${controller.host}/liveview`}
-            title={`Live output of ${controller.name}`}
-          />
-        ) : (
-          // Opt-in: the embedded native /liveview page polls the device on its
-          // own and renders black on firmware without /json/live (e.g. 16.0).
-          <Button variant="secondary" onClick={() => setShowPeek(true)}>
-            Show live preview
-          </Button>
-        )}
+        <p className="info-live-hint">Updates in real time from the control plane's live feed.</p>
+        <LiveOutputStrip swatches={swatchesForEntry(live)} />
+        <div className="info-live-native">
+          {showPeek ? (
+            <iframe
+              className="info-liveview"
+              src={`http://${controller.host}/liveview`}
+              title={`Live output of ${controller.name}`}
+            />
+          ) : (
+            // Opt-in: the embedded native /liveview page polls the device on its
+            // own and renders black on firmware without /json/live (e.g. 16.0).
+            <Button variant="secondary" onClick={() => setShowPeek(true)}>
+              Open native live view
+            </Button>
+          )}
+        </div>
       </Card>
       <Card>
         <h3>Device facts</h3>
