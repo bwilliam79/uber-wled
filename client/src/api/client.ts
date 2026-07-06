@@ -263,6 +263,20 @@ export const deleteRoomLabel = async (id: string): Promise<void> => {
 export const getSettings = () => getJson<Settings>('/api/settings');
 export const updateSettings = (patch: Partial<Settings>) => sendJson<Settings>('/api/settings', 'PATCH', patch);
 
+export interface GeocodeMatch {
+  displayName: string;
+  latitude: number;
+  longitude: number;
+}
+
+// Proxied through the server (not called directly from the browser) so a
+// proper identifying User-Agent header can be sent to Nominatim, per its
+// usage policy — see server/src/settings/geocode.ts.
+export const geocodeAddress = (query: string) =>
+  getJson<{ results: GeocodeMatch[] }>(`/api/settings/geocode?q=${encodeURIComponent(query)}`).then(
+    (r) => r.results
+  );
+
 // --- Control surface v2 (Phase D) ---
 // Mirrored verbatim from docs/superpowers/plans/2026-07-04-control-plane-redesign/00-master.md
 
