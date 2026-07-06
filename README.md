@@ -19,8 +19,10 @@ bar on phones — with seven sections, opening on Home:
 1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
    controller. Tiles show live power/brightness with an ambient glow derived
    from the lights' actual current colors (muted when off, grey when
-   offline). Quick power toggle and brightness slider on the tile; tapping a
-   tile opens the Control surface for it. Long-press (touch) or
+   offline), plus a small live-output strip with one swatch per segment for
+   an at-a-glance read of exactly what's showing. Quick power toggle and
+   brightness slider on the tile; tapping a tile opens the Control surface
+   for it. Long-press (touch) or
    hover-checkbox (desktop) multi-selects tiles into one Control session.
    Edit mode creates/renames/deletes rooms, assigns controller+segment
    members inline, and drag-reorders tiles.
@@ -37,9 +39,12 @@ bar on phones — with seven sections, opening on Home:
    the selected label).
 3. **Devices** — one card per controller: name, host, firmware chip, live
    WiFi signal, FPS, power, uptime, stale/offline and update-available
-   badges. The detail page has five tabs: **Info** (identity, network,
-   uptime, heap, filesystem, LED counts, usermods, an embedded `/liveview`
-   peek of the actual output, reboot with confirm, open-native-UI),
+   badges, plus a live-output strip (one swatch per segment, driven by the
+   live stream) so a card shows what its lights are actually doing without
+   opening it. The detail page has five tabs: **Info** (the live-output
+   strip shown automatically, identity, network, uptime, heap, filesystem,
+   LED counts, usermods, an opt-in "Open native live view" embed of the
+   device's own `/liveview` page, reboot with confirm, open-native-UI),
    **Segments** (full editor: bounds validated against the LED count,
    grouping, spacing, offset, reverse, mirror, name, per-segment
    on/brightness, create/delete — applies live), **Presets** (device presets
