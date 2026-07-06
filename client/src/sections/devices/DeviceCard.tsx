@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import type { Controller } from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
+import { useLiveWsPixels } from '../../api/liveWsPixels';
 import { useFirmwareStatus } from '../../api/queries';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -33,6 +35,13 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
   const state = live?.state;
   const offline = live !== undefined && !live.reachable;
 
+  const litHosts = useMemo(
+    () => (live?.reachable && live.state?.on ? [controller.host] : []),
+    [live?.reachable, live?.state?.on, controller.host]
+  );
+  const livePixelsByHost = useLiveWsPixels(litHosts);
+  const livePixels = livePixelsByHost.get(controller.host);
+
   return (
     <Card className="device-card">
       <div className="device-card-header">
@@ -56,7 +65,7 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
           <span className="device-card-metric">Up {humanizeUptime(info.uptime)}</span>
         )}
       </div>
-      <LiveOutputStrip swatches={swatchesForEntry(live)} size="sm" className="device-card-live-strip" />
+      <LiveOutputStrip swatches={swatchesForEntry(live, livePixels)} size="sm" className="device-card-live-strip" />
       <div className="device-card-actions">
         <Button variant="primary" size="sm" onClick={() => onControl(controller.id)}
           aria-label={`Control ${controller.name}`}>

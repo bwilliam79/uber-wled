@@ -24,6 +24,12 @@ export interface LiveOutputSwatch {
    *  run and a 9-LED trim run don't draw as identically-sized dots. Placeholder
    *  (pending/unreachable) swatches use 1 since there's no real size to show yet. */
   len: number;
+  /** CSS gradient sampling the segment's actual current per-pixel colors (via
+   *  the live-view WebSocket, see api/liveWsPixels.ts), when available. Falls
+   *  back to the flat `color` — derived only from the configured color slot —
+   *  when no live pixel frame has arrived yet, e.g. for effects (Rainbow,
+   *  Colorloop, chases...) whose real output doesn't match col[0] at all. */
+  gradient?: string;
 }
 
 /** Muted grey for a target that isn't reachable at all. */
@@ -41,6 +47,27 @@ export interface LiveSwatchSegment {
   // practice but the type hedges as optional — swatchesForSource falls back
   // to equal weighting (1) when absent.
   len?: number;
+  /** LED index this segment starts at within the device's whole pixel
+   *  buffer — needed to slice the right sub-range out of a live-pixel frame. */
+  start: number;
+}
+
+const GRADIENT_STOPS = 10;
+
+/** Samples a segment's real LEDs out of the device-wide live-pixel buffer
+ *  (RGB triplets in physical LED order) into a CSS linear-gradient. Returns
+ *  undefined if the buffer doesn't actually cover this segment's range (e.g.
+ *  a stale frame from before a re-segmentation). */
+function pixelsToGradient(pixels: Uint8Array, start: number, len: number): string | undefined {
+  if (len <= 0 || (start + len) * 3 > pixels.length) return undefined;
+  const n = Math.min(GRADIENT_STOPS, len);
+  const stops: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const ledIndex = start + Math.floor((i / Math.max(1, n - 1)) * (len - 1));
+    const o = ledIndex * 3;
+    stops.push(`rgb(${pixels[o]}, ${pixels[o + 1]}, ${pixels[o + 2]})`);
+  }
+  return `linear-gradient(to right, ${stops.join(', ')})`;
 }
 
 export interface LiveSwatchSource {
@@ -56,7 +83,8 @@ export interface LiveSwatchMember {
 function swatchesForSource(
   source: LiveSwatchSource | undefined,
   wledSegId: number | null,
-  keyPrefix: string
+  keyPrefix: string,
+  livePixels?: Uint8Array
 ): LiveOutputSwatch[] {
   if (!source) {
     return [{ key: `${keyPrefix}:pending`, state: 'pending', color: SWATCH_PENDING_COLOR, len: 1 }];
@@ -82,28 +110,41 @@ function swatchesForSource(
   const masterOn = source.state.on;
   return segs.map((seg) => {
     const on = masterOn && seg.on;
+    const len = Math.max(1, seg.len ?? 1);
     return {
       key: `${keyPrefix}:${seg.id}`,
       state: on ? 'on' : 'off',
       color: segmentToCssColor({ on, bri: seg.bri, col: seg.col }),
-      len: Math.max(1, seg.len ?? 1)
+      len,
+      gradient: on && livePixels ? pixelsToGradient(livePixels, seg.start, len) : undefined
     };
   });
 }
 
-/** Swatches for a single controller's whole live entry (e.g. a device card). */
-export function swatchesForEntry(live: LiveSwatchSource | undefined): LiveOutputSwatch[] {
-  return swatchesForSource(live, null, 'c');
+/** Swatches for a single controller's whole live entry (e.g. a device card).
+ *  `livePixels`, if given, is that controller's device-wide live-pixel frame
+ *  (see api/liveWsPixels.ts) — enables real per-pixel gradients instead of
+ *  each segment's flat configured color. */
+export function swatchesForEntry(
+  live: LiveSwatchSource | undefined,
+  livePixels?: Uint8Array
+): LiveOutputSwatch[] {
+  return swatchesForSource(live, null, 'c', livePixels);
 }
 
 /**
  * Swatches for a Home tile's member list (one controller for a plain tile,
  * one-or-more for a room/group tile) — mirrors aggregateTileStatusLive's
  * per-member, per-segment-or-whole-controller model from lib/tileStatus.ts.
+ * `livePixelsByController`, if given, maps controllerId -> that device's
+ * live-pixel frame.
  */
 export function swatchesForMembers(
   members: LiveSwatchMember[],
-  live: ReadonlyMap<string, LiveSwatchSource>
+  live: ReadonlyMap<string, LiveSwatchSource>,
+  livePixelsByController?: ReadonlyMap<string, Uint8Array>
 ): LiveOutputSwatch[] {
-  return members.flatMap((m) => swatchesForSource(live.get(m.controllerId), m.wledSegId, m.controllerId));
+  return members.flatMap((m) =>
+    swatchesForSource(live.get(m.controllerId), m.wledSegId, m.controllerId, livePixelsByController?.get(m.controllerId))
+  );
 }

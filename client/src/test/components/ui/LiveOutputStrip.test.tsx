@@ -62,4 +62,14 @@ describe('LiveOutputStrip', () => {
     expect(narrow.style.flexGrow).toBe('9');
     expect(wide.style.flexBasis).toBe('0px');
   });
+
+  it('renders the live-pixel gradient instead of the flat color when one is available', () => {
+    const withGradient: LiveOutputSwatch[] = [
+      { key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)', len: 39, gradient: 'linear-gradient(to right, rgb(1, 2, 3), rgb(4, 5, 6))' }
+    ];
+    render(<LiveOutputStrip swatches={withGradient} />);
+    const el = screen.getByTestId('live-swatch-c1:0');
+    expect(el.style.background).toContain('linear-gradient');
+    expect(el.style.backgroundColor).toBe('');
+  });
 });

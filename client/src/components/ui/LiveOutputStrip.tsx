@@ -15,9 +15,11 @@ const STATE_LABEL: Record<LiveOutputSwatch['state'], string> = {
 
 /**
  * Compact horizontal strip of colored swatches — the real-time "live output"
- * readout driven by useLiveStatus (SSE), as opposed to WLED's own native
- * /liveview page (which polls a 501-returning endpoint on firmware 16 and is
- * kept as a separate, opt-in iframe — see InfoTab.tsx).
+ * readout. Each swatch's flat `color` comes from useLiveStatus (SSE, polling
+ * /json/state — so it's only ever the segment's *configured* color slot, not
+ * necessarily what's actually lit for animated effects). When a real frame
+ * from the live-view WebSocket is available (see api/liveWsPixels.ts), `sw.
+ * gradient` renders the segment's actual current per-pixel colors instead.
  */
 export function LiveOutputStrip({ swatches, size = 'md', className }: LiveOutputStripProps) {
   const cls = ['ui-live-strip', size === 'sm' ? 'ui-live-strip-sm' : '', className ?? '']
@@ -31,7 +33,9 @@ export function LiveOutputStrip({ swatches, size = 'md', className }: LiveOutput
           style={{
             flexGrow: sw.len,
             flexBasis: 0,
-            ...(sw.state === 'on' || sw.state === 'off' ? { backgroundColor: sw.color } : undefined)
+            ...(sw.gradient
+              ? { background: sw.gradient }
+              : sw.state === 'on' || sw.state === 'off' ? { backgroundColor: sw.color } : undefined)
           }}
           title={STATE_LABEL[sw.state]}
           data-testid={`live-swatch-${sw.key}`}
