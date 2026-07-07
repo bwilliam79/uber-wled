@@ -202,7 +202,7 @@ describe('importSchedules', () => {
     expect(result.imported[0].triggerType).toBe('weekly');
     expect(result.imported[0].daysOfWeek).toEqual([1, 2, 3, 4, 5]);
     expect(result.imported[0].timeOfDay).toBe('18:30');
-    expect(result.imported[0].name).toBe('Porch warm (imported)');
+    expect(result.imported[0].name).toBe('Porch warm');
     expect(result.imported[0].actionPayload).toEqual({ presetId: 1 });
 
     expect(result.skipped).toHaveLength(3); // cntdwn + disabled + malformed
@@ -212,7 +212,7 @@ describe('importSchedules', () => {
 
     const groups = createGroupRepository(db).list();
     expect(groups).toHaveLength(1);
-    expect(groups[0].name).toBe('Porch (imported)');
+    expect(groups[0].name).toBe('Porch');
     expect(groups[0].members).toEqual([{ controllerId, wledSegId: 0 }]);
 
     const schedules = createScheduleRepository(db).list();
@@ -234,7 +234,7 @@ describe('importSchedules', () => {
     );
     await importSchedules(db, controllerId, { disableOnDevice: false });
     const groups = createGroupRepository(db).list();
-    expect(groups[0].name).toBe('Fireplace Shelves Left (imported)');
+    expect(groups[0].name).toBe('Fireplace Shelves Left');
   });
 
   it('imports a sunrise timer using the configured home latitude/longitude', async () => {
@@ -260,7 +260,7 @@ describe('importSchedules', () => {
     stubDeviceFetch(cfg, {});
 
     const result = await importSchedules(db, controllerId, { disableOnDevice: false });
-    expect(result.imported[0].name).toBe('Preset 9 (imported)');
+    expect(result.imported[0].name).toBe('Preset 9');
   });
 
   it('reuses the same auto-created group on a second import for the same controller', async () => {
