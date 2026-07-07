@@ -9,9 +9,7 @@ import { segmentToCssColor } from './segmentColor';
  * can run a different effect/color independently. Collapsing to color slots
  * (up to 3 per segment) would either lose that per-zone distinction or bloat
  * the strip with slots that are usually unused (col[1]/col[2] are almost
- * always black in practice). A single blended dot (see dominantColor.ts) is
- * already used for the Home tile's ambient glow; this strip is meant to be
- * the more detailed, explicit readout, so per-segment is the right grain.
+ * always black in practice).
  */
 
 export type LiveSwatchState = 'on' | 'off' | 'unreachable' | 'pending';
@@ -33,7 +31,7 @@ export interface LiveOutputSwatch {
 }
 
 /** Muted grey for a target that isn't reachable at all. */
-export const SWATCH_UNREACHABLE_COLOR = '#3A3F4B'; // matches dominantColor's OFFLINE_GLOW
+export const SWATCH_UNREACHABLE_COLOR = '#3A3F4B';
 /** Placeholder tone before the first SSE event has arrived for a target. */
 export const SWATCH_PENDING_COLOR = '#232B3F';
 /** Placeholder for an 'on' segment before its first live-pixel frame arrives.

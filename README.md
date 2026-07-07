@@ -17,10 +17,10 @@ The app is a responsive shell — left sidebar on desktop, bottom navigation
 bar on phones — with seven sections, opening on Home:
 
 1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
-   controller. Tiles show live power/brightness with an ambient glow derived
-   from the lights' actual current colors (muted when off, grey when
-   offline), plus a small live-output strip with one swatch per segment for
-   an at-a-glance read of exactly what's showing. Quick power toggle and
+   controller. Tiles show live power/brightness with a small status dot
+   (green on, red off, amber mixed, grey offline/unknown) plus a small
+   live-output strip with one swatch per segment for an at-a-glance read of
+   exactly what's showing. Quick power toggle and
    brightness slider on the tile; tapping a tile opens the Control surface
    for it. Long-press (touch) or
    hover-checkbox (desktop) multi-selects tiles into one Control session.
@@ -189,7 +189,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 42 files / 298 tests
-cd client && npm test   # 76 files / 559 tests
+cd client && npm test   # 75 files / 553 tests
 ```
 
 ## Running the whole app locally via Docker

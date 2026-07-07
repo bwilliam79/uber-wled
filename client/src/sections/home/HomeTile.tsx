@@ -24,10 +24,19 @@ const POWER_LABEL: Record<TileStatusV2['power'], string> = {
   unknown: '—'
 };
 
+function statusDotClass(status: TileStatusV2): string {
+  // 'unknown' almost always implies allOffline (aggregateTileStatusLive only
+  // reports it when every member was skipped as offline) — except a room
+  // with zero members, which reports unknown with allOffline: false. Check
+  // power first so that empty-room case also reads as neutral, not "off".
+  if (status.power === 'unknown' || status.allOffline) return 'home-tile-status-dot-offline';
+  if (status.power === 'mixed') return 'home-tile-status-dot-mixed';
+  return status.power === 'on' ? 'home-tile-status-dot-on' : 'home-tile-status-dot-off';
+}
+
 export function HomeTile({
   tile,
   status,
-  glowColor,
   liveSwatches,
   selectMode,
   selected,
@@ -39,7 +48,6 @@ export function HomeTile({
 }: {
   tile: HomeTileData;
   status: TileStatusV2;
-  glowColor: string;
   liveSwatches: LiveOutputSwatch[];
   selectMode: boolean;
   selected: boolean;
@@ -98,9 +106,13 @@ export function HomeTile({
   return (
     <div
       className={classes}
-      style={{ '--tile-glow': glowColor } as React.CSSProperties}
       data-testid={`home-tile-${tile.id}`}
     >
+      <span
+        className={`home-tile-status-dot ${statusDotClass(status)}`}
+        aria-hidden="true"
+        data-testid={`tile-status-dot-${tile.id}`}
+      />
       <input
         type="checkbox"
         className="home-tile-select"
