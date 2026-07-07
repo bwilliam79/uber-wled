@@ -5,10 +5,10 @@ import {
   listControllers, listGroups, listThemes, listSchedules, listCalendarEvents,
   getControllerStatus, getFirmwareStatus, getSettings,
   getCapabilities, listDevicePresets, getControllerConfig, getControllerSegments,
-  listStrips, listRoomLabels,
+  listStrips, listRoomLabels, listSyncGroups,
   type Controller, type Group, type CustomTheme, type ControllerStatus,
   type Schedule, type CalendarEvent, type Settings, type FirmwareStatus,
-  type ControllerCapabilities, type DevicePreset, type Strip, type RoomLabel
+  type ControllerCapabilities, type DevicePreset, type Strip, type RoomLabel, type SyncGroup
 } from './client';
 
 export function useControllers(): UseQueryResult<Controller[]> {
@@ -17,6 +17,10 @@ export function useControllers(): UseQueryResult<Controller[]> {
 
 export function useGroups(): UseQueryResult<Group[]> {
   return useQuery({ queryKey: ['groups'], queryFn: listGroups });
+}
+
+export function useSyncGroups(): UseQueryResult<SyncGroup[]> {
+  return useQuery({ queryKey: ['sync-groups'], queryFn: listSyncGroups });
 }
 
 export function useThemes(): UseQueryResult<CustomTheme[]> {

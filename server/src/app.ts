@@ -6,6 +6,7 @@ import { createSegmentsRouter } from './segments/routes.js';
 import { createStripsRouter } from './strips/routes.js';
 import { createRoomLabelsRouter } from './room_labels/routes.js';
 import { createGroupsRouter } from './groups/routes.js';
+import { createSyncGroupsRouter } from './sync/routes.js';
 import { createThemesRouter } from './themes/routes.js';
 import { createControlRouter } from './control/routes.js';
 import { createSchedulesRouter } from './schedules/routes.js';
@@ -29,6 +30,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/strips', createStripsRouter(db));
   app.use('/api/room-labels', createRoomLabelsRouter(db));
   app.use('/api/groups', createGroupsRouter(db));
+  app.use('/api/sync-groups', createSyncGroupsRouter(db));
   app.use('/api/themes', createThemesRouter(db));
   app.use('/api/control', createControlRouter(db));
   app.use('/api/schedules', createSchedulesRouter(db));
