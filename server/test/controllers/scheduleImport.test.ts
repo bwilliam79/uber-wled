@@ -139,7 +139,11 @@ describe('importSchedules', () => {
     controllerId = createControllerRepository(db).add({ name: 'Porch', host: HOST, source: 'manual' }).id;
   });
 
-  function stubDeviceFetch(cfg: Record<string, unknown>, presets: Record<string, unknown> = { '1': { n: 'Porch warm' } }) {
+  function stubDeviceFetch(
+    cfg: Record<string, unknown>,
+    presets: Record<string, unknown> = { '1': { n: 'Porch warm' } },
+    liveName = 'Porch'
+  ) {
     const postedPatches: unknown[] = [];
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/json/cfg') && (!init || init.method === undefined)) {
@@ -147,6 +151,9 @@ describe('importSchedules', () => {
       }
       if (url.endsWith('/presets.json')) {
         return { ok: true, json: async () => presets } as Response;
+      }
+      if (url.endsWith('/json/info')) {
+        return { ok: true, json: async () => ({ name: liveName, ver: '16.0.0', leds: { count: 30 }, arch: 'esp32' }) } as Response;
       }
       if (url.endsWith('/json/cfg') && init?.method === 'POST') {
         const body = JSON.parse(init.body as string);
@@ -212,6 +219,22 @@ describe('importSchedules', () => {
     expect(schedules).toHaveLength(1);
     expect(schedules[0].groupId).toBe(groups[0].id);
     expect(schedules[0].actionType).toBe('preset');
+  });
+
+  it('names the auto-created group from the live device-reported name, not the stored mDNS-derived controller name', async () => {
+    // Regression: the group name used to be built from controller.name,
+    // which is frozen at add/discovery time (often the raw mDNS hostname,
+    // e.g. "fp-shelves-left") and can be stale — the device's actual
+    // "Server Description" (what the rest of the app shows everywhere else)
+    // could be something completely different, e.g. "Fireplace Shelves Left".
+    stubDeviceFetch(
+      { timers: { ins: [{ en: 1, hour: 18, min: 30, macro: 1, dow: 127, ...YEAR_ROUND }] } },
+      { '1': { n: 'Porch warm' } },
+      'Fireplace Shelves Left'
+    );
+    await importSchedules(db, controllerId, { disableOnDevice: false });
+    const groups = createGroupRepository(db).list();
+    expect(groups[0].name).toBe('Fireplace Shelves Left (imported)');
   });
 
   it('imports a sunrise timer using the configured home latitude/longitude', async () => {
