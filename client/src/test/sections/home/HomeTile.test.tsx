@@ -46,7 +46,6 @@ function renderTile(overrides: Record<string, unknown> = {}) {
   const props = {
     tile: TILE,
     status: STATUS_ON,
-    glowColor: 'rgb(128, 40, 0)',
     liveSwatches: [{ key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)' }],
     selectMode: false,
     selected: false,
@@ -72,10 +71,19 @@ describe('HomeTile', () => {
     expect(screen.getByText('80%')).toBeTruthy(); // 204/255
   });
 
-  it('applies the glow color as the --tile-glow inline custom property', () => {
+  it('shows a green status dot when on', () => {
     renderTile();
-    const el = screen.getByTestId('home-tile-g1');
-    expect(el.style.getPropertyValue('--tile-glow')).toBe('rgb(128, 40, 0)');
+    expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-on');
+  });
+
+  it('shows a red status dot when off', () => {
+    renderTile({ status: { power: 'off', brightness: null, anyOffline: false, allOffline: false } });
+    expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-off');
+  });
+
+  it('shows an amber status dot when members disagree on power', () => {
+    renderTile({ status: { power: 'mixed', brightness: null, anyOffline: false, allOffline: false } });
+    expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-mixed');
   });
 
   it('opens controls when the body is tapped outside select mode', () => {
@@ -131,16 +139,21 @@ describe('HomeTile', () => {
     expect(p.onBrightness).toHaveBeenCalledWith(TILE, 90);
   });
 
-  it('disables quick controls and greys the tile when all members are offline', () => {
+  it('disables quick controls, greys the tile, and shows a grey status dot when all members are offline', () => {
     renderTile({
-      status: { power: 'unknown', brightness: null, anyOffline: true, allOffline: true },
-      glowColor: '#3A3F4B'
+      status: { power: 'unknown', brightness: null, anyOffline: true, allOffline: true }
     });
     expect((screen.getByRole('switch', { name: 'power for Kitchen' }) as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByTestId('home-tile-g1').className).toContain('home-tile-offline');
+    expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-offline');
   });
 
-  it('renders the live-output strip alongside the glow, sized for the tile', () => {
+  it('shows a grey status dot for an empty room (unknown power, not allOffline)', () => {
+    renderTile({ status: { power: 'unknown', brightness: null, anyOffline: false, allOffline: false } });
+    expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-offline');
+  });
+
+  it('renders the live-output strip sized for the tile', () => {
     renderTile();
     const strip = screen.getByRole('img', { name: 'Live output' });
     expect(strip.className).toContain('home-tile-live');
