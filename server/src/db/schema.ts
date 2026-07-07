@@ -223,4 +223,24 @@ export function runMigrations(db: Database.Database): void {
       `);
     })();
   }
+
+  // Widen controller-direct targeting from a single controller to a list —
+  // picking several individual controllers on one schedule/event shouldn't
+  // require first creating a Room group for them. target_controller_id/
+  // target_wled_seg_id become unused legacy columns (left in place; SQLite
+  // doesn't need them dropped) once this backfill runs; the repository
+  // layer only reads/writes target_controllers going forward.
+  for (const table of ['schedules', 'calendar_events']) {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+    if (cols.some((c) => c.name === 'target_controllers')) continue;
+    db.exec(`ALTER TABLE ${table} ADD COLUMN target_controllers TEXT`);
+    const rows = db.prepare(
+      `SELECT id, target_controller_id, target_wled_seg_id FROM ${table} WHERE target_controller_id IS NOT NULL`
+    ).all() as { id: string; target_controller_id: string; target_wled_seg_id: number | null }[];
+    const update = db.prepare(`UPDATE ${table} SET target_controllers = ? WHERE id = ?`);
+    for (const row of rows) {
+      const json = JSON.stringify([{ controllerId: row.target_controller_id, wledSegId: row.target_wled_seg_id }]);
+      update.run(json, row.id);
+    }
+  }
 }

@@ -104,7 +104,7 @@ describe('ScheduleManager v2', () => {
     expect(body.daysOfWeek).toEqual([1]);
     expect(body.actionPayload).toEqual({ themeId: 't1' });
     expect(body.groupId).toBe('g1');
-    expect(body.controllerId).toBeNull();
+    expect(body.controllers).toBeNull();
   });
 
   it('previewing a controller-direct (whole-device) target snapshots every segment and applies via a controller-kind target', async () => {
@@ -115,7 +115,7 @@ describe('ScheduleManager v2', () => {
     fireEvent.click(openBtn);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Direct' } });
     fireEvent.click(screen.getByLabelText('Mon'));
-    fireEvent.click(screen.getByRole('radio', { name: 'Controller' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Controller(s)' }));
     fireEvent.click(screen.getByText('Preview'));
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([u]) => u === '/api/control/apply')).toBe(true)
@@ -135,7 +135,7 @@ describe('ScheduleManager v2', () => {
       const existing = {
         id: 's1', name: 'Evening glow', triggerType: 'weekly', cronExpr: null,
         daysOfWeek: [1, 3], timeOfDay: '19:00', offsetMinutes: 0, latitude: null, longitude: null,
-        groupId: 'g1', controllerId: null, wledSegId: null,
+        groupId: 'g1', controllers: null,
         actionType: 'theme', actionPayload: { themeId: 't1' }, enabled: true
       };
       const fetchMock = vi.fn((url: string, init?: RequestInit) => {

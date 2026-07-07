@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import type { DateRule } from './dateRules.js';
+import type { ScheduleControllerTarget } from '../schedules/repository.js';
 import { seedHolidays } from './holidaySeeds.js';
 
 export interface CalendarEvent {
@@ -10,11 +11,10 @@ export interface CalendarEvent {
   dateRule: DateRule;
   recursYearly: boolean;
   enabled: boolean;
-  /** Exactly one of groupId / controllerId should be set — see the same
-   *  note on schedules/repository.ts's Schedule.groupId. */
+  /** Exactly one of groupId / controllers (non-empty) should be set — see
+   *  the same note on schedules/repository.ts's Schedule.groupId. */
   groupId: string | null;
-  controllerId: string | null;
-  wledSegId: number | null;
+  controllers: ScheduleControllerTarget[] | null;
   triggerTime: { type: 'fixed'; time: string } | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
   actionType: 'power' | 'brightness' | 'preset' | 'theme' | null;
   actionPayload: unknown;
@@ -29,8 +29,7 @@ function fromRow(row: any): CalendarEvent {
     recursYearly: !!row.recurs_yearly,
     enabled: !!row.enabled,
     groupId: row.group_id,
-    controllerId: row.target_controller_id,
-    wledSegId: row.target_wled_seg_id,
+    controllers: row.target_controllers ? JSON.parse(row.target_controllers) : null,
     triggerTime: JSON.parse(row.trigger_time),
     actionType: row.action_type,
     actionPayload: row.action_payload ? JSON.parse(row.action_payload) : null
@@ -54,12 +53,12 @@ export function createCalendarRepository(db: Database.Database) {
       const id = randomUUID();
       db.prepare(
         `INSERT INTO calendar_events
-          (id, name, category, date_rule, recurs_yearly, enabled, group_id, target_controller_id, target_wled_seg_id, trigger_time, action_type, action_payload)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          (id, name, category, date_rule, recurs_yearly, enabled, group_id, target_controllers, trigger_time, action_type, action_payload)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         id, input.name, input.category, JSON.stringify(input.dateRule),
         input.recursYearly ? 1 : 0, input.enabled ? 1 : 0,
-        input.groupId, input.controllerId, input.wledSegId,
+        input.groupId, input.controllers ? JSON.stringify(input.controllers) : null,
         JSON.stringify(input.triggerTime), input.actionType,
         input.actionPayload !== null && input.actionPayload !== undefined ? JSON.stringify(input.actionPayload) : null
       );
@@ -72,12 +71,12 @@ export function createCalendarRepository(db: Database.Database) {
       const next = { ...existing, ...patch };
       db.prepare(
         `UPDATE calendar_events SET name = ?, category = ?, date_rule = ?, recurs_yearly = ?,
-          enabled = ?, group_id = ?, target_controller_id = ?, target_wled_seg_id = ?,
+          enabled = ?, group_id = ?, target_controllers = ?,
           trigger_time = ?, action_type = ?, action_payload = ?
          WHERE id = ?`
       ).run(
         next.name, next.category, JSON.stringify(next.dateRule), next.recursYearly ? 1 : 0,
-        next.enabled ? 1 : 0, next.groupId, next.controllerId, next.wledSegId,
+        next.enabled ? 1 : 0, next.groupId, next.controllers ? JSON.stringify(next.controllers) : null,
         JSON.stringify(next.triggerTime), next.actionType,
         next.actionPayload !== null && next.actionPayload !== undefined ? JSON.stringify(next.actionPayload) : null,
         id

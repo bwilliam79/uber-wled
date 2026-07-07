@@ -99,4 +99,39 @@ describe('schema migrations (phase B additions)', () => {
       ).run()
     ).not.toThrow();
   });
+
+  it('adds target_controllers to schedules and calendar_events', () => {
+    const db = createDb(':memory:');
+    expect(columnNames(db, 'schedules')).toContain('target_controllers');
+    expect(columnNames(db, 'calendar_events')).toContain('target_controllers');
+  });
+
+  it('backfills target_controllers from a pre-existing single target_controller_id/target_wled_seg_id row', () => {
+    const db = createDb(':memory:'); // migrations already ran; simulate the OLD (pre-list) shape
+    db.exec(`
+      CREATE TABLE schedules_old (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL,
+        trigger_type TEXT NOT NULL CHECK (trigger_type IN ('cron','sunrise','sunset','weekly')),
+        cron_expr TEXT, days_of_week TEXT, time_of_day TEXT, offset_minutes INTEGER NOT NULL DEFAULT 0,
+        latitude REAL, longitude REAL, group_id TEXT REFERENCES groups(id),
+        target_controller_id TEXT REFERENCES controllers(id), target_wled_seg_id INTEGER,
+        action_type TEXT NOT NULL CHECK (action_type IN ('preset','theme','power','brightness')),
+        action_payload TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1
+      );
+      DROP TABLE schedules;
+      ALTER TABLE schedules_old RENAME TO schedules;
+    `);
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')").run();
+    db.prepare(
+      `INSERT INTO schedules (id, name, trigger_type, days_of_week, time_of_day, offset_minutes, target_controller_id, target_wled_seg_id, action_type, action_payload, enabled)
+       VALUES ('s1', 'Direct segment', 'weekly', '[1]', '08:00', 0, 'c1', 2, 'power', '{"on":true}', 1)`
+    ).run();
+    expect(columnNames(db, 'schedules')).not.toContain('target_controllers');
+
+    runMigrations(db);
+
+    expect(columnNames(db, 'schedules')).toContain('target_controllers');
+    const row = db.prepare('SELECT target_controllers FROM schedules WHERE id = ?').get('s1') as any;
+    expect(JSON.parse(row.target_controllers)).toEqual([{ controllerId: 'c1', wledSegId: 2 }]);
+  });
 });

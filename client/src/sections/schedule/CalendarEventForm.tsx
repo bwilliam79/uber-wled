@@ -46,8 +46,8 @@ export function CalendarEventForm({
   );
   const [target, setTarget] = useState<TargetValue>(
     initialEvent
-      ? { groupId: initialEvent.groupId, controllerId: initialEvent.controllerId, wledSegId: initialEvent.wledSegId }
-      : { groupId: groups[0]?.id ?? null, controllerId: null, wledSegId: null }
+      ? { groupId: initialEvent.groupId, controllers: initialEvent.controllers }
+      : { groupId: groups[0]?.id ?? null, controllers: null }
   );
   const [themeId, setThemeId] = useState(initialEvent ? themeIdOf(initialEvent) : (themes[0]?.id ?? ''));
   const [error, setError] = useState<string | null>(null);
