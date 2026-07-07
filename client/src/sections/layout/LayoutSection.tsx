@@ -47,9 +47,13 @@ export function LayoutSection() {
   const canvasSize = useElementSize(svgRef);
   const gridStep = computeGridStep(canvasSize, viewport);
 
+  // Every known controller, not just ones with an existing strip — the
+  // strip-save panel's Controller dropdown lets you pick any controller
+  // (including ones with zero strips so far), and needs live names for all
+  // of them, not just the subset that happens to already have strips.
   const controllerIds = useMemo(
-    () => Array.from(new Set(strips.map((s) => s.controllerId))).sort(),
-    [strips]
+    () => Array.from(new Set([...strips.map((s) => s.controllerId), ...controllers.map((c) => c.id)])).sort(),
+    [strips, controllers]
   );
   const live = useLiveStatus(controllerIds);
 
