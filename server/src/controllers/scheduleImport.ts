@@ -237,7 +237,11 @@ export async function importSchedules(
     });
   }
 
-  const groupName = liveName;
+  // Distinct from the controller's own live name, on purpose — the Home
+  // page shows Rooms and controllers as separate tiles, and giving this
+  // group the exact same name as its one member reads as an unexplained
+  // duplicate.
+  const groupName = `${liveName} schedule`;
   let group = groups.list().find((g) => g.name === groupName);
   const homeSettings = settings.get();
 
