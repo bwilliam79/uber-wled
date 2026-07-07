@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell, sectionFromHash } from '../components/AppShell';
 import { ToastProvider } from '../components/ui/Toast';
 
-const SEVEN = ['Home', 'Layout', 'Devices', 'Themes', 'Schedule', 'Firmware', 'Settings'];
+const EIGHT = ['Home', 'Layout', 'Devices', 'Themes', 'Schedule', 'Sync', 'Firmware', 'Settings'];
 
 function renderShell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
@@ -25,14 +25,14 @@ afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
 describe('AppShell v2', () => {
-  it('opens on Home and lists exactly the seven sections in the sidebar (no Groups)', async () => {
+  it('opens on Home and lists exactly the eight sections in the sidebar (no Groups)', async () => {
     stubFetchEmpty();
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Sections' });
     await waitFor(() =>
       expect(within(sidebar).getByRole('button', { name: /Home/ }).className).toContain('active')
     );
-    for (const name of SEVEN) {
+    for (const name of EIGHT) {
       expect(within(sidebar).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
     expect(within(sidebar).queryByRole('button', { name: /Groups/ })).toBeNull();
@@ -40,13 +40,22 @@ describe('AppShell v2', () => {
     expect(within(sidebar).getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy();
   });
 
-  it('renders a bottom navigation with the same seven sections', () => {
+  it('renders a bottom navigation with the same eight sections', () => {
     stubFetchEmpty();
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Bottom navigation' });
-    for (const name of SEVEN) {
+    for (const name of EIGHT) {
       expect(within(bottom).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
+  });
+
+  it('renders the Sync section', async () => {
+    stubFetchEmpty();
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    fireEvent.click(within(sidebar).getByRole('button', { name: /Sync/ }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Sync' })).toBeTruthy());
+    expect(window.location.hash).toBe('#/sync');
   });
 
   it('renders the Devices section', async () => {

@@ -7,6 +7,7 @@ import { DevicesSection } from '../sections/devices/DevicesSection';
 import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from '../sections/layout/LayoutSection';
 import { ScheduleSection } from '../sections/schedule/ScheduleSection';
+import { SyncSection } from '../sections/sync/SyncSection';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 import { SettingsSection } from '../sections/settings/SettingsSection';
 import { useFirmwareUpdateAvailable } from '../api/queries';
@@ -57,6 +58,7 @@ export function AppShell() {
         {active === 'devices' && <DevicesSection />}
         {active === 'themes' && <ThemesSection />}
         {active === 'schedule' && <ScheduleSection />}
+        {active === 'sync' && <SyncSection />}
         {active === 'firmware' && (
           <FirmwareSection
             onOpenDeviceUpdate={(controllerId) => {
