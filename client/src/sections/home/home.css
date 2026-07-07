@@ -20,19 +20,36 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
-  box-shadow: 0 0 36px -10px var(--tile-glow);
   overflow: hidden;
-}
-.home-tile::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(120% 90% at 85% 0%, var(--tile-glow) 0%, transparent 65%);
-  opacity: 0.14;
-  pointer-events: none;
 }
 .home-tile-offline { opacity: 0.65; }
 .home-tile-selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.home-tile-status-dot {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.home-tile-status-dot-on {
+  background: var(--success);
+  box-shadow: 0 0 6px 1px var(--success);
+}
+.home-tile-status-dot-off {
+  background: var(--danger);
+  box-shadow: 0 0 6px 1px var(--danger);
+}
+.home-tile-status-dot-mixed {
+  background: var(--warning);
+  box-shadow: 0 0 6px 1px var(--warning);
+}
+.home-tile-status-dot-offline {
+  background: var(--text-muted);
+}
 
 .home-tile-select {
   position: absolute;

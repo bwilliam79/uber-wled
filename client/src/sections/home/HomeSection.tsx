@@ -22,7 +22,6 @@ import { HomeTile, type HomeTileData } from './HomeTile';
 import { RoomCreateModal } from './RoomCreateModal';
 import { RoomEditTile } from './RoomEditTile';
 import { aggregateTileStatusLive, type TileStatusV2 } from '../../lib/tileStatus';
-import { dominantColor, OFF_GLOW, OFFLINE_GLOW } from '../../lib/dominantColor';
 import { swatchesForMembers, type LiveOutputSwatch } from '../../lib/liveOutputSwatches';
 import { throttle } from '../../lib/throttle';
 import { moveId, dropIndexForPoint } from './reorder';
@@ -233,18 +232,6 @@ export function HomeSection() {
     return swatchesForMembers(tile.members, live, livePixelsByController);
   }
 
-  function glowFor(tile: HomeTileData, status: TileStatusV2): string {
-    if (status.allOffline) return OFFLINE_GLOW;
-    for (const m of tile.members) {
-      const src = live.get(m.controllerId);
-      if (src?.reachable && src.state) {
-        const color = dominantColor(src.state);
-        if (color !== OFF_GLOW && color !== OFFLINE_GLOW) return color;
-      }
-    }
-    return OFF_GLOW;
-  }
-
   function setOverride(tileId: string, patch: { on?: boolean; bri?: number }) {
     setOverrides((prev) => {
       const next = new Map(prev);
@@ -335,7 +322,6 @@ export function HomeSection() {
                 key={tile.id}
                 tile={tile}
                 status={status}
-                glowColor={glowFor(tile, status)}
                 liveSwatches={liveSwatchesFor(tile)}
                 selectMode={selectMode}
                 selected={selectedIds.has(tile.id)}

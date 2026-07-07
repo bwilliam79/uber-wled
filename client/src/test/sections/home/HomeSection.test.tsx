@@ -109,22 +109,20 @@ describe('HomeSection grid', () => {
     expect(ids).toEqual(['home-tile-g1', 'home-tile-g2', 'home-tile-c2']);
   });
 
-  it('derives tile glow from the dominant live segment color', async () => {
+  it('shows a green status dot for a tile that is on', async () => {
     stubFetch();
     renderHome();
     await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
-    // seg0 col [255,80,0] scaled by master bri 128/255
-    expect(screen.getByTestId('home-tile-g1').style.getPropertyValue('--tile-glow'))
-      .toBe('rgb(128, 40, 0)');
+    expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-on');
   });
 
-  it('greys out a tile whose controller has no live entry', async () => {
+  it('greys out a tile whose controller has no live entry, with a grey status dot', async () => {
     stubFetch();
     renderHome();
     await waitFor(() => expect(screen.getByText('Desk Strip')).toBeTruthy());
     const tile = screen.getByTestId('home-tile-c2');
     expect(tile.className).toContain('home-tile-offline');
-    expect(tile.style.getPropertyValue('--tile-glow')).toBe('#3A3F4B');
+    expect(screen.getByTestId('tile-status-dot-c2').className).toContain('home-tile-status-dot-offline');
   });
 
   it('sends a v2 seg power patch for a group tile toggle, optimistically flipping the tile', async () => {
