@@ -37,6 +37,12 @@ function mockCanvasRect(size: number) {
   (Element.prototype.getBoundingClientRect as unknown as Mock).mockReturnValue({
     left: 0, top: 0, width: size, height: size, right: size, bottom: size, x: 0, y: 0, toJSON: () => ({})
   } as DOMRect);
+  // useElementSize (feeds computeGridStep, which the grid-snap tests below
+  // depend on) reads clientWidth/clientHeight, not getBoundingClientRect —
+  // these must stay consistent or the canvas size it sees won't match the
+  // coordinate mapping above.
+  vi.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(size);
+  vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(size);
 }
 
 beforeEach(() => {
@@ -165,6 +171,41 @@ describe('draw flow', () => {
     expect(screen.getByRole('button', { name: 'Draw strip' })).toBeDefined();
   });
 
+  it('shift constrains a placed vertex to the nearest 45-degree angle from the previous one', async () => {
+    // End-to-end coverage for angle-snap now that it's applied entirely by
+    // the caller (applyDrawSnap) rather than re-applied inside the reducer.
+    // (10,10) -> raw click (34,17): dx=24, dy=7, a 7-24-25 right triangle, so
+    // distance is a clean 25; the angle (~16.3 deg) snaps to horizontal (0),
+    // giving an exact (35,10) instead of the raw unsnapped point.
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.click(canvas, { clientX: 10, clientY: 10 });
+    fireEvent.click(canvas, { clientX: 34, clientY: 17, shiftKey: true });
+    expect(screen.getByTestId('draw-line').getAttribute('points')).toBe('10,10 35,10');
+  });
+
+  it('snaps to the coarsened grid step at a realistic canvas size, not the raw GRID_SIZE', async () => {
+    // Regression test for the REAL bug: a 100x100 test canvas (used by every
+    // other test in this file) never needs step-coarsening (100/2 = 50 lines,
+    // under the 150 cap), so it never exercised this at all — every previous
+    // test kept passing while the actual browser (canvases hundreds of px
+    // wide) coarsened the *visible* grid to e.g. every 16 units while still
+    // snapping placed points to the raw 2-unit grid, which never lands on a
+    // visible intersection. At 1552px wide, the step coarsens to 16 (see
+    // computeGridStep). Click at (100,105): nearest multiples of 16 are
+    // 96 and 112.
+    mockCanvasRect(1552);
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByLabelText('Snap to grid'));
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.click(canvas, { clientX: 100, clientY: 105 });
+    expect(screen.getByTestId('draw-line').getAttribute('points')).toBe('96,112');
+  });
+
   it('snap to grid actually snaps placed vertices, not just the preview cursor', async () => {
     // Regression test: the toggle correctly enabled the visual grid and the
     // rubber-band preview snapped, but handleCanvasClick placed the raw
@@ -256,6 +297,29 @@ describe('editing', () => {
       expect(patch).toBeDefined();
       expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
         points: [{ x: 15, y: 30 }, { x: 45, y: 30 }]
+      });
+    });
+  });
+
+  it('dragging a whole strip with snap to grid on snaps by a single reference point, without distorting the shape', async () => {
+    // Regression test: dragStrip had no grid-snap handling at all — a
+    // dragged strip landed at whatever raw pixel offset the pointer stopped
+    // at, "Snap to grid" or not. Snapping every vertex independently would
+    // distort the strip's shape, so this snaps by the first vertex only and
+    // applies that same correction to every point (GRID_SIZE is 2).
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByLabelText('Snap to grid'));
+    await selectStripByPointer('s1', 20, 10);
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.pointerDown(screen.getByTestId('strip-hit-s1'), { clientX: 20, clientY: 10 });
+    fireEvent.pointerMove(canvas, { clientX: 23, clientY: 31 }); // dx=3, dy=21 -> raw (13,31)/(43,31)
+    fireEvent.pointerUp(canvas, { clientX: 23, clientY: 31 });
+    await waitFor(() => {
+      const patch = fetchMock.mock.calls.find(([u, i]) => u === '/api/strips/s1' && (i as RequestInit)?.method === 'PATCH');
+      expect(patch).toBeDefined();
+      expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
+        points: [{ x: 14, y: 32 }, { x: 44, y: 32 }]
       });
     });
   });

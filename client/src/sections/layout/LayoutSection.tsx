@@ -9,11 +9,11 @@ import { useLiveStatus } from '../../api/live';
 import { ControlSurface } from '../../control/ControlSurface';
 import { useToast } from '../../components/ui/Toast';
 import {
-  IDENTITY_VIEWPORT, fitAllViewport, normalizeRect, panBy, polylineIntersectsRect,
+  IDENTITY_VIEWPORT, computeGridStep, fitAllViewport, normalizeRect, panBy, polylineIntersectsRect,
   screenToWorld, snapAngle, snapToGrid, zoomAt, type Point, type Viewport
 } from './geometry';
 import { initialLayoutState, layoutReducer } from './canvasMode';
-import { LayoutCanvas } from './LayoutCanvas';
+import { LayoutCanvas, useElementSize } from './LayoutCanvas';
 import './layout.css';
 
 /** Fit-all always includes the legacy 0..100 world box so the "floor" stays framed. */
@@ -41,6 +41,11 @@ export function LayoutSection() {
   const [newLabelName, setNewLabelName] = useState('');
   const svgRef = useRef<SVGSVGElement | null>(null);
   const touchPointsRef = useRef<Map<number, Point>>(new Map());
+  // Must match the grid LayoutCanvas actually draws (see computeGridStep's
+  // doc comment) — snapping to the raw, un-coarsened GRID_SIZE never lands
+  // on a visible grid intersection at realistic canvas sizes.
+  const canvasSize = useElementSize(svgRef);
+  const gridStep = computeGridStep(canvasSize, viewport);
 
   const controllerIds = useMemo(
     () => Array.from(new Set(strips.map((s) => s.controllerId))).sort(),
@@ -169,7 +174,7 @@ export function LayoutSection() {
     if (state.mode.name === 'draw' && shift && state.mode.vertices.length > 0) {
       out = snapAngle(state.mode.vertices[state.mode.vertices.length - 1], out);
     }
-    if (state.gridSnap) out = snapToGrid(out);
+    if (state.gridSnap) out = snapToGrid(out, gridStep);
     return out;
   }
 
@@ -251,16 +256,32 @@ export function LayoutSection() {
       const dy = world.y - state.mode.last.y;
       setDragOverride((prev) => {
         const next = new Map(prev);
+        const rawPoints = new Map<string, Point[]>();
         for (const id of state.selection) {
           const base = next.get(id) ?? strips.find((s) => s.id === id)?.points;
-          if (base) next.set(id, base.map((p) => ({ x: p.x + dx, y: p.y + dy })));
+          if (base) rawPoints.set(id, base.map((p) => ({ x: p.x + dx, y: p.y + dy })));
+        }
+        // Snap by a single reference point (the first selected strip's first
+        // vertex) and apply that same correction to every point in the whole
+        // selection, rather than snapping each point independently — which
+        // would distort the strip's shape instead of just repositioning it.
+        let correction = { x: 0, y: 0 };
+        if (state.gridSnap) {
+          const anchor = rawPoints.get(state.selection[0])?.[0];
+          if (anchor) {
+            const snapped = snapToGrid(anchor, gridStep);
+            correction = { x: snapped.x - anchor.x, y: snapped.y - anchor.y };
+          }
+        }
+        for (const [id, points] of rawPoints) {
+          next.set(id, points.map((p) => ({ x: p.x + correction.x, y: p.y + correction.y })));
         }
         return next;
       });
     }
     if (state.mode.name === 'dragVertex') {
       const { stripId, vertexIndex } = state.mode;
-      const target = state.gridSnap ? snapToGrid(world) : world;
+      const target = state.gridSnap ? snapToGrid(world, gridStep) : world;
       setDragOverride((prev) => {
         const next = new Map(prev);
         const base = next.get(stripId) ?? strips.find((s) => s.id === stripId)?.points;

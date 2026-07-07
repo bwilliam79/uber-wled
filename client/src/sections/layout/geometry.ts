@@ -52,6 +52,37 @@ export function snapToGrid(p: Point, grid: number = GRID_SIZE): Point {
   return { x: Math.round(p.x / grid) * grid, y: Math.round(p.y / grid) * grid };
 }
 
+/** Max grid lines drawn per axis before the step doubles — keeps a
+ *  far-zoomed-out view from rendering (and snapping to) thousands of lines. */
+export const MAX_GRID_LINES_PER_AXIS = 150;
+
+/**
+ * The actual on-screen grid spacing for the given canvas size + viewport —
+ * GRID_SIZE (2 world units) coarsened by doubling until the visible line
+ * count fits MAX_GRID_LINES_PER_AXIS (see LayoutCanvas's computeGridLines,
+ * which renders exactly this step). Snapping must use this same effective
+ * step, not the raw GRID_SIZE constant: at typical canvas sizes and the
+ * default 1:1 viewport, real strip coordinates span hundreds of world units
+ * (they're built from screen pixels), so GRID_SIZE=2 alone coarsens the
+ * *rendered* grid to something like every 16-64 units for legibility — but a
+ * point snapped to a bare 2-unit grid almost never lands on one of those
+ * visible intersections, making "Snap to grid" look like it does nothing.
+ */
+export function computeGridStep(
+  canvasSize: { width: number; height: number },
+  vp: Viewport
+): number {
+  const corner1 = screenToWorld(vp, { x: 0, y: 0 });
+  const corner2 = screenToWorld(vp, { x: canvasSize.width, y: canvasSize.height });
+  const spanX = Math.abs(corner2.x - corner1.x);
+  const spanY = Math.abs(corner2.y - corner1.y);
+  let step = GRID_SIZE;
+  while (spanX / step > MAX_GRID_LINES_PER_AXIS || spanY / step > MAX_GRID_LINES_PER_AXIS) {
+    step *= 2;
+  }
+  return step;
+}
+
 export function distToSegment(p: Point, a: Point, b: Point): number {
   const abx = b.x - a.x;
   const aby = b.y - a.y;

@@ -1,11 +1,11 @@
 import { useEffect, useState, type RefObject } from 'react';
 import type { RoomLabel, Strip } from '../../api/client';
-import { GRID_SIZE, HIT_TOLERANCE_PX, screenToWorld, type Point, type Rect, type Viewport } from './geometry';
+import { HIT_TOLERANCE_PX, computeGridStep, screenToWorld, type Point, type Rect, type Viewport } from './geometry';
 import { stripStrokeColor, type LiveControllerStatus } from './stripColors';
 import { RoomLabels } from './RoomLabels';
 
 /** Tracks an element's CSS pixel size (0,0 until the ref mounts). */
-function useElementSize(ref: RefObject<Element | null>): { width: number; height: number } {
+export function useElementSize(ref: RefObject<Element | null>): { width: number; height: number } {
   const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     const el = ref.current;
@@ -19,10 +19,6 @@ function useElementSize(ref: RefObject<Element | null>): { width: number; height
   return size;
 }
 
-/** Max grid lines drawn per axis — beyond this the step doubles (coarser
- *  grid) so a far-zoomed-out view doesn't render thousands of lines. */
-export const MAX_GRID_LINES_PER_AXIS = 150;
-
 export interface GridLine { pos: number; major: boolean }
 
 /** World-space coordinates of every grid line that should be visible for the
@@ -32,7 +28,12 @@ export interface GridLine { pos: number; major: boolean }
  *  hundreds), which made the grid render as a tiny corner square instead of
  *  covering the visible canvas. Major lines land on absolute multiples of the
  *  step so alignment stays stable as the user pans, not just relative to
- *  whatever's currently in view. Exported for direct unit testing. */
+ *  whatever's currently in view. Exported for direct unit testing.
+ *
+ *  Uses the SAME effective step as computeGridStep (geometry.ts), which is
+ *  also what actual point-snapping uses — the visible grid and the snap
+ *  target must always agree, or "Snap to grid" silently snaps to a grid
+ *  finer than what's drawn and never lands on a visible intersection. */
 export function computeGridLines(
   canvasSize: { width: number; height: number },
   vp: Viewport
@@ -44,13 +45,7 @@ export function computeGridLines(
   const minYRaw = Math.min(corner1.y, corner2.y);
   const maxYRaw = Math.max(corner1.y, corner2.y);
 
-  let step = GRID_SIZE;
-  while (
-    (maxXRaw - minXRaw) / step > MAX_GRID_LINES_PER_AXIS ||
-    (maxYRaw - minYRaw) / step > MAX_GRID_LINES_PER_AXIS
-  ) {
-    step *= 2;
-  }
+  const step = computeGridStep(canvasSize, vp);
   const majorStep = step * 4;
 
   const build = (minRaw: number, maxRaw: number): GridLine[] => {
