@@ -30,13 +30,17 @@ const TAB_ITEMS: { id: DeviceTab; label: string }[] = [
 export function DeviceDetail({ controller, live, tab, onTabChange, onBack }: DeviceDetailProps) {
   const ledCount = live?.info?.leds.count ?? 0;
   const maxSeg = live?.info?.leds.maxseg ?? 32;
+  // Same reasoning as DeviceCard: controller.name is frozen at add/discovery
+  // time (often a raw mDNS service name); prefer the live device-reported
+  // name so this header stays consistent with the card the user just clicked.
+  const displayName = live?.info?.name || controller.name;
 
   return (
     <div className="device-detail">
       <header className="device-detail-header">
         <IconButton label="Back to devices" onClick={onBack}>←</IconButton>
         <div className="device-detail-titles">
-          <h2>{controller.name}</h2>
+          <h2>{displayName}</h2>
           <p className="device-card-host">{controller.host}</p>
         </div>
         {live !== undefined && !live.reachable && <Chip variant="danger">Offline</Chip>}
