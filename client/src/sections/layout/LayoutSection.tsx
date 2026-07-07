@@ -458,7 +458,7 @@ export function LayoutSection() {
               onChange={(e) => setFormControllerId(e.target.value)}
             >
               {controllers.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>{live.get(c.id)?.info?.name || c.name}</option>
               ))}
             </select>
           </div>

@@ -1,32 +1,62 @@
 import { useState } from 'react';
 import {
-  addCalendarEvent, ConflictError,
+  addCalendarEvent, updateCalendarEvent, ConflictError,
   type CalendarEvent, type CustomTheme, type Group
 } from '../../api/client';
+import { resolveDate } from '../../lib/dateRules';
 import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { Select } from '../../components/ui/Select';
 
+function themeIdOf(event: CalendarEvent): string {
+  return (event.actionPayload as { themeId?: string } | null)?.themeId ?? '';
+}
+
 export function CalendarEventForm({
   groups,
   themes,
-  onCreated
+  initialEvent,
+  onCreated,
+  onSaved
 }: {
   groups: Group[];
   themes: CustomTheme[];
-  onCreated: (event: CalendarEvent) => void;
+  /** Present in edit mode — pre-fills the form and PATCHes this event
+   *  instead of creating a new one. Its category (holiday vs custom) is
+   *  preserved either way; this form only ever edits name/group/theme/time,
+   *  plus the date when the event's dateRule is a plain fixed month/day
+   *  (holidays defined by a computed rule like "4th Thursday of November"
+   *  keep that rule as-is — this form has no UI for editing those rules). */
+  initialEvent?: CalendarEvent;
+  onCreated?: (event: CalendarEvent) => void;
+  onSaved?: (event: CalendarEvent) => void;
 }) {
-  const [name, setName] = useState('');
-  const [month, setMonth] = useState(1);
-  const [day, setDay] = useState(1);
-  const [time, setTime] = useState('18:00');
-  const [groupId, setGroupId] = useState(groups[0]?.id ?? '');
-  const [themeId, setThemeId] = useState(themes[0]?.id ?? '');
+  const fixedDate = initialEvent?.dateRule.kind === 'fixed' ? initialEvent.dateRule : null;
+  const [name, setName] = useState(initialEvent?.name ?? '');
+  const [month, setMonth] = useState(fixedDate?.month ?? 1);
+  const [day, setDay] = useState(fixedDate?.day ?? 1);
+  const [time, setTime] = useState(
+    initialEvent?.triggerTime.type === 'fixed' ? initialEvent.triggerTime.time : '18:00'
+  );
+  const [groupId, setGroupId] = useState(initialEvent?.groupId ?? groups[0]?.id ?? '');
+  const [themeId, setThemeId] = useState(initialEvent ? themeIdOf(initialEvent) : (themes[0]?.id ?? ''));
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
     setError(null);
     try {
+      if (initialEvent) {
+        const saved = await updateCalendarEvent(initialEvent.id, {
+          name,
+          dateRule: fixedDate ? { kind: 'fixed', month, day } : initialEvent.dateRule,
+          groupId: groupId || null,
+          triggerTime: { type: 'fixed', time },
+          actionType: 'theme',
+          actionPayload: { themeId }
+        });
+        onSaved?.(saved);
+        return;
+      }
       const created = await addCalendarEvent({
         name,
         category: 'custom',
@@ -38,7 +68,7 @@ export function CalendarEventForm({
         actionType: 'theme',
         actionPayload: { themeId }
       });
-      onCreated(created);
+      onCreated?.(created);
     } catch (err) {
       if (err instanceof ConflictError) {
         setError(
@@ -59,18 +89,33 @@ export function CalendarEventForm({
         />
       </Field>
       <div className="form-row">
-        <Field label="Month" htmlFor="calendar-event-month">
-          <input
-            id="calendar-event-month" aria-label="month" className="input" type="number"
-            min={1} max={12} value={month} onChange={(e) => setMonth(Number(e.target.value))}
-          />
-        </Field>
-        <Field label="Day" htmlFor="calendar-event-day">
-          <input
-            id="calendar-event-day" aria-label="day" className="input" type="number"
-            min={1} max={31} value={day} onChange={(e) => setDay(Number(e.target.value))}
-          />
-        </Field>
+        {fixedDate || !initialEvent ? (
+          <>
+            <Field label="Month" htmlFor="calendar-event-month">
+              <input
+                id="calendar-event-month" aria-label="month" className="input" type="number"
+                min={1} max={12} value={month} onChange={(e) => setMonth(Number(e.target.value))}
+              />
+            </Field>
+            <Field label="Day" htmlFor="calendar-event-day">
+              <input
+                id="calendar-event-day" aria-label="day" className="input" type="number"
+                min={1} max={31} value={day} onChange={(e) => setDay(Number(e.target.value))}
+              />
+            </Field>
+          </>
+        ) : (
+          <Field label="Date" htmlFor="calendar-event-computed-date">
+            <p id="calendar-event-computed-date" className="control-label">
+              {(() => {
+                const resolved = resolveDate(initialEvent.dateRule, new Date().getFullYear());
+                return resolved
+                  ? `Computed date — ${resolved.month}/${resolved.day} this year, can't be edited here`
+                  : "Computed date — can't be edited here";
+              })()}
+            </p>
+          </Field>
+        )}
         <Field label="Time" htmlFor="calendar-event-time">
           <input
             id="calendar-event-time" aria-label="event time" className="input" type="time"

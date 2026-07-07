@@ -65,4 +65,27 @@ describe('ScheduleSection v2', () => {
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
     await waitFor(() => expect(screen.getByText('Weekly schedules')).toBeTruthy());
   });
+
+  it('Edit opens a pre-filled form and PATCHes the event on save, including for a holiday', async () => {
+    // Regression: there was previously no way to edit an existing calendar
+    // event at all (holiday or custom) — only toggle enabled/Remove, or
+    // create a brand new one. This is the "I don't see any way to set a
+    // theme for a holiday entry" gap.
+    const fetchMock = stub();
+    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('day-31'));
+    fireEvent.click(await screen.findByText('Edit'));
+    expect((await screen.findByLabelText('event name') as HTMLInputElement).value).toBe('Halloween');
+    fireEvent.change(screen.getByLabelText('event name'), { target: { value: 'Halloween (spookier)' } });
+    fireEvent.click(screen.getByText('Save'));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/calendar-events/e1', expect.objectContaining({ method: 'PATCH' }))
+    );
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) => url === '/api/calendar-events/e1' && (init as RequestInit)?.method === 'PATCH'
+    );
+    expect(JSON.parse((call![1] as RequestInit).body as string).name).toBe('Halloween (spookier)');
+    await waitFor(() => expect(screen.queryByLabelText('event name')).toBeNull());
+  });
 });
