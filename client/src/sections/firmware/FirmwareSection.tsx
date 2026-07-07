@@ -1,5 +1,6 @@
 import type { Controller } from '../../api/client';
 import { useControllers, useFirmwareStatus } from '../../api/queries';
+import { useLiveStatus, type LiveStatusEntry } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
@@ -7,16 +8,21 @@ import './firmware.css';
 
 function FirmwareRow({
   controller,
+  live,
   onOpenDeviceUpdate
 }: {
   controller: Controller;
+  live: LiveStatusEntry | undefined;
   onOpenDeviceUpdate: (controllerId: string) => void;
 }) {
   const status = useFirmwareStatus(controller.id);
+  // Prefer the live device-reported name over the frozen (often mDNS)
+  // stored name — same reasoning as DeviceCard/DeviceDetail/Home/Control.
+  const displayName = live?.info?.name || controller.name;
   return (
     <li className="firmware-row">
       <div className="firmware-row-info">
-        <span className="firmware-row-name">{controller.name}</span>
+        <span className="firmware-row-name">{displayName}</span>
         <span className="firmware-row-host">{controller.host}</span>
       </div>
       <div className="firmware-row-status">
@@ -42,7 +48,7 @@ function FirmwareRow({
       </div>
       <Button
         variant={status.data?.updateAvailable ? 'primary' : 'secondary'}
-        aria-label={`Open update for ${controller.name}`}
+        aria-label={`Open update for ${displayName}`}
         onClick={() => onOpenDeviceUpdate(controller.id)}
       >
         {status.data?.updateAvailable ? 'Update…' : 'Manage…'}
@@ -57,6 +63,8 @@ export function FirmwareSection({
   onOpenDeviceUpdate: (controllerId: string) => void;
 }) {
   const controllers = useControllers();
+  const controllerIds = controllers.data?.map((c) => c.id) ?? [];
+  const live = useLiveStatus(controllerIds);
   return (
     <section className="section firmware-section">
       <h2>Firmware</h2>
@@ -70,7 +78,7 @@ export function FirmwareSection({
         {controllers.data && controllers.data.length > 0 && (
           <ul className="firmware-list">
             {controllers.data.map((c) => (
-              <FirmwareRow key={c.id} controller={c} onOpenDeviceUpdate={onOpenDeviceUpdate} />
+              <FirmwareRow key={c.id} controller={c} live={live.get(c.id)} onOpenDeviceUpdate={onOpenDeviceUpdate} />
             ))}
           </ul>
         )}
