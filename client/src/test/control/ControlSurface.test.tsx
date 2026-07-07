@@ -91,6 +91,15 @@ describe('ControlSurface', () => {
     expect(applyControl).toHaveBeenCalledWith([TWO_TARGETS[0]], { bri: 50 });
   });
 
+  it('prefers the live device-reported name over the stored controller name for target chips', () => {
+    // CONTROLLERS[0].name is 'Cabinet' (stored); liveEntry()'s default info
+    // reports 'Cabinet Lights' — the chip should show the live name.
+    setupMocks(new Map([['cA', liveEntry(makeState([makeSeg(0)]))]]));
+    render(<ControlSurface targets={[TWO_TARGETS[0]]} open onClose={vi.fn()} />);
+    expect(screen.getByText('Cabinet Lights')).toBeTruthy();
+    expect(screen.queryByText('Cabinet', { exact: true })).toBeNull();
+  });
+
   it('removing a target chip narrows subsequent writes', () => {
     setupMocks(new Map([
       ['cA', liveEntry(makeState([makeSeg(0)]))],

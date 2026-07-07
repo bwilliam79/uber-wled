@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { Controller, Group, GroupMember } from '../../api/client';
+import type { LiveStatusEntry } from '../../api/live';
 import { IconPicker } from './IconPicker';
 import { RoomMembersEditor } from './RoomMembersEditor';
 
 export function RoomEditTile({
   group,
   controllers,
+  live,
   index,
   count,
   onRename,
@@ -17,6 +19,7 @@ export function RoomEditTile({
 }: {
   group: Group;
   controllers: Controller[];
+  live: ReadonlyMap<string, LiveStatusEntry>;
   index: number;
   count: number;
   onRename: (id: string, name: string) => void;
@@ -100,7 +103,7 @@ export function RoomEditTile({
         </button>
       </div>
       {showMembers && (
-        <RoomMembersEditor group={group} controllers={controllers} onMembersChange={onMembersChange} />
+        <RoomMembersEditor group={group} controllers={controllers} live={live} onMembersChange={onMembersChange} />
       )}
     </div>
   );

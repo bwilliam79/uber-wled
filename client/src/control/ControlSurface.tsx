@@ -189,7 +189,10 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
 
   const targetLabel = (target: Target): string => {
     if (target.kind === 'group') return groups.find((g) => g.id === target.groupId)?.name ?? 'Room';
-    const name = controllers.find((c) => c.id === target.controllerId)?.name ?? target.controllerId;
+    const controller = controllers.find((c) => c.id === target.controllerId);
+    // Prefer the live device-reported name over the frozen (often mDNS)
+    // stored name — same reasoning as DeviceCard/DeviceDetail/Home.
+    const name = live.get(target.controllerId)?.info?.name || controller?.name || target.controllerId;
     return target.kind === 'segment' ? `${name} · seg ${target.wledSegId}` : name;
   };
 
