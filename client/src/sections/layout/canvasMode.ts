@@ -1,4 +1,4 @@
-import { snapAngle, snapToGrid, type Point } from './geometry';
+import type { Point } from './geometry';
 
 export type LayoutMode =
   | { name: 'idle' }
@@ -45,12 +45,14 @@ export function layoutReducer(state: LayoutState, event: LayoutEvent): LayoutSta
       return state.mode.name === 'idle' ? { ...state, mode: { name: 'draw', vertices: [] } } : state;
 
     case 'PLACE_VERTEX': {
+      // event.point already has angle- and grid-snapping applied by the
+      // caller (LayoutSection's applyDrawSnap, which also knows the current
+      // canvas size/viewport needed to compute the correct grid step) — this
+      // used to redo both here too, harmlessly (idempotent on an
+      // already-snapped point) but redundantly, and with a hardcoded
+      // grid step that didn't match what applyDrawSnap actually used.
       if (state.mode.name !== 'draw') return state;
-      const vertices = state.mode.vertices;
-      let p = event.point;
-      if (event.shift && vertices.length > 0) p = snapAngle(vertices[vertices.length - 1], p);
-      if (state.gridSnap) p = snapToGrid(p);
-      return { ...state, mode: { name: 'draw', vertices: [...vertices, p] } };
+      return { ...state, mode: { name: 'draw', vertices: [...state.mode.vertices, event.point] } };
     }
 
     case 'UNDO_VERTEX':
