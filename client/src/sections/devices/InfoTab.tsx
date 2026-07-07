@@ -23,6 +23,9 @@ export interface InfoTabProps {
 
 export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
   const info = live?.info;
+  // Prefer the live device-reported name over the frozen (often mDNS)
+  // stored name — same reasoning as DeviceCard/DeviceDetail/Home.
+  const displayName = info?.name || controller.name;
   const litHosts = useMemo(
     () => (live?.reachable && live.state?.on ? [controller.host] : []),
     [live?.reachable, live?.state?.on, controller.host]
@@ -61,7 +64,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
       setConfirmReboot(false);
       toast.show({
         title: 'Rebooting',
-        description: `${controller.name} is restarting — it drops offline for a few seconds.`,
+        description: `${displayName} is restarting — it drops offline for a few seconds.`,
         variant: 'info'
       });
     } catch {
@@ -110,7 +113,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
             <iframe
               className="info-liveview"
               src={`http://${controller.host}/liveview`}
-              title={`Live output of ${controller.name}`}
+              title={`Live output of ${displayName}`}
             />
           ) : (
             // Opt-in: embeds the device's own native /liveview page. (The
@@ -155,7 +158,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
             <Button variant="danger" onClick={handleReboot} disabled={busy}>Confirm reboot</Button>
           </>
         }>
-        <p>Reboot “{controller.name}”? Lights turn off until it restarts (a few seconds).</p>
+        <p>Reboot “{displayName}”? Lights turn off until it restarts (a few seconds).</p>
       </Modal>
       <Modal open={confirmRemove} onClose={() => setConfirmRemove(false)} title="Remove controller"
         footer={
@@ -167,7 +170,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
           </>
         }>
         <p>
-          Remove “{controller.name}” from uber-wled? The device itself is not changed; groups,
+          Remove “{displayName}” from uber-wled? The device itself is not changed; groups,
           strips, and schedules that reference it will stop matching.
         </p>
       </Modal>

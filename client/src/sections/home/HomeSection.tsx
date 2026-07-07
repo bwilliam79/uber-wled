@@ -14,7 +14,7 @@ import {
   type GroupMember,
   type Target
 } from '../../api/client';
-import { useLiveStatus } from '../../api/live';
+import { useLiveStatus, type LiveStatusEntry } from '../../api/live';
 import { useLiveWsPixels } from '../../api/liveWsPixels';
 import { ControlSurface } from '../../control/ControlSurface';
 import { Modal } from '../../components/ui/Modal';
@@ -36,7 +36,11 @@ interface QuickOverride {
   at: number;
 }
 
-export function buildTiles(groups: Group[], controllers: Controller[]): HomeTileData[] {
+export function buildTiles(
+  groups: Group[],
+  controllers: Controller[],
+  live: ReadonlyMap<string, LiveStatusEntry> = new Map()
+): HomeTileData[] {
   const grouped = new Set(groups.flatMap((g) => g.members.map((m) => m.controllerId)));
   const groupTiles: HomeTileData[] = groups
     .slice()
@@ -55,7 +59,10 @@ export function buildTiles(groups: Group[], controllers: Controller[]): HomeTile
     .map((c) => ({
       id: c.id,
       kind: 'controller' as const,
-      title: c.name,
+      // c.name is frozen at add/discovery time (often a raw mDNS service
+      // name, e.g. "cabinet-lights") — prefer the live device-reported name
+      // (e.g. "Cabinet Lights"), same as DeviceCard/DeviceDetail.
+      title: live.get(c.id)?.info?.name || c.name,
       icon: null,
       members: [{ controllerId: c.id, wledSegId: null }]
     }));
@@ -109,7 +116,7 @@ export function HomeSection() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
 
-  const tiles = useMemo(() => buildTiles(groups, controllers), [groups, controllers]);
+  const tiles = useMemo(() => buildTiles(groups, controllers, live), [groups, controllers, live]);
   const sortedGroups = useMemo(
     () => groups.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
     [groups]
@@ -302,6 +309,7 @@ export function HomeSection() {
               key={g.id}
               group={g}
               controllers={controllers}
+              live={live}
               index={i}
               count={orderedGroups.length}
               onRename={renameRoom}

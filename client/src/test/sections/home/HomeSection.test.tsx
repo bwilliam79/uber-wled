@@ -300,6 +300,20 @@ describe('HomeSection room member editing', () => {
     );
   });
 
+  it('prefers the live device-reported name over the stored controller name for members and the add-controller picker', async () => {
+    liveMap.set('c1', {
+      reachable: true,
+      state: LIVE_STATE_C1,
+      info: { name: 'Cabinet Lights (Live)', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' }
+    });
+    await openMembers();
+    await waitFor(() =>
+      expect(screen.getByText('Cabinet Lights (Live) · segment 0')).toBeTruthy()
+    );
+    const tile = screen.getByTestId('edit-tile-g1');
+    expect(within(tile).getByRole('option', { name: 'Cabinet Lights (Live)' })).toBeTruthy();
+  });
+
   it('adds a controller+segment pair, with segment ids from the cached status', async () => {
     await openMembers();
     const tile = screen.getByTestId('edit-tile-g1');

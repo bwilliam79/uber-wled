@@ -5,14 +5,17 @@ import {
   type Group,
   type GroupMember
 } from '../../api/client';
+import type { LiveStatusEntry } from '../../api/live';
 
 export function RoomMembersEditor({
   group,
   controllers,
+  live,
   onMembersChange
 }: {
   group: Group;
   controllers: Controller[];
+  live: ReadonlyMap<string, LiveStatusEntry>;
   onMembersChange: (id: string, members: GroupMember[]) => void;
 }) {
   const [controllerId, setControllerId] = useState(controllers[0]?.id ?? '');
@@ -40,7 +43,9 @@ export function RoomMembersEditor({
   }, [controllerId]);
 
   function controllerName(id: string) {
-    return controllers.find((c) => c.id === id)?.name ?? id;
+    // Prefer the live device-reported name over the frozen (often mDNS)
+    // stored name — same reasoning as DeviceCard/DeviceDetail/Home/Control.
+    return live.get(id)?.info?.name || controllers.find((c) => c.id === id)?.name || id;
   }
 
   function addMember() {
@@ -82,7 +87,7 @@ export function RoomMembersEditor({
           onChange={(e) => setControllerId(e.target.value)}
         >
           {controllers.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>{controllerName(c.id)}</option>
           ))}
         </select>
         <select
