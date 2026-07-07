@@ -5,6 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '../../../components/ui/Toast';
 import { SyncSection } from '../../../sections/sync/SyncSection';
 
+const { liveMap } = vi.hoisted(() => ({ liveMap: new Map() }));
+vi.mock('../../../api/live', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../api/live')>();
+  return { ...actual, useLiveStatus: () => liveMap };
+});
+
 function renderSync(ui: ReactElement = <SyncSection />) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   function Providers({ children }: { children: ReactNode }) {
@@ -36,7 +42,10 @@ function stubFetchRoutes(routes: Record<string, unknown | ((init?: RequestInit) 
 
 const EMPTY_GROUP = { id: 'g1', name: 'Front porch', active: false, bitmask: null, memberControllerIds: ['c1'] };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  liveMap.clear();
+});
 
 describe('SyncSection', () => {
   it('shows the empty state with no sync groups', async () => {
@@ -51,6 +60,18 @@ describe('SyncSection', () => {
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
     expect(screen.getByText('Cabinet')).toBeTruthy();
     expect(screen.getByText('Inactive')).toBeTruthy();
+  });
+
+  it('prefers the live device-reported name over the stored controller name, in both the member list and the create-modal picker', async () => {
+    liveMap.set('c1', { reachable: true, state: {}, info: { name: 'Cabinet Lights v2', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' } });
+    stubFetchRoutes({ 'GET /api/controllers': CONTROLLERS, 'GET /api/sync-groups': [EMPTY_GROUP] });
+    renderSync();
+    await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
+    expect(screen.getByText('Cabinet Lights v2')).toBeTruthy();
+    expect(screen.queryByText('Cabinet', { exact: true })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'New sync group' }));
+    expect(screen.getByRole('checkbox', { name: 'Cabinet Lights v2' })).toBeTruthy();
   });
 
   it('creates a sync group with the picked controllers', async () => {

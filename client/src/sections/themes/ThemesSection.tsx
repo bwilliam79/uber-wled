@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { deleteTheme, type ControllerCapabilities, type CustomTheme } from '../../api/client';
 import { useCapabilities, useControllers, useThemes } from '../../api/queries';
+import { useLiveStatus } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Select } from '../../components/ui/Select';
@@ -49,6 +50,7 @@ function ThemeRow({
 
 export function ThemesSection() {
   const controllers = useControllers();
+  const live = useLiveStatus((controllers.data ?? []).map((c) => c.id));
   const themes = useThemes();
   const [sourceId, setSourceId] = useState<string | null>(null);
   const defaultSource = useMemo(() => {
@@ -97,10 +99,10 @@ export function ThemesSection() {
             showLabel={false}
             value={effectiveSource ?? ''}
             onChange={(v) => setSourceId(v)}
-            options={(controllers.data ?? []).map((c) => ({
-              value: c.id,
-              label: c.stale ? `${c.name} (offline)` : c.name
-            }))}
+            options={(controllers.data ?? []).map((c) => {
+              const name = live.get(c.id)?.info?.name || c.name;
+              return { value: c.id, label: c.stale ? `${name} (offline)` : name };
+            })}
           />
           <span className="field-hint">Effect and palette options are read from this controller</span>
         </div>
