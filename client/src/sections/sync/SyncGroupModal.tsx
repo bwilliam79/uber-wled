@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Controller, SyncGroup } from '../../api/client';
+import type { LiveStatusEntry } from '../../api/live';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
 
@@ -7,6 +8,7 @@ export interface SyncGroupModalProps {
   open: boolean;
   onClose: () => void;
   controllers: Controller[];
+  live: Map<string, LiveStatusEntry>;
   /** Present when editing an existing group; absent when creating one. */
   group?: SyncGroup;
   onSave: (name: string, memberControllerIds: string[]) => Promise<void>;
@@ -18,7 +20,7 @@ export interface SyncGroupModalProps {
  *  are wired together mid-sync means reconciling wire state for whoever
  *  left/joined, so the caller (SyncSection) only opens this for an active
  *  group in read-only form, directing the user to deactivate first. */
-export function SyncGroupModal({ open, onClose, controllers, group, onSave }: SyncGroupModalProps) {
+export function SyncGroupModal({ open, onClose, controllers, live, group, onSave }: SyncGroupModalProps) {
   const [name, setName] = useState('');
   const [memberIds, setMemberIds] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
@@ -80,7 +82,7 @@ export function SyncGroupModal({ open, onClose, controllers, group, onSave }: Sy
                   disabled={editingActive}
                   onChange={() => toggle(c.id)}
                 />
-                {c.name}
+                {live.get(c.id)?.info?.name || c.name}
               </label>
             </li>
           ))}

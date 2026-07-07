@@ -6,6 +6,7 @@ import {
   type Controller, type SyncGroup, type SyncMemberResult
 } from '../../api/client';
 import { useControllers, useSyncGroups } from '../../api/queries';
+import { useLiveStatus, type LiveStatusEntry } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
@@ -14,10 +15,14 @@ import { useToast } from '../../components/ui/Toast';
 import { SyncGroupModal } from './SyncGroupModal';
 import './sync.css';
 
-function memberNames(group: SyncGroup, controllers: Controller[]): string {
+function memberNames(
+  group: SyncGroup,
+  controllers: Controller[],
+  live: Map<string, LiveStatusEntry>
+): string {
   if (group.memberControllerIds.length === 0) return 'No controllers yet';
   return group.memberControllerIds
-    .map((id) => controllers.find((c) => c.id === id)?.name ?? id)
+    .map((id) => live.get(id)?.info?.name || controllers.find((c) => c.id === id)?.name || id)
     .join(', ');
 }
 
@@ -28,6 +33,7 @@ function summarizeResults(results: SyncMemberResult[]): { failed: SyncMemberResu
 function SyncGroupRow({
   group,
   controllers,
+  live,
   busy,
   onActivate,
   onDeactivate,
@@ -36,6 +42,7 @@ function SyncGroupRow({
 }: {
   group: SyncGroup;
   controllers: Controller[];
+  live: Map<string, LiveStatusEntry>;
   busy: boolean;
   onActivate: (g: SyncGroup) => void;
   onDeactivate: (g: SyncGroup) => void;
@@ -51,7 +58,7 @@ function SyncGroupRow({
             ? <Chip variant="success">Active</Chip>
             : <Chip>Inactive</Chip>}
         </div>
-        <span className="sync-group-row-members">{memberNames(group, controllers)}</span>
+        <span className="sync-group-row-members">{memberNames(group, controllers, live)}</span>
       </div>
       <div className="sync-group-row-actions">
         <Button variant="secondary" size="sm" disabled={busy} onClick={() => onEdit(group)}>
@@ -89,6 +96,7 @@ function SyncGroupRow({
 export function SyncSection() {
   const controllersQuery = useControllers();
   const controllers = controllersQuery.data ?? [];
+  const live = useLiveStatus(controllers.map((c) => c.id));
   const syncGroupsQuery = useSyncGroups();
   const groups = syncGroupsQuery.data ?? [];
   const queryClient = useQueryClient();
@@ -197,6 +205,7 @@ export function SyncSection() {
                 key={g.id}
                 group={g}
                 controllers={controllers}
+                live={live}
                 busy={busyId === g.id}
                 onActivate={handleActivate}
                 onDeactivate={handleDeactivate}
@@ -212,12 +221,14 @@ export function SyncSection() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         controllers={controllers}
+        live={live}
         onSave={handleCreate}
       />
       <SyncGroupModal
         open={editGroup !== null}
         onClose={() => setEditGroup(null)}
         controllers={controllers}
+        live={live}
         group={editGroup ?? undefined}
         onSave={handleSaveEdit}
       />
