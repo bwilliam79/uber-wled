@@ -37,9 +37,13 @@ export function createLiveSessionManager(
   const controllers = createControllerRepository(db);
   const settings = createSettingsRepository(db);
 
-  async function poll(session: Session): Promise<void> {
-    const includeInfo = session.tick % INFO_EVERY_N_TICKS === 0;
-    session.tick += 1;
+  async function poll(
+    session: Session,
+    opts: { forceInfo?: boolean; countsAsTick?: boolean } = {}
+  ): Promise<void> {
+    const countsAsTick = opts.countsAsTick ?? true;
+    const includeInfo = opts.forceInfo || session.tick % INFO_EVERY_N_TICKS === 0;
+    if (countsAsTick) session.tick += 1;
     let event: LiveEvent;
     try {
       const state = await wled.getState(session.host);
@@ -81,10 +85,25 @@ export function createLiveSessionManager(
           listener({ controllerId: id, reachable: false });
           continue;
         }
-        const session = sessions.get(id) ?? startSession(id, controller.host);
+        const existingSession = sessions.get(id);
+        const session = existingSession ?? startSession(id, controller.host);
         session.refCount += 1;
         session.listeners.add(listener);
         joined.push(session);
+        if (existingSession) {
+          // A brand-new session already does an immediate first poll (see
+          // startSession) so its subscriber sees data right away. A listener
+          // joining an ALREADY-RUNNING session (kept alive by some other
+          // subscriber — another tab, another page) wouldn't otherwise see
+          // anything until that session's next regularly scheduled tick,
+          // which can be seconds away — and even then only carries `info`
+          // once every INFO_EVERY_N_TICKS. Give this new listener an
+          // immediate, info-inclusive catch-up without disturbing the
+          // session's regular tick cadence (countsAsTick: false).
+          queueMicrotask(() => {
+            void poll(session, { forceInfo: true, countsAsTick: false });
+          });
+        }
       }
       let closed = false;
       return () => {

@@ -61,6 +61,41 @@ describe('live session manager', () => {
     expect(wled.getInfo).toHaveBeenCalledTimes(2);
   });
 
+  it('a listener joining an already-running, mid-cycle session gets an immediate info-inclusive catch-up, not a wait for the next scheduled (possibly info-less) tick', async () => {
+    // Regression test: a controller's session can be kept alive by one
+    // subscriber (e.g. the Devices page) for a long time. A second
+    // subscriber joining later (e.g. Home, opened afterward) previously got
+    // nothing until the session's shared tick counter naturally reached its
+    // next scheduled interval — and even then, only every 10th tick actually
+    // carries `info`, so a newly-opened page's controller name could show
+    // the stale fallback for a long time.
+    const manager = createLiveSessionManager(db, wled); // default interval 2s
+    const eventsA: LiveEvent[] = [];
+    manager.subscribe([controllerId], (e) => eventsA.push(e));
+    await vi.advanceTimersByTimeAsync(0);   // tick 0 (info) consumed by A
+    await vi.advanceTimersByTimeAsync(2_000); // tick 1 (no info) — now mid-cycle, not on an info tick
+    wled.getInfo.mockClear();
+    wled.getState.mockClear();
+
+    const eventsB: LiveEvent[] = [];
+    manager.subscribe([controllerId], (e) => eventsB.push(e));
+    await vi.advanceTimersByTimeAsync(0); // flush B's catch-up microtask only — no timer advance
+    expect(eventsB).toHaveLength(1);
+    expect(eventsB[0]).toEqual({ controllerId, reachable: true, state: STATE, info: INFO });
+    expect(wled.getInfo).toHaveBeenCalledTimes(1);
+
+    // The catch-up must not have counted as a regular tick: the session was
+    // at tick 2 before B joined (ticks 0 and 1 already consumed), so the
+    // next *scheduled* info tick should still land at tick 10, not tick 9.
+    wled.getInfo.mockClear();
+    await vi.advanceTimersByTimeAsync(7 * 2_000); // ticks 2-8
+    expect(wled.getInfo).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2_000); // tick 9 — still not an info tick
+    expect(wled.getInfo).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(2_000); // tick 10 — info tick
+    expect(wled.getInfo).toHaveBeenCalledTimes(1);
+  });
+
   it('refcounts: two subscribers share one session; polling stops after the last unsubscribes', async () => {
     const manager = createLiveSessionManager(db, wled);
     const unsubA = manager.subscribe([controllerId], () => {});
