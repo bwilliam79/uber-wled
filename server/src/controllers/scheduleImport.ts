@@ -237,7 +237,7 @@ export async function importSchedules(
     });
   }
 
-  const groupName = `${liveName} (imported)`;
+  const groupName = liveName;
   let group = groups.list().find((g) => g.name === groupName);
   const homeSettings = settings.get();
 
@@ -255,7 +255,7 @@ export async function importSchedules(
 
     const isAstronomical = result.parsed.triggerType !== 'weekly';
     const schedule = schedules.add({
-      name: `${presetName(result.parsed.macro)} (imported)${result.parsed.nameNote}`,
+      name: `${presetName(result.parsed.macro)}${result.parsed.nameNote}`,
       triggerType: result.parsed.triggerType,
       cronExpr: null,
       daysOfWeek: result.parsed.daysOfWeek,
