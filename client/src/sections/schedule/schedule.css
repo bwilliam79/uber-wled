@@ -26,6 +26,7 @@
 .schedule-detail-event-head { display: flex; align-items: center; gap: 8px; }
 .schedule-detail-event-name { font-weight: 600; color: var(--text); flex: 1; }
 .schedule-detail-meta { color: var(--text-muted); font-size: 0.85rem; }
+.schedule-detail-event-actions { display: flex; gap: 8px; }
 
 .schedules-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .schedules-card-header h3 { margin: 0; }

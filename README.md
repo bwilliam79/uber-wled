@@ -59,8 +59,11 @@ bar on phones — with eight sections, opening on Home:
 5. **Schedule** — a real month calendar. Holidays and custom events sit as
    chips on their dates; a side panel shows the selected day plus weekly and
    cron recurring schedules targeting a room. An enabled calendar event
-   overrides overlapping schedules for that day. Editors preview a theme
-   live against the real lights and revert exactly on approve or discard.
+   overrides overlapping schedules for that day. Any event — holiday or
+   custom — can be edited in place (name, group, theme, time; the date too,
+   unless it's a computed rule like "4th Thursday of November"), not just
+   toggled or removed. Editors preview a theme live against the real lights
+   and revert exactly on approve or discard.
 6. **Sync** — user-managed sync groups: pick any set of controllers and
    activate WLED's own native real-time UDP sync across exactly them, no
    hand-editing each device's Sync Interfaces settings page. See "Sync
@@ -214,7 +217,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 44 files / 318 tests
-cd client && npm test   # 76 files / 572 tests
+cd client && npm test   # 76 files / 576 tests
 ```
 
 ## Running the whole app locally via Docker

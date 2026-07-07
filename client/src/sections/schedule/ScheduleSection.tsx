@@ -26,6 +26,7 @@ export function ScheduleSection({
   const [month, setMonth] = useState(initialMonth ?? now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [eventFormOpen, setEventFormOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const events = useCalendarEvents();
   const groups = useGroups();
   const themes = useThemes();
@@ -109,7 +110,10 @@ export function ScheduleSection({
                 Trigger {triggerLabel(e)} · Group {groupName(e.groupId)}
               </span>
               {e.enabled && <Chip variant="warning">Overrides the weekly schedule this day</Chip>}
-              <Button variant="danger" onClick={() => remove(e.id)}>Remove</Button>
+              <div className="schedule-detail-event-actions">
+                <Button variant="secondary" onClick={() => setEditingEvent(e)}>Edit</Button>
+                <Button variant="danger" onClick={() => remove(e.id)}>Remove</Button>
+              </div>
             </div>
           ))}
         </Card>
@@ -126,6 +130,25 @@ export function ScheduleSection({
             setEventFormOpen(false);
           }}
         />
+      </Modal>
+      <Modal
+        open={editingEvent !== null}
+        title={editingEvent?.category === 'holiday' ? 'Edit holiday' : 'Edit calendar event'}
+        onClose={() => setEditingEvent(null)}
+      >
+        {editingEvent && (
+          <CalendarEventForm
+            groups={groups.data ?? []}
+            themes={themes.data ?? []}
+            initialEvent={editingEvent}
+            onSaved={(saved) => {
+              queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prevData) =>
+                (prevData ?? []).map((existing) => (existing.id === saved.id ? saved : existing))
+              );
+              setEditingEvent(null);
+            }}
+          />
+        )}
       </Modal>
       <ScheduleManager />
     </section>
