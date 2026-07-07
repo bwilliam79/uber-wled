@@ -175,7 +175,12 @@ export function LayoutSection() {
 
   function handleCanvasClick(e: React.MouseEvent) {
     if (state.mode.name !== 'draw') return;
-    dispatch({ type: 'PLACE_VERTEX', point: toWorld(e.clientX, e.clientY), shift: e.shiftKey });
+    // Must match the snapping already applied to the rubber-band preview
+    // cursor (see applyDrawSnap's other call site in handlePointerMove) —
+    // this previously placed the raw, unsnapped point, so the preview line
+    // visually snapped to the grid but the vertex that actually landed on
+    // click did not.
+    dispatch({ type: 'PLACE_VERTEX', point: applyDrawSnap(toWorld(e.clientX, e.clientY), e.shiftKey), shift: e.shiftKey });
   }
 
   function handleCanvasDoubleClick() {
