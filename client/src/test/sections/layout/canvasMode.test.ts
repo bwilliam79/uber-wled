@@ -23,24 +23,20 @@ describe('draw flow', () => {
     expect(s.mode).toEqual({ name: 'draw', vertices: [{ x: 10, y: 10 }, { x: 50, y: 12 }] });
   });
 
-  it('PLACE_VERTEX with shift constrains to 45 degrees from the previous vertex', () => {
+  // Angle-snap (shift) and grid-snap are applied by the caller before
+  // dispatch (LayoutSection's applyDrawSnap, which needs the current canvas
+  // size/viewport to compute the correct grid step — see computeGridStep in
+  // geometry.ts) — the reducer just stores whatever point it's given
+  // verbatim, `shift` included only so it's available for other logic (none
+  // currently). End-to-end angle/grid snapping is covered in
+  // LayoutSection.test.tsx.
+  it('PLACE_VERTEX stores the point verbatim regardless of the shift flag — snapping is the caller\'s job', () => {
     const s = run([
       { type: 'START_DRAW' },
       { type: 'PLACE_VERTEX', point: { x: 10, y: 10 }, shift: false },
       { type: 'PLACE_VERTEX', point: { x: 50, y: 11 }, shift: true }
     ]);
-    const [, v] = (s.mode as { name: 'draw'; vertices: { x: number; y: number }[] }).vertices;
-    expect(v.y).toBeCloseTo(10, 10);                       // snapped horizontal
-    expect(v.x).toBeCloseTo(10 + Math.hypot(40, 1), 10);   // length preserved
-  });
-
-  it('PLACE_VERTEX snaps to the grid when gridSnap is on (after angle snap)', () => {
-    const s = run([
-      { type: 'TOGGLE_GRID_SNAP' },
-      { type: 'START_DRAW' },
-      { type: 'PLACE_VERTEX', point: { x: 10.9, y: 5.2 }, shift: false }
-    ]);
-    expect(s.mode).toEqual({ name: 'draw', vertices: [{ x: 10, y: 6 }] });
+    expect(s.mode).toEqual({ name: 'draw', vertices: [{ x: 10, y: 10 }, { x: 50, y: 11 }] });
   });
 
   it('UNDO_VERTEX drops the last vertex and is a no-op on empty', () => {
