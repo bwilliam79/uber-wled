@@ -57,6 +57,8 @@ export function createCalendarRouter(db: Database.Database): Router {
       recursYearly: body.recursYearly ?? true,
       enabled: body.enabled ?? false,
       groupId: body.groupId ?? null,
+      controllerId: body.controllerId ?? null,
+      wledSegId: body.wledSegId ?? null,
       triggerTime: body.triggerTime,
       actionType: body.actionType ?? null,
       actionPayload: body.actionPayload ?? null

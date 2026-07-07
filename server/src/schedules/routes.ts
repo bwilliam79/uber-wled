@@ -19,7 +19,9 @@ export function createSchedulesRouter(db: Database.Database): Router {
       offsetMinutes: body.offsetMinutes ?? 0,
       latitude: body.latitude ?? null,
       longitude: body.longitude ?? null,
-      groupId: body.groupId,
+      groupId: body.groupId ?? null,
+      controllerId: body.controllerId ?? null,
+      wledSegId: body.wledSegId ?? null,
       actionType: body.actionType,
       actionPayload: body.actionPayload,
       enabled: body.enabled ?? true
