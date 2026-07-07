@@ -11,10 +11,10 @@ fights an existing UDP sync group.
 Full design rationale lives in [docs/superpowers/specs/](docs/superpowers/specs/);
 implementation plans live in [docs/superpowers/plans/](docs/superpowers/plans/).
 
-## The seven sections
+## The eight sections
 
 The app is a responsive shell — left sidebar on desktop, bottom navigation
-bar on phones — with seven sections, opening on Home:
+bar on phones — with eight sections, opening on Home:
 
 1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
    controller. Tiles show live power/brightness with a small status dot
@@ -61,7 +61,11 @@ bar on phones — with seven sections, opening on Home:
    cron recurring schedules targeting a room. An enabled calendar event
    overrides overlapping schedules for that day. Editors preview a theme
    live against the real lights and revert exactly on approve or discard.
-6. **Firmware** — fleet view of installed vs. latest stable version
+6. **Sync** — user-managed sync groups: pick any set of controllers and
+   activate WLED's own native real-time UDP sync across exactly them, no
+   hand-editing each device's Sync Interfaces settings page. See "Sync
+   groups" below for how this actually works on the wire.
+7. **Firmware** — fleet view of installed vs. latest stable version
    (pre-releases opt-in via Settings), plus the detected hardware
    architecture (e.g. `esp32`) reported by each device, so it's clear what
    the asset matching is actually keyed on. First update per controller pins
@@ -70,7 +74,7 @@ bar on phones — with seven sections, opening on Home:
    the suggested default and genuine ambiguity (multiple matching assets)
    flagged explicitly rather than guessed; later updates reuse the pin. OTA
    push via WLED's own endpoint, with post-update version polling.
-7. **Settings** — pre-release firmware toggle, home latitude/longitude for
+8. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
    streaming sessions, and the WLED schedule-import default. Home
@@ -131,6 +135,27 @@ flat, configured color slot — the only way to show what an animated effect
 `col[0]`. (`/json/live`, an unrelated HTTP polling endpoint, returns 501 on
 this firmware — that's not what either live view relies on.)
 
+## Sync groups
+
+Distinct from a Home room (a Home-layout organizational label with no
+bearing on real-time playback): a sync group is a set of controllers wired
+together via WLED's own native UDP sync (broadcast on LAN port 21324) so
+their effects and colors play in lockstep, managed entirely through this
+app instead of each device's own Sync Interfaces settings page.
+
+WLED supports up to 8 independent sync "groups" on one LAN via a bitmask on
+each device's `if.sync.send.grp` / `if.sync.recv.grp` config — one bit per
+group, no built-in naming. Activating an app-level sync group claims one of
+those 8 bits (tracked centrally so two active groups never collide),
+enables broadcasting (`send.en: true`) on every member with that bit, and
+configures each to receive brightness/color/effect/palette from the others
+on it; deactivating reverts every member's `send.en` to `false` and frees
+the bit. Membership can only change while a group is inactive — deactivate,
+edit, reactivate. This coexists with the app's own fan-out writes: every
+`applyControlPatch` write still carries `udpn: { nn: true }` so the app's
+own multi-controller commands never double up on top of what an active
+sync group already broadcasts to its members.
+
 ## Device config parity + guardrails
 
 The Devices → Config tab edits the device's full `cfg.json`: structured
@@ -188,8 +213,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 42 files / 298 tests
-cd client && npm test   # 75 files / 560 tests
+cd server && npm test   # 44 files / 317 tests
+cd client && npm test   # 76 files / 570 tests
 ```
 
 ## Running the whole app locally via Docker
@@ -239,7 +264,11 @@ committed) that isn't already taken by another service on that host.
    holidays + custom dates) target a room; sunset/sunrise offsets use the
    home location from Settings; preview shows the real lights before you
    commit, then restores them exactly.
-7. **Stay current** — Firmware shows installed vs. latest stable per
+7. **Sync groups** — on Sync, create a group, pick its controllers, and hit
+   Activate to wire them together on WLED's own real-time UDP sync; hit
+   Deactivate to pull them apart. Rename anytime; membership only while
+   inactive.
+8. **Stay current** — Firmware shows installed vs. latest stable per
    controller; pin the right release asset once, then update in one click
    (also per-device under Devices → Update).
 
@@ -251,5 +280,8 @@ committed) that isn't already taken by another service on that host.
   the best available documentation — verify against a device you can
   re-flash by hand before relying on it (see
   `server/src/firmware/otaPush.ts`).
-- UDP-sync *replacement* (the long-term north star) is not built; the app
-  coexists with sync via per-request no-notify writes.
+- Sync groups (see "Sync groups" above) manage WLED's own native UDP sync
+  rather than replacing it with an app-level protocol — a controller can
+  only be an active member of one sync group at a time (no combined-bitmask
+  multi-membership), and up to 8 sync groups can be active simultaneously
+  (WLED's own bitmask ceiling).
