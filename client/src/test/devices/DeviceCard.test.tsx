@@ -71,4 +71,22 @@ describe('DeviceCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open Cabinet Lights' }));
     expect(onOpen).toHaveBeenCalledWith('c1');
   });
+
+  it('prefers the live device-reported name over the stored (often mDNS-derived) controller name', () => {
+    stubFetchRoutes({ 'GET /api/controllers/c1/firmware': NO_UPDATE });
+    const mdnsNamedController = { ...CONTROLLERS[0], name: 'cabinet-lights' };
+    renderDevices(<DeviceCard controller={mdnsNamedController}
+      live={liveEntry({ info: { name: 'Cabinet Lights', ver: '16.0.0', leds: { count: 48, rgbw: true, cct: 0, seglc: [1, 1] } } })}
+      onControl={vi.fn()} onOpen={vi.fn()} />);
+    expect(screen.getByText('Cabinet Lights')).toBeTruthy();
+    expect(screen.queryByText('cabinet-lights')).toBeNull();
+  });
+
+  it('falls back to the stored controller name when there is no live info yet', () => {
+    stubFetchRoutes({ 'GET /api/controllers/c1/firmware': NO_UPDATE });
+    const mdnsNamedController = { ...CONTROLLERS[0], name: 'cabinet-lights' };
+    renderDevices(<DeviceCard controller={mdnsNamedController} live={undefined}
+      onControl={vi.fn()} onOpen={vi.fn()} />);
+    expect(screen.getByText('cabinet-lights')).toBeTruthy();
+  });
 });

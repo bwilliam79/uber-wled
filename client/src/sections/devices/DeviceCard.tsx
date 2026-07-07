@@ -34,6 +34,13 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
   const info = live?.info;
   const state = live?.state;
   const offline = live !== undefined && !live.reachable;
+  // controller.name is frozen at add/discovery time — for mDNS-discovered
+  // controllers that's the raw service name (e.g. "cabinet-lights"), which
+  // can be a lot less readable than the name the user has actually set on
+  // the device itself (e.g. "Cabinet Lights", from /json/info). Prefer the
+  // live name whenever we have one; fall back to the stored name when the
+  // device hasn't reported in yet or is offline.
+  const displayName = info?.name || controller.name;
 
   const litHosts = useMemo(
     () => (live?.reachable && live.state?.on ? [controller.host] : []),
@@ -46,8 +53,8 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
     <Card className="device-card">
       <div className="device-card-header">
         <button type="button" className="device-card-title"
-          onClick={() => onOpen(controller.id)} aria-label={`Open ${controller.name}`}>
-          {controller.name}
+          onClick={() => onOpen(controller.id)} aria-label={`Open ${displayName}`}>
+          {displayName}
         </button>
         {info?.ver && <Chip>v{info.ver}</Chip>}
         {offline && <Chip variant="danger">Offline</Chip>}
@@ -68,11 +75,11 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
       <LiveOutputStrip swatches={swatchesForEntry(live, livePixels)} size="sm" className="device-card-live-strip" />
       <div className="device-card-actions">
         <Button variant="primary" size="sm" onClick={() => onControl(controller.id)}
-          aria-label={`Control ${controller.name}`}>
+          aria-label={`Control ${displayName}`}>
           Control
         </Button>
         <Button variant="ghost" size="sm" onClick={() => onOpen(controller.id)}
-          aria-label={`Details for ${controller.name}`}>
+          aria-label={`Details for ${displayName}`}>
           Details
         </Button>
       </div>
