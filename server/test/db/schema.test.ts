@@ -38,4 +38,65 @@ describe('schema migrations (phase B additions)', () => {
     const db = createDb(':memory:');
     expect(() => runMigrations(db)).not.toThrow();
   });
+
+  it('adds target_controller_id/target_wled_seg_id to calendar_events', () => {
+    const db = createDb(':memory:');
+    expect(columnNames(db, 'calendar_events')).toEqual(
+      expect.arrayContaining(['target_controller_id', 'target_wled_seg_id'])
+    );
+  });
+
+  it('rebuilds a pre-existing schedules table with a NOT NULL group_id: relaxes the constraint, adds the new target columns, and preserves existing rows', () => {
+    const db = createDb(':memory:'); // migrations already ran; drop and recreate the OLD shape
+    db.exec(`
+      DROP TABLE schedules;
+      CREATE TABLE schedules (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        trigger_type TEXT NOT NULL CHECK (trigger_type IN ('cron','sunrise','sunset','weekly')),
+        cron_expr TEXT,
+        days_of_week TEXT,
+        time_of_day TEXT,
+        offset_minutes INTEGER NOT NULL DEFAULT 0,
+        latitude REAL,
+        longitude REAL,
+        group_id TEXT NOT NULL REFERENCES groups(id),
+        action_type TEXT NOT NULL CHECK (action_type IN ('preset','theme','power','brightness')),
+        action_payload TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 1
+      );
+    `);
+    db.prepare('INSERT INTO groups (id, name, sort_order) VALUES (?, ?, 0)').run('g1', 'Front porch');
+    db.prepare(
+      `INSERT INTO schedules (id, name, trigger_type, days_of_week, time_of_day, offset_minutes, group_id, action_type, action_payload, enabled)
+       VALUES ('s1', 'Evening', 'weekly', '[1,2,3]', '18:00', 0, 'g1', 'power', '{"on":true}', 1)`
+    ).run();
+
+    const beforeCols = db.prepare('PRAGMA table_info(schedules)').all() as { name: string; notnull: number }[];
+    expect(beforeCols.find((c) => c.name === 'group_id')!.notnull).toBe(1);
+
+    runMigrations(db);
+
+    const afterCols = db.prepare('PRAGMA table_info(schedules)').all() as { name: string; notnull: number }[];
+    expect(afterCols.find((c) => c.name === 'group_id')!.notnull).toBe(0);
+    expect(afterCols.map((c) => c.name)).toEqual(
+      expect.arrayContaining(['target_controller_id', 'target_wled_seg_id'])
+    );
+
+    const row = db.prepare('SELECT * FROM schedules WHERE id = ?').get('s1') as any;
+    expect(row.name).toBe('Evening');
+    expect(row.group_id).toBe('g1');
+    expect(row.target_controller_id).toBeNull();
+
+    // The relaxed constraint actually accepts a NULL group_id now.
+    db.prepare(
+      "INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')"
+    ).run();
+    expect(() =>
+      db.prepare(
+        `INSERT INTO schedules (id, name, trigger_type, days_of_week, time_of_day, offset_minutes, target_controller_id, action_type, action_payload, enabled)
+         VALUES ('s2', 'Direct', 'weekly', '[1]', '08:00', 0, 'c1', 'power', '{"on":true}', 1)`
+      ).run()
+    ).not.toThrow();
+  });
 });

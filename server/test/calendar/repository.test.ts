@@ -19,7 +19,7 @@ describe('calendar repository', () => {
     const created = repo.add({
       name: "Anniversary", category: 'custom',
       dateRule: { kind: 'fixed', month: 9, day: 12 },
-      recursYearly: true, enabled: true, groupId: null,
+      recursYearly: true, enabled: true, groupId: null, controllerId: null, wledSegId: null,
       triggerTime: { type: 'fixed', time: '19:00' },
       actionType: 'power', actionPayload: { on: true }
     });
@@ -32,7 +32,7 @@ describe('calendar repository', () => {
     const created = repo.add({
       name: "Anniversary", category: 'custom',
       dateRule: { kind: 'fixed', month: 9, day: 12 },
-      recursYearly: true, enabled: false, groupId: null,
+      recursYearly: true, enabled: false, groupId: null, controllerId: null, wledSegId: null,
       triggerTime: { type: 'fixed', time: '19:00' },
       actionType: 'power', actionPayload: { on: true }
     });
@@ -44,7 +44,7 @@ describe('calendar repository', () => {
     const created = repo.add({
       name: "X", category: 'custom',
       dateRule: { kind: 'fixed', month: 1, day: 1 },
-      recursYearly: true, enabled: true, groupId: null,
+      recursYearly: true, enabled: true, groupId: null, controllerId: null, wledSegId: null,
       triggerTime: { type: 'fixed', time: '09:00' },
       actionType: null, actionPayload: null
     });

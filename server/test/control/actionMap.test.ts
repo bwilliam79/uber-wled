@@ -106,6 +106,24 @@ describe('applyActionV2', () => {
     expect(captured.seg[0]).toEqual(expect.objectContaining({ id: 1, fx: 2, pal: 5, col: [[255, 100, 0]] }));
   });
 
+  it('a member with wledSegId: null targets the whole controller, not a specific segment', async () => {
+    // Used by the scheduler engine for schedules/calendar events that target
+    // a controller directly rather than a group (see schedules/engine.ts's
+    // targetOf) — must map to a 'controller'-kind Target, not 'segment'.
+    const { db, a } = setup();
+    let captured: any;
+    stubFetchByHost({
+      '10.0.0.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
+    });
+
+    const results = await applyActionV2(db, [{ controllerId: a, wledSegId: null }],
+      { type: 'brightness', value: 200 });
+
+    expect(results).toEqual([{ controllerId: a, wledSegId: null, ok: true }]);
+    expect(captured.bri).toBe(200);
+    expect(captured.udpn).toEqual({ nn: true });
+  });
+
   it('applies a preset as top-level ps with udpn:{nn:true}', async () => {
     const { db, a } = setup();
     let captured: any;

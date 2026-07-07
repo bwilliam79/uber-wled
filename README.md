@@ -58,10 +58,11 @@ bar on phones — with eight sections, opening on Home:
    surface, schedules, and calendar events.
 5. **Schedule** — a real month calendar. Holidays and custom events sit as
    chips on their dates; a side panel shows the selected day plus weekly and
-   cron recurring schedules targeting a room. An enabled calendar event
-   overrides overlapping schedules for that day. Any event — holiday or
-   custom — can be edited in place (name, group, theme, time; the date too,
-   unless it's a computed rule like "4th Thursday of November"), not just
+   cron recurring schedules, each targeting either a Room group or a specific
+   controller directly. An enabled calendar event overrides overlapping
+   schedules for that day. Every schedule and event shows what it's actually
+   assigned to and can be edited in place (name, target, theme, time; the
+   date too, unless it's a computed rule like "4th Thursday of November"), not just
    toggled or removed. Editors preview a theme live against the real lights
    and revert exactly on approve or discard.
 6. **Sync** — user-managed sync groups: pick any set of controllers and
@@ -216,8 +217,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 44 files / 318 tests
-cd client && npm test   # 76 files / 579 tests
+cd server && npm test   # 44 files / 328 tests
+cd client && npm test   # 77 files / 588 tests
 ```
 
 ## Running the whole app locally via Docker
@@ -264,9 +265,10 @@ committed) that isn't already taken by another service on that host.
 5. **Save Themes** — build effect/palette/color/brightness combos; apply
    them anywhere, schedule them, or hang them on holidays.
 6. **Schedule** — weekly/cron schedules and calendar events (pre-seeded US
-   holidays + custom dates) target a room; sunset/sunrise offsets use the
-   home location from Settings; preview shows the real lights before you
-   commit, then restores them exactly.
+   holidays + custom dates) target either a Room group or a specific
+   controller; sunset/sunrise offsets use the home location from Settings;
+   preview shows the real lights before you commit, then restores them
+   exactly.
 7. **Sync groups** — on Sync, create a group, pick its controllers, and hit
    Activate to wire them together on WLED's own real-time UDP sync; hit
    Deactivate to pull them apart. Rename anytime; membership only while

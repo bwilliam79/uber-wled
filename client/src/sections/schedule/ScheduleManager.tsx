@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   addSchedule, applyControl, deleteSchedule, getSegmentsSnapshot,
-  type CustomTheme, type Schedule
+  type CustomTheme, type Schedule, type Target
 } from '../../api/client';
-import { useGroups, useSchedules, useThemes } from '../../api/queries';
+import { useControllers, useGroups, useSchedules, useThemes } from '../../api/queries';
+import { useLiveStatus } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import { Modal } from '../../components/ui/Modal';
 import { WeeklyScheduleForm, type WeeklyScheduleDraft } from './WeeklyScheduleForm';
+import type { TargetValue } from './TargetPicker';
 
 interface MemberSnapshot {
   controllerId: string;
@@ -21,12 +23,25 @@ interface MemberSnapshot {
   col: number[][];
 }
 
+function targetOf(t: TargetValue): Target | null {
+  if (t.controllerId) {
+    return t.wledSegId === null
+      ? { kind: 'controller', controllerId: t.controllerId }
+      : { kind: 'segment', controllerId: t.controllerId, wledSegId: t.wledSegId };
+  }
+  if (t.groupId) return { kind: 'group', groupId: t.groupId };
+  return null;
+}
+
 export function ScheduleManager() {
   const schedules = useSchedules();
   const groups = useGroups();
+  const controllers = useControllers();
+  const live = useLiveStatus((controllers.data ?? []).map((c) => c.id));
   const themes = useThemes();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
   const [draft, setDraft] = useState<WeeklyScheduleDraft | null>(null);
   const [snapshot, setSnapshot] = useState<MemberSnapshot[] | null>(null);
   const [revertError, setRevertError] = useState<string | null>(null);
@@ -36,11 +51,21 @@ export function ScheduleManager() {
     return (themes.data ?? []).find((t) => t.id === themeId);
   }
 
+  async function membersFor(target: TargetValue): Promise<{ controllerId: string; wledSegId: number }[]> {
+    if (target.groupId) {
+      return (groups.data ?? []).find((g) => g.id === target.groupId)?.members ?? [];
+    }
+    if (!target.controllerId) return [];
+    if (target.wledSegId !== null) return [{ controllerId: target.controllerId, wledSegId: target.wledSegId }];
+    const segs = await getSegmentsSnapshot(target.controllerId);
+    return segs.map((s) => ({ controllerId: target.controllerId!, wledSegId: s.id }));
+  }
+
   async function handlePreview(nextDraft: WeeklyScheduleDraft) {
     const theme = themeFor(nextDraft);
-    if (!theme) return;
-    const members =
-      (groups.data ?? []).find((g) => g.id === nextDraft.groupId)?.members ?? [];
+    const targetPatch = targetOf(nextDraft.target);
+    if (!theme || !targetPatch) return;
+    const members = await membersFor(nextDraft.target);
     const snapshots: MemberSnapshot[] = [];
     for (const member of members) {
       const segs = await getSegmentsSnapshot(member.controllerId);
@@ -56,7 +81,7 @@ export function ScheduleManager() {
     setDraft(nextDraft);
     setRevertError(null);
     await applyControl(
-      [{ kind: 'group', groupId: nextDraft.groupId }],
+      [targetPatch],
       {
         on: true,
         bri: theme.brightness,
@@ -100,7 +125,7 @@ export function ScheduleManager() {
     const created = await addSchedule({
       name: draft.name, triggerType: 'weekly', cronExpr: null,
       daysOfWeek: draft.daysOfWeek, timeOfDay: draft.timeOfDay, offsetMinutes: 0,
-      latitude: null, longitude: null, groupId: draft.groupId,
+      latitude: null, longitude: null, ...draft.target,
       actionType: draft.actionType, actionPayload: draft.actionPayload, enabled: true
     });
     queryClient.setQueryData<Schedule[]>(['schedules'], (prev) => [...(prev ?? []), created]);
@@ -127,6 +152,22 @@ export function ScheduleManager() {
     setFormOpen(false);
   }
 
+  function targetLabel(s: Schedule): string {
+    if (s.controllerId) {
+      const name = live.get(s.controllerId)?.info?.name
+        || (controllers.data ?? []).find((c) => c.id === s.controllerId)?.name
+        || s.controllerId;
+      return s.wledSegId === null ? `Controller ${name}` : `Controller ${name} (segment ${s.wledSegId})`;
+    }
+    const group = (groups.data ?? []).find((g) => g.id === s.groupId);
+    return `Group ${group?.name ?? '—'}`;
+  }
+
+  function themeName(s: Schedule): string {
+    const themeId = (s.actionPayload as { themeId?: string } | null)?.themeId;
+    return (themes.data ?? []).find((t) => t.id === themeId)?.name ?? themeId ?? '—';
+  }
+
   return (
     <Card className="schedules-card">
       <div className="schedules-card-header">
@@ -151,9 +192,15 @@ export function ScheduleManager() {
                 <span className="schedule-list-name">{s.name}</span>
                 <Chip>{s.triggerType}</Chip>
               </div>
-              <Button variant="danger" aria-label={`Remove ${s.name}`} onClick={() => handleDelete(s.id)}>
-                Remove
-              </Button>
+              <span className="schedule-list-meta">
+                {s.actionType} · {themeName(s)} · {targetLabel(s)}
+              </span>
+              <div className="schedule-list-actions">
+                <Button variant="secondary" onClick={() => setEditingSchedule(s)}>Edit</Button>
+                <Button variant="danger" aria-label={`Remove ${s.name}`} onClick={() => handleDelete(s.id)}>
+                  Remove
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
@@ -161,12 +208,39 @@ export function ScheduleManager() {
       <Modal open={formOpen} title="New weekly schedule" onClose={handleModalClose}>
         <WeeklyScheduleForm
           groups={groups.data ?? []}
+          controllers={controllers.data ?? []}
+          live={live}
           themes={themes.data ?? []}
           onPreview={handlePreview}
           onApprove={handleApprove}
           onDiscard={handleDiscard}
           previewing={draft !== null}
         />
+      </Modal>
+      <Modal
+        open={editingSchedule !== null}
+        title="Edit weekly schedule"
+        onClose={() => setEditingSchedule(null)}
+      >
+        {editingSchedule && (
+          <WeeklyScheduleForm
+            groups={groups.data ?? []}
+            controllers={controllers.data ?? []}
+            live={live}
+            themes={themes.data ?? []}
+            initialSchedule={editingSchedule}
+            onSaved={(saved) => {
+              queryClient.setQueryData<Schedule[]>(['schedules'], (prev) =>
+                (prev ?? []).map((existing) => (existing.id === saved.id ? saved : existing))
+              );
+              setEditingSchedule(null);
+            }}
+            onPreview={() => {}}
+            onApprove={() => {}}
+            onDiscard={() => {}}
+            previewing={false}
+          />
+        )}
       </Modal>
     </Card>
   );

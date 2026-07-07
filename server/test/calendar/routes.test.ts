@@ -2,13 +2,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { createDb } from '../../src/db/client.js';
+import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createCalendarRouter } from '../../src/calendar/routes.js';
 
 describe('calendar routes', () => {
   let app: express.Express;
+  let controllerId: string;
 
   beforeEach(() => {
     const db = createDb(':memory:');
+    controllerId = createControllerRepository(db).add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
     app = express();
     app.use(express.json());
     app.use('/api/calendar-events', createCalendarRouter(db));
@@ -121,6 +124,20 @@ describe('calendar routes', () => {
 
     expect(patch.status).toBe(400);
     expect(patch.body.error).toMatch(/dateRule/i);
+  });
+
+  it('creates a calendar event targeting a controller directly (no group)', async () => {
+    const post = await request(app).post('/api/calendar-events').send({
+      name: 'Anniversary', category: 'custom',
+      dateRule: { kind: 'fixed', month: 9, day: 12 },
+      recursYearly: true, enabled: true, controllerId, wledSegId: null,
+      triggerTime: { type: 'fixed', time: '19:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+    expect(post.status).toBe(201);
+    expect(post.body.groupId).toBeNull();
+    expect(post.body.controllerId).toBe(controllerId);
+    expect(post.body.wledSegId).toBeNull();
   });
 
   it('deletes a calendar event', async () => {

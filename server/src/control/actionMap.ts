@@ -16,7 +16,9 @@ export type ControlAction =
 
 export interface Member {
   controllerId: string;
-  wledSegId: number;
+  /** null = whole-controller target (every segment), matching Target's
+   *  'controller' kind — same convention as applyV2.ts's ResolvedTarget. */
+  wledSegId: number | null;
 }
 
 export function actionToPatch(
@@ -47,10 +49,13 @@ export function actionToPatch(
 
 /**
  * v1-shaped entry point for the scheduler engine and calendar trigger path.
- * Maps members → segment Targets and the action → a ControlPatch, then
- * delegates to applyControlPatch (per-target isolation, one retry, and
- * udpn:{nn:true} on every device write). Targets are always segment-kind,
- * so applyControlPatch's GroupNotFoundError can never throw from here.
+ * Maps members → segment or controller Targets (never group-kind — the
+ * scheduler/calendar engine already resolved any group into concrete
+ * members via expandTargets before calling this) and the action → a
+ * ControlPatch, then delegates to applyControlPatch (per-target isolation,
+ * one retry, and udpn:{nn:true} on every device write). Targets are never
+ * group-kind, so applyControlPatch's GroupNotFoundError can never throw
+ * from here.
  */
 export async function applyActionV2(
   db: Database.Database,
@@ -73,10 +78,10 @@ export async function applyActionV2(
     }));
   }
 
-  const targets: Target[] = members.map((m) => ({
-    kind: 'segment',
-    controllerId: m.controllerId,
-    wledSegId: m.wledSegId
-  }));
+  const targets: Target[] = members.map((m) =>
+    m.wledSegId === null
+      ? { kind: 'controller', controllerId: m.controllerId }
+      : { kind: 'segment', controllerId: m.controllerId, wledSegId: m.wledSegId }
+  );
   return applyControlPatch(db, targets, patch);
 }
