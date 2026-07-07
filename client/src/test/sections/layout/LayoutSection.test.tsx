@@ -7,7 +7,11 @@ import { ToastProvider } from '../../../components/ui/Toast';
 const { liveMap } = vi.hoisted(() => ({ liveMap: new Map() }));
 
 vi.mock('../../../api/live', () => ({
-  useLiveStatus: () => liveMap
+  // Filters by the requested ids, like the real hook (which subscribes only
+  // to what it's given via /api/live?controllers=...) — a mock that ignored
+  // this argument couldn't have caught the bug where a controller with no
+  // strip yet was silently excluded from the ids passed to useLiveStatus.
+  useLiveStatus: (ids: string[]) => new Map([...liveMap].filter(([id]) => ids.includes(id)))
 }));
 
 vi.mock('../../../control/ControlSurface', () => ({
@@ -24,7 +28,11 @@ const strips: Strip[] = [
 const labels: RoomLabel[] = [{ id: 'l1', name: 'Kitchen', x: 50, y: 20 }];
 const controllers: Controller[] = [
   { id: 'c1', name: 'Porch Ctrl', host: '192.168.1.86', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Deck Ctrl', host: '192.168.1.87', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'Deck Ctrl', host: '192.168.1.87', source: 'manual', stale: false, pinnedAssetPattern: null },
+  // No strip references c3 — covers a controller that hasn't had a strip
+  // drawn for it yet, which is exactly the case the real app was in when
+  // this bug was reported (zero strips existed anywhere).
+  { id: 'c3', name: 'wled-bar-lights', host: '192.168.1.132', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 function jsonResponse(data: unknown, status = 200) {
@@ -118,6 +126,30 @@ describe('draw flow', () => {
     await screen.findByTestId('strip-save-panel');
     expect(screen.getByRole('option', { name: 'Bar Lights' })).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Deck Ctrl' })).toBeNull();
+  });
+
+  it('shows the live name even for a controller with zero strips so far', async () => {
+    // Regression: controllerIds (and so the live-status subscription) was
+    // derived only from strips.map(s => s.controllerId) — a controller with
+    // no strip yet (c3, matching the real app's state when this was
+    // reported: zero strips existed anywhere) was silently excluded, so its
+    // live name never arrived and the dropdown fell back to the stale
+    // stored name no matter what.
+    liveMap.set('c3', {
+      reachable: true,
+      state: { on: true, bri: 128, seg: [] },
+      info: { name: 'Bar Lights', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' }
+    });
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.click(canvas, { clientX: 10, clientY: 10 });
+    fireEvent.click(canvas, { clientX: 50, clientY: 10 });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    await screen.findByTestId('strip-save-panel');
+    expect(screen.getByRole('option', { name: 'Bar Lights' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'wled-bar-lights' })).toBeNull();
   });
 
   it('places vertices with clicks, finishes with Enter, and POSTs the strip', async () => {

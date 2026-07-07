@@ -4,6 +4,12 @@ import { renderWithQuery } from './renderWithQuery';
 import { ThemesSection } from '../sections/themes/ThemesSection';
 import { CAPS } from './fixtures/capabilities';
 
+const { liveMap } = vi.hoisted(() => ({ liveMap: new Map() }));
+vi.mock('../api/live', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../api/live')>();
+  return { ...actual, useLiveStatus: () => liveMap };
+});
+
 vi.mock('../components/ui/ColorWheel', () => ({
   ColorWheel: ({ color, onChange }: { color: { r: number; g: number; b: number }; onChange: (c: { r: number; g: number; b: number }) => void }) => (
     <input
@@ -21,7 +27,10 @@ vi.mock('../components/ui/ColorWheel', () => ({
   )
 }));
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  liveMap.clear();
+});
 
 const CONTROLLERS = [
   { id: 'c0', name: 'Attic', host: '10.0.0.40', source: 'manual', stale: true, pinnedAssetPattern: null },
@@ -66,6 +75,15 @@ describe('ThemesSection', () => {
     expect(bar.style.backgroundImage).not.toBe('');
     // three color swatches rendered from the stored theme colors
     expect((row as HTMLElement).querySelectorAll('.theme-row-swatch')).toHaveLength(3);
+  });
+
+  it('the Source controller dropdown prefers the live device-reported name over the stored controller name', async () => {
+    liveMap.set('c1', { reachable: true, state: {}, info: { name: 'Cabinet', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' } });
+    stubFetch();
+    renderWithQuery(<ThemesSection />);
+    await waitFor(() => expect((screen.getByLabelText('Source controller') as HTMLSelectElement).value).toBe('c1'));
+    expect(screen.getByRole('option', { name: 'Cabinet' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Cabinet Lights' })).toBeNull();
   });
 
   it('deletes a theme via DELETE /api/themes/:id', async () => {
