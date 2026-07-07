@@ -55,8 +55,8 @@ export function WeeklyScheduleForm({
   const [timeOfDay, setTimeOfDay] = useState(initialSchedule?.timeOfDay ?? '18:00');
   const [target, setTarget] = useState<TargetValue>(
     initialSchedule
-      ? { groupId: initialSchedule.groupId, controllerId: initialSchedule.controllerId, wledSegId: initialSchedule.wledSegId }
-      : { groupId: groups[0]?.id ?? null, controllerId: null, wledSegId: null }
+      ? { groupId: initialSchedule.groupId, controllers: initialSchedule.controllers }
+      : { groupId: groups[0]?.id ?? null, controllers: null }
   );
   const [themeId, setThemeId] = useState(initialSchedule ? themeIdOf(initialSchedule) : (themes[0]?.id ?? ''));
   const [error, setError] = useState<string | null>(null);

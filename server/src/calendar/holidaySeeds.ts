@@ -7,8 +7,7 @@ export interface HolidaySeed {
   recursYearly: true;
   enabled: false;
   groupId: null;
-  controllerId: null;
-  wledSegId: null;
+  controllers: null;
   triggerTime: { type: 'fixed'; time: string };
   actionType: null;
   actionPayload: null;
@@ -25,8 +24,7 @@ export function seedHolidays(): HolidaySeed[] {
     recursYearly: true as const,
     enabled: false as const,
     groupId: null,
-    controllerId: null,
-    wledSegId: null,
+    controllers: null,
     triggerTime: { type: 'fixed' as const, time: '18:00' },
     actionType: null,
     actionPayload: null
