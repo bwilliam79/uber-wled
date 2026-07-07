@@ -143,6 +143,38 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
     expect(applyFn).not.toHaveBeenCalled();
   });
 
+  it('fires a schedule targeting a whole controller directly (no group)', async () => {
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Direct whole-controller', triggerType: 'cron', cronExpr: '0 10 * * *',
+      daysOfWeek: null, timeOfDay: null, offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: null, controllerId, wledSegId: null,
+      actionType: 'power', actionPayload: { on: true }, enabled: true
+    });
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T10:00:00'));
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId, wledSegId: null }],
+      { type: 'power', on: true }
+    );
+  });
+
+  it('fires a schedule targeting one specific segment directly (no group)', async () => {
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Direct segment', triggerType: 'cron', cronExpr: '0 10 * * *',
+      daysOfWeek: null, timeOfDay: null, offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: null, controllerId, wledSegId: 2,
+      actionType: 'power', actionPayload: { on: true }, enabled: true
+    });
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T10:00:00'));
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId, wledSegId: 2 }],
+      { type: 'power', on: true }
+    );
+  });
+
   it('fires a weekly schedule on the correct day of week at the correct time, and does not fire on other days', async () => {
     const schedules = createScheduleRepository(db);
     schedules.add({
@@ -243,6 +275,62 @@ describe('SchedulerEngine calendar override-for-day', () => {
     expect(applyFn).toHaveBeenCalledWith(
       [{ controllerId: kitchenControllerId, wledSegId: 0 }],
       { type: 'power', on: true }
+    );
+  });
+
+  it('a whole-controller calendar override suppresses a schedule targeting just one segment of that same controller', async () => {
+    // The suppression check used to be a plain exact-string-key match
+    // (controllerId:wledSegId), which would miss this: a whole-controller
+    // target (wledSegId: null) doesn't share a literal key with a
+    // segment-specific one, even though it covers that segment too.
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'July 4th whole-controller', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 7, day: 4 },
+      recursYearly: true, enabled: true, groupId: null, controllerId: porchControllerId, wledSegId: null,
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Porch segment 0 (should be suppressed)', triggerType: 'weekly', cronExpr: null,
+      daysOfWeek: [6], timeOfDay: '20:00', offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: null, controllerId: porchControllerId, wledSegId: 0,
+      actionType: 'power', actionPayload: { on: false }, enabled: true
+    });
+
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T20:00:00'));
+
+    expect(applyFn).not.toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: 0 }],
+      { type: 'power', on: false }
+    );
+  });
+
+  it('a segment-specific calendar override suppresses a schedule targeting the whole controller', async () => {
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'July 4th segment 0', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 7, day: 4 },
+      recursYearly: true, enabled: true, groupId: null, controllerId: porchControllerId, wledSegId: 0,
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'power', actionPayload: { on: true }
+    });
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Porch whole-controller (should be suppressed)', triggerType: 'weekly', cronExpr: null,
+      daysOfWeek: [6], timeOfDay: '20:00', offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: null, controllerId: porchControllerId, wledSegId: null,
+      actionType: 'power', actionPayload: { on: false }, enabled: true
+    });
+
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T20:00:00'));
+
+    expect(applyFn).not.toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: null }],
+      { type: 'power', on: false }
     );
   });
 

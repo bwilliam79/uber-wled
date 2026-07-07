@@ -167,4 +167,60 @@ export function runMigrations(db: Database.Database): void {
   if (!settingsCols.some((c) => c.name === 'live_poll_interval_seconds')) {
     db.exec('ALTER TABLE settings ADD COLUMN live_poll_interval_seconds INTEGER NOT NULL DEFAULT 2');
   }
+
+  // Schedules/calendar events could only ever target a Room group. Widen
+  // both to optionally target a specific controller (whole-device or one
+  // segment) instead, matching the Target union Control's /api/control/apply
+  // already uses (control/applyV2.ts) — engine.ts now resolves either shape
+  // through the same expandTargets() rather than duplicating group-lookup
+  // logic. Exactly one of group_id / target_controller_id should be set;
+  // enforced in the repository layer, not a CHECK constraint (keeping this
+  // migration a plain additive column set on calendar_events, which already
+  // had a nullable group_id).
+  const calendarCols = db.prepare('PRAGMA table_info(calendar_events)').all() as { name: string }[];
+  if (!calendarCols.some((c) => c.name === 'target_controller_id')) {
+    db.exec('ALTER TABLE calendar_events ADD COLUMN target_controller_id TEXT REFERENCES controllers(id)');
+    db.exec('ALTER TABLE calendar_events ADD COLUMN target_wled_seg_id INTEGER');
+  }
+
+  // schedules.group_id was NOT NULL — SQLite can't relax a column
+  // constraint via ALTER, so this rebuilds the table (create new schema,
+  // copy rows, swap in) the one time it's still NOT NULL, wrapped in a
+  // transaction so a crash mid-migration can't leave a half-renamed table.
+  const scheduleCols = db.prepare('PRAGMA table_info(schedules)').all() as { name: string; notnull: number }[];
+  if (scheduleCols.some((c) => c.name === 'group_id' && c.notnull === 1)) {
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE schedules_new (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          trigger_type TEXT NOT NULL CHECK (trigger_type IN ('cron','sunrise','sunset','weekly')),
+          cron_expr TEXT,
+          days_of_week TEXT,
+          time_of_day TEXT,
+          offset_minutes INTEGER NOT NULL DEFAULT 0,
+          latitude REAL,
+          longitude REAL,
+          group_id TEXT REFERENCES groups(id),
+          target_controller_id TEXT REFERENCES controllers(id),
+          target_wled_seg_id INTEGER,
+          action_type TEXT NOT NULL CHECK (action_type IN ('preset','theme','power','brightness')),
+          action_payload TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1
+        );
+        INSERT INTO schedules_new (
+          id, name, trigger_type, cron_expr, days_of_week, time_of_day, offset_minutes,
+          latitude, longitude, group_id, target_controller_id, target_wled_seg_id,
+          action_type, action_payload, enabled
+        )
+        SELECT
+          id, name, trigger_type, cron_expr, days_of_week, time_of_day, offset_minutes,
+          latitude, longitude, group_id, NULL, NULL,
+          action_type, action_payload, enabled
+        FROM schedules;
+        DROP TABLE schedules;
+        ALTER TABLE schedules_new RENAME TO schedules;
+      `);
+    })();
+  }
 }

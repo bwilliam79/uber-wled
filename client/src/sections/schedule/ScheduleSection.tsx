@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   deleteCalendarEvent, updateCalendarEvent, type CalendarEvent
 } from '../../api/client';
-import { useCalendarEvents, useGroups, useThemes } from '../../api/queries';
+import { useCalendarEvents, useControllers, useGroups, useThemes } from '../../api/queries';
+import { useLiveStatus } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
@@ -29,6 +30,8 @@ export function ScheduleSection({
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const events = useCalendarEvents();
   const groups = useGroups();
+  const controllers = useControllers();
+  const live = useLiveStatus((controllers.data ?? []).map((c) => c.id));
   const themes = useThemes();
   const queryClient = useQueryClient();
 
@@ -61,8 +64,16 @@ export function ScheduleSection({
 
   const eventList = events.data ?? [];
   const dayEvents = selectedDay === null ? [] : eventsForDay(eventList, year, month, selectedDay);
-  const groupName = (id: string | null) =>
-    (groups.data ?? []).find((g) => g.id === id)?.name ?? '—';
+  function targetLabel(e: CalendarEvent): string {
+    if (e.controllerId) {
+      const name = live.get(e.controllerId)?.info?.name
+        || (controllers.data ?? []).find((c) => c.id === e.controllerId)?.name
+        || e.controllerId;
+      return `Controller ${name}`;
+    }
+    const group = (groups.data ?? []).find((g) => g.id === e.groupId);
+    return `Group ${group?.name ?? '—'}`;
+  }
   const themeName = (payload: unknown) => {
     const themeId = (payload as { themeId?: string })?.themeId;
     return (themes.data ?? []).find((t) => t.id === themeId)?.name ?? themeId ?? '—';
@@ -107,7 +118,7 @@ export function ScheduleSection({
                 {e.actionType ?? 'action'} · {themeName(e.actionPayload)}
               </span>
               <span className="schedule-detail-meta">
-                Trigger {triggerLabel(e)} · Group {groupName(e.groupId)}
+                Trigger {triggerLabel(e)} · {targetLabel(e)}
               </span>
               {e.enabled && <Chip variant="warning">Overrides the weekly schedule this day</Chip>}
               <div className="schedule-detail-event-actions">
@@ -121,6 +132,8 @@ export function ScheduleSection({
       <Modal open={eventFormOpen} title="New calendar event" onClose={() => setEventFormOpen(false)}>
         <CalendarEventForm
           groups={groups.data ?? []}
+          controllers={controllers.data ?? []}
+          live={live}
           themes={themes.data ?? []}
           onCreated={(e) => {
             queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prevData) => [
@@ -139,6 +152,8 @@ export function ScheduleSection({
         {editingEvent && (
           <CalendarEventForm
             groups={groups.data ?? []}
+            controllers={controllers.data ?? []}
+            live={live}
             themes={themes.data ?? []}
             initialEvent={editingEvent}
             onSaved={(saved) => {

@@ -62,7 +62,12 @@ export interface Schedule {
   offsetMinutes: number;
   latitude: number | null;
   longitude: number | null;
-  groupId: string;
+  /** Exactly one of groupId / controllerId is set — a schedule targets
+   *  either a Room group or a specific controller (the whole device when
+   *  wledSegId is null, or one segment when it's set). */
+  groupId: string | null;
+  controllerId: string | null;
+  wledSegId: number | null;
   actionType: 'power' | 'brightness' | 'preset' | 'theme';
   actionPayload: unknown;
   enabled: boolean;
@@ -82,7 +87,11 @@ export interface CalendarEvent {
   dateRule: DateRule;
   recursYearly: boolean;
   enabled: boolean;
+  /** Exactly one of groupId / controllerId is set — see the same note on
+   *  Schedule.groupId above. */
   groupId: string | null;
+  controllerId: string | null;
+  wledSegId: number | null;
   triggerTime: { type: 'fixed'; time: string } | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
   actionType: 'power' | 'brightness' | 'preset' | 'theme' | null;
   actionPayload: unknown;
@@ -167,6 +176,8 @@ export const getEffectsPalettes = () => getJson<EffectsPalettes>('/api/themes/ef
 export const listSchedules = () => getJson<Schedule[]>('/api/schedules');
 export const addSchedule = (input: Omit<Schedule, 'id'>) =>
   sendJson<Schedule>('/api/schedules', 'POST', input);
+export const updateSchedule = (id: string, patch: Partial<Omit<Schedule, 'id'>>) =>
+  sendJson<Schedule>(`/api/schedules/${id}`, 'PATCH', patch);
 export const deleteSchedule = (id: string) => fetch(`/api/schedules/${id}`, { method: 'DELETE' });
 
 export const listCalendarEvents = () => getJson<CalendarEvent[]>('/api/calendar-events');

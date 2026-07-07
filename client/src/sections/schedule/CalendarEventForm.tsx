@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import {
   addCalendarEvent, updateCalendarEvent, ConflictError,
-  type CalendarEvent, type CustomTheme, type Group
+  type CalendarEvent, type Controller, type CustomTheme, type Group
 } from '../../api/client';
+import type { LiveStatusEntry } from '../../api/live';
 import { resolveDate } from '../../lib/dateRules';
 import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { Select } from '../../components/ui/Select';
+import { TargetPicker, type TargetValue } from './TargetPicker';
 
 function themeIdOf(event: CalendarEvent): string {
   return (event.actionPayload as { themeId?: string } | null)?.themeId ?? '';
@@ -14,16 +16,20 @@ function themeIdOf(event: CalendarEvent): string {
 
 export function CalendarEventForm({
   groups,
+  controllers,
+  live,
   themes,
   initialEvent,
   onCreated,
   onSaved
 }: {
   groups: Group[];
+  controllers: Controller[];
+  live: Map<string, LiveStatusEntry>;
   themes: CustomTheme[];
   /** Present in edit mode — pre-fills the form and PATCHes this event
    *  instead of creating a new one. Its category (holiday vs custom) is
-   *  preserved either way; this form only ever edits name/group/theme/time,
+   *  preserved either way; this form only ever edits name/target/theme/time,
    *  plus the date when the event's dateRule is a plain fixed month/day
    *  (holidays defined by a computed rule like "4th Thursday of November"
    *  keep that rule as-is — this form has no UI for editing those rules). */
@@ -38,7 +44,11 @@ export function CalendarEventForm({
   const [time, setTime] = useState(
     initialEvent?.triggerTime.type === 'fixed' ? initialEvent.triggerTime.time : '18:00'
   );
-  const [groupId, setGroupId] = useState(initialEvent?.groupId ?? groups[0]?.id ?? '');
+  const [target, setTarget] = useState<TargetValue>(
+    initialEvent
+      ? { groupId: initialEvent.groupId, controllerId: initialEvent.controllerId, wledSegId: initialEvent.wledSegId }
+      : { groupId: groups[0]?.id ?? null, controllerId: null, wledSegId: null }
+  );
   const [themeId, setThemeId] = useState(initialEvent ? themeIdOf(initialEvent) : (themes[0]?.id ?? ''));
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +59,7 @@ export function CalendarEventForm({
         const saved = await updateCalendarEvent(initialEvent.id, {
           name,
           dateRule: fixedDate ? { kind: 'fixed', month, day } : initialEvent.dateRule,
-          groupId: groupId || null,
+          ...target,
           triggerTime: { type: 'fixed', time },
           actionType: 'theme',
           actionPayload: { themeId }
@@ -63,7 +73,7 @@ export function CalendarEventForm({
         dateRule: { kind: 'fixed', month, day },
         recursYearly: true,
         enabled: true,
-        groupId: groupId || null,
+        ...target,
         triggerTime: { type: 'fixed', time },
         actionType: 'theme',
         actionPayload: { themeId }
@@ -123,12 +133,14 @@ export function CalendarEventForm({
           />
         </Field>
       </div>
-      <Field label="Group" htmlFor="calendar-event-group">
-        <Select
-          id="calendar-event-group" label="event group" showLabel={false} value={groupId} onChange={setGroupId}
-          options={groups.map((g) => ({ value: g.id, label: g.name }))}
-        />
-      </Field>
+      <TargetPicker
+        idPrefix="calendar-event"
+        groups={groups}
+        controllers={controllers}
+        live={live}
+        value={target}
+        onChange={setTarget}
+      />
       <Field label="Theme" htmlFor="calendar-event-theme">
         <Select
           id="calendar-event-theme" label="event theme" showLabel={false} value={themeId} onChange={setThemeId}

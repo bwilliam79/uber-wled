@@ -6,7 +6,7 @@ import type { CalendarEvent } from '../api/client';
 const halloween: CalendarEvent = {
   id: 'e1', name: 'Halloween', category: 'holiday',
   dateRule: { kind: 'fixed', month: 10, day: 31 }, recursYearly: true, enabled: true,
-  groupId: 'g1', triggerTime: { type: 'fixed', time: '18:00' },
+  groupId: 'g1', controllerId: null, wledSegId: null, triggerTime: { type: 'fixed', time: '18:00' },
   actionType: 'theme', actionPayload: { themeId: 't1' }
 };
 
