@@ -156,3 +156,14 @@ export function ChevronRightIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function SyncIcon({ className }: IconProps) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" {...strokeProps} aria-hidden="true">
+      <path d="M21 12a9 9 0 0 1-15.3 6.4L3 16" />
+      <path d="M3 12a9 9 0 0 1 15.3-6.4L21 8" />
+      <polyline points="3 20 3 16 7 16" />
+      <polyline points="21 4 21 8 17 8" />
+    </svg>
+  );
+}

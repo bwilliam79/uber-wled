@@ -114,6 +114,28 @@ export function runMigrations(db: Database.Database): void {
       effects TEXT NOT NULL, palettes TEXT NOT NULL, fxdata TEXT NOT NULL,
       palette_previews TEXT NOT NULL, fetched_at TEXT NOT NULL
     );
+
+    -- Sync groups are a distinct concept from "groups" (rooms, above): a room
+    -- is a Home-page organizational label with no bearing on real-time
+    -- playback; a sync group is a set of controllers wired together via
+    -- WLED's own native UDP sync (broadcast on LAN port 21324) so their
+    -- effects/colors play in lockstep, entirely independent of room
+    -- membership. "active" + "bitmask" track which of WLED's 8 native sync
+    -- "group" bits (1,2,4,...,128) this sync group currently owns on the
+    -- wire — null/0 when inactive. Only one sync group may hold a given bit
+    -- at a time (enforced in the repository, not the schema).
+    CREATE TABLE IF NOT EXISTS sync_groups (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 0,
+      bitmask INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS sync_group_members (
+      sync_group_id TEXT NOT NULL REFERENCES sync_groups(id),
+      controller_id TEXT NOT NULL REFERENCES controllers(id),
+      PRIMARY KEY (sync_group_id, controller_id)
+    );
   `);
 
   // Idempotent column add for wled_releases caches created before the

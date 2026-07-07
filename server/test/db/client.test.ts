@@ -20,6 +20,8 @@ describe('createDb', () => {
       'schedules',
       'settings',
       'strips',
+      'sync_group_members',
+      'sync_groups',
       'themes',
       'wled_releases'
     ]);

@@ -20,6 +20,24 @@ export interface Group {
   members: GroupMember[];
 }
 
+/** Distinct from Group (rooms, above) — a sync group has no bearing on Home
+ *  layout; it's a set of controllers wired together via WLED's own native
+ *  UDP sync so their effects/colors play in lockstep, managed entirely
+ *  through this app instead of each device's own settings page. */
+export interface SyncGroup {
+  id: string;
+  name: string;
+  active: boolean;
+  bitmask: number | null;
+  memberControllerIds: string[];
+}
+
+export interface SyncMemberResult {
+  controllerId: string;
+  ok: boolean;
+  error?: string;
+}
+
 export interface CustomTheme {
   id: string;
   name: string;
@@ -116,6 +134,19 @@ export const updateGroup = (
 export const reorderGroups = (ids: string[]) =>
   sendJson<Group[]>('/api/groups/reorder', 'POST', { ids });
 export const deleteGroup = (id: string) => fetch(`/api/groups/${id}`, { method: 'DELETE' });
+
+export const listSyncGroups = () => getJson<SyncGroup[]>('/api/sync-groups');
+export const addSyncGroup = (name: string, memberControllerIds: string[]) =>
+  sendJson<SyncGroup>('/api/sync-groups', 'POST', { name, memberControllerIds });
+export const renameSyncGroup = (id: string, name: string) =>
+  sendJson<SyncGroup>(`/api/sync-groups/${id}`, 'PATCH', { name });
+export const setSyncGroupMembers = (id: string, memberControllerIds: string[]) =>
+  sendJson<SyncGroup>(`/api/sync-groups/${id}`, 'PATCH', { memberControllerIds });
+export const deleteSyncGroup = (id: string) => fetch(`/api/sync-groups/${id}`, { method: 'DELETE' });
+export const activateSyncGroup = (id: string) =>
+  sendJson<{ group: SyncGroup; results: SyncMemberResult[] }>(`/api/sync-groups/${id}/activate`, 'POST');
+export const deactivateSyncGroup = (id: string) =>
+  sendJson<{ group: SyncGroup; results: SyncMemberResult[] }>(`/api/sync-groups/${id}/deactivate`, 'POST');
 
 export const listThemes = () => getJson<CustomTheme[]>('/api/themes');
 export const addTheme = (input: Omit<CustomTheme, 'id'>) =>
