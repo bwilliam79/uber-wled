@@ -212,7 +212,7 @@ describe('importSchedules', () => {
 
     const groups = createGroupRepository(db).list();
     expect(groups).toHaveLength(1);
-    expect(groups[0].name).toBe('Porch');
+    expect(groups[0].name).toBe('Porch schedule');
     expect(groups[0].members).toEqual([{ controllerId, wledSegId: 0 }]);
 
     const schedules = createScheduleRepository(db).list();
@@ -234,7 +234,7 @@ describe('importSchedules', () => {
     );
     await importSchedules(db, controllerId, { disableOnDevice: false });
     const groups = createGroupRepository(db).list();
-    expect(groups[0].name).toBe('Fireplace Shelves Left');
+    expect(groups[0].name).toBe('Fireplace Shelves Left schedule');
   });
 
   it('imports a sunrise timer using the configured home latitude/longitude', async () => {
