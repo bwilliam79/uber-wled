@@ -3,7 +3,7 @@ import { createControllerRepository } from './repository.js';
 import { createGroupRepository } from '../groups/repository.js';
 import { createScheduleRepository, type Schedule } from '../schedules/repository.js';
 import { createSettingsRepository } from '../settings/repository.js';
-import { getConfig, patchConfig, getPresets } from '../wled/client.js';
+import { getConfig, getInfo, patchConfig, getPresets } from '../wled/client.js';
 
 /**
  * Real WLED devices (verified against 16.0.0 firmware) do NOT store
@@ -204,8 +204,16 @@ export async function importSchedules(
 
   let timers: { ins: unknown[]; cntdwn: unknown };
   let presets: { id: number; name: string }[];
+  let liveName: string;
   try {
-    [timers, presets] = await Promise.all([fetchTimers(controller.host), getPresets(controller.host)]);
+    [timers, presets, liveName] = await Promise.all([
+      fetchTimers(controller.host),
+      getPresets(controller.host),
+      // controller.name is frozen at add/mDNS-discovery time — the group
+      // this creates should use the live "Server Description" the user
+      // actually sees everywhere else in the app, not that stale name.
+      getInfo(controller.host).then((info) => info.name)
+    ]);
   } catch (err: any) {
     const unreachable = new Error(`controller ${controller.name} is unreachable: ${err.message}`);
     (unreachable as any).statusCode = 503;
@@ -229,7 +237,7 @@ export async function importSchedules(
     });
   }
 
-  const groupName = `${controller.name} (imported)`;
+  const groupName = `${liveName} (imported)`;
   let group = groups.list().find((g) => g.name === groupName);
   const homeSettings = settings.get();
 
