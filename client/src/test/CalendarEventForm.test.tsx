@@ -40,13 +40,12 @@ describe('CalendarEventForm v2', () => {
     render(
       <CalendarEventForm groups={groups} controllers={oneController} live={live} themes={themes} onCreated={() => {}} />
     );
-    fireEvent.click(screen.getByRole('radio', { name: 'Controller' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Controller(s)' }));
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
     expect(body.groupId).toBeNull();
-    expect(body.controllerId).toBe('c1');
-    expect(body.wledSegId).toBeNull();
+    expect(body.controllers).toEqual([{ controllerId: 'c1', wledSegId: null }]);
   });
 
   it('surfaces a 409 conflict as an inline error', async () => {
@@ -64,14 +63,14 @@ describe('CalendarEventForm v2', () => {
     const fixedDateEvent = {
       id: 'e1', name: 'Family Reunion', category: 'custom' as const,
       dateRule: { kind: 'fixed' as const, month: 7, day: 4 },
-      recursYearly: true, enabled: true, groupId: 'g1', controllerId: null, wledSegId: null,
+      recursYearly: true, enabled: true, groupId: 'g1', controllers: null,
       triggerTime: { type: 'fixed' as const, time: '17:00' },
       actionType: 'theme' as const, actionPayload: { themeId: 't1' }
     };
     const holidayEvent = {
       id: 'h1', name: 'Thanksgiving', category: 'holiday' as const,
       dateRule: { kind: 'nthWeekday' as const, month: 11, weekday: 4, n: 4 },
-      recursYearly: true, enabled: true, groupId: null, controllerId: null, wledSegId: null,
+      recursYearly: true, enabled: true, groupId: null, controllers: null,
       triggerTime: { type: 'fixed' as const, time: '08:00' },
       actionType: null, actionPayload: null
     };

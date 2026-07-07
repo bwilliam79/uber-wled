@@ -58,8 +58,8 @@ bar on phones — with eight sections, opening on Home:
    surface, schedules, and calendar events.
 5. **Schedule** — a real month calendar. Holidays and custom events sit as
    chips on their dates; a side panel shows the selected day plus weekly and
-   cron recurring schedules, each targeting either a Room group or a specific
-   controller directly. An enabled calendar event overrides overlapping
+   cron recurring schedules, each targeting either a Room group or a set of
+   specific controllers directly. An enabled calendar event overrides overlapping
    schedules for that day. Every schedule and event shows what it's actually
    assigned to and can be edited in place (name, target, theme, time; the
    date too, unless it's a computed rule like "4th Thursday of November"), not just
@@ -217,8 +217,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 44 files / 329 tests
-cd client && npm test   # 77 files / 588 tests
+cd server && npm test   # 44 files / 334 tests
+cd client && npm test   # 77 files / 592 tests
 ```
 
 ## Running the whole app locally via Docker
@@ -265,8 +265,8 @@ committed) that isn't already taken by another service on that host.
 5. **Save Themes** — build effect/palette/color/brightness combos; apply
    them anywhere, schedule them, or hang them on holidays.
 6. **Schedule** — weekly/cron schedules and calendar events (pre-seeded US
-   holidays + custom dates) target either a Room group or a specific
-   controller; sunset/sunrise offsets use the home location from Settings;
+   holidays + custom dates) target either a Room group or a set of specific
+   controllers directly; sunset/sunrise offsets use the home location from Settings;
    preview shows the real lights before you commit, then restores them
    exactly.
 7. **Sync groups** — on Sync, create a group, pick its controllers, and hit

@@ -268,8 +268,7 @@ export async function importSchedules(
       latitude: isAstronomical ? homeSettings.homeLatitude : null,
       longitude: isAstronomical ? homeSettings.homeLongitude : null,
       groupId: group.id,
-      controllerId: null,
-      wledSegId: null,
+      controllers: null,
       actionType: 'preset',
       actionPayload: { presetId: result.parsed.macro },
       enabled: true

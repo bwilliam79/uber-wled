@@ -65,11 +65,14 @@ export function ScheduleSection({
   const eventList = events.data ?? [];
   const dayEvents = selectedDay === null ? [] : eventsForDay(eventList, year, month, selectedDay);
   function targetLabel(e: CalendarEvent): string {
-    if (e.controllerId) {
-      const name = live.get(e.controllerId)?.info?.name
-        || (controllers.data ?? []).find((c) => c.id === e.controllerId)?.name
-        || e.controllerId;
-      return `Controller ${name}`;
+    if (e.controllers && e.controllers.length > 0) {
+      const names = e.controllers.map((c) => {
+        const name = live.get(c.controllerId)?.info?.name
+          || (controllers.data ?? []).find((ctrl) => ctrl.id === c.controllerId)?.name
+          || c.controllerId;
+        return c.wledSegId === null ? name : `${name} (segment ${c.wledSegId})`;
+      });
+      return `Controller${names.length > 1 ? 's' : ''} ${names.join(', ')}`;
     }
     const group = (groups.data ?? []).find((g) => g.id === e.groupId);
     return `Group ${group?.name ?? '—'}`;
