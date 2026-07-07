@@ -213,7 +213,7 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 44 files / 317 tests
+cd server && npm test   # 44 files / 318 tests
 cd client && npm test   # 76 files / 570 tests
 ```
 
