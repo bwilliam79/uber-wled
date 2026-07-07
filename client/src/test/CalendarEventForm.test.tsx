@@ -39,4 +39,62 @@ describe('CalendarEventForm v2', () => {
     fireEvent.click(screen.getByText('Save'));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Halloween/));
   });
+
+  describe('edit mode (initialEvent)', () => {
+    const fixedDateEvent = {
+      id: 'e1', name: 'Family Reunion', category: 'custom' as const,
+      dateRule: { kind: 'fixed' as const, month: 7, day: 4 },
+      recursYearly: true, enabled: true, groupId: 'g1',
+      triggerTime: { type: 'fixed' as const, time: '17:00' },
+      actionType: 'theme' as const, actionPayload: { themeId: 't1' }
+    };
+    const holidayEvent = {
+      id: 'h1', name: 'Thanksgiving', category: 'holiday' as const,
+      dateRule: { kind: 'nthWeekday' as const, month: 11, weekday: 4, n: 4 },
+      recursYearly: true, enabled: true, groupId: null,
+      triggerTime: { type: 'fixed' as const, time: '08:00' },
+      actionType: null, actionPayload: null
+    };
+
+    it('pre-fills from the given event and PATCHes it (not POST) on save, reporting via onSaved', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ ...fixedDateEvent, name: 'Family Reunion (updated)' })
+      });
+      vi.stubGlobal('fetch', fetchMock);
+      const onSaved = vi.fn();
+      render(
+        <CalendarEventForm groups={groups} themes={themes} initialEvent={fixedDateEvent} onSaved={onSaved} />
+      );
+      expect((screen.getByLabelText('event name') as HTMLInputElement).value).toBe('Family Reunion');
+      expect((screen.getByLabelText('month') as HTMLInputElement).value).toBe('7');
+      expect((screen.getByLabelText('day') as HTMLInputElement).value).toBe('4');
+      expect((screen.getByLabelText('event time') as HTMLInputElement).value).toBe('17:00');
+
+      fireEvent.change(screen.getByLabelText('event name'), { target: { value: 'Family Reunion (updated)' } });
+      fireEvent.click(screen.getByText('Save'));
+
+      await waitFor(() => expect(onSaved).toHaveBeenCalled());
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe('/api/calendar-events/e1');
+      expect((init as RequestInit).method).toBe('PATCH');
+      const body = JSON.parse((init as RequestInit).body as string);
+      expect(body.name).toBe('Family Reunion (updated)');
+      expect(body.dateRule).toEqual({ kind: 'fixed', month: 7, day: 4 });
+    });
+
+    it('shows a read-only computed date (not editable inputs) for a non-fixed dateRule, and preserves it on save', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => holidayEvent });
+      vi.stubGlobal('fetch', fetchMock);
+      render(<CalendarEventForm groups={groups} themes={themes} initialEvent={holidayEvent} onSaved={() => {}} />);
+      expect(screen.queryByLabelText('month')).toBeNull();
+      expect(screen.queryByLabelText('day')).toBeNull();
+      expect(screen.getByText(/Computed date/)).toBeTruthy();
+
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+      expect(body.dateRule).toEqual({ kind: 'nthWeekday', month: 11, weekday: 4, n: 4 });
+    });
+  });
 });
