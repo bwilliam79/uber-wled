@@ -46,6 +46,7 @@ function mockCanvasRect(size: number) {
 }
 
 beforeEach(() => {
+  liveMap.clear();
   fetchMock.mockReset();
   fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
@@ -101,6 +102,24 @@ async function selectStripByPointer(id: string, clientX: number, clientY: number
 }
 
 describe('draw flow', () => {
+  it('the strip-save controller dropdown prefers the live device-reported name over the stored controller name', async () => {
+    liveMap.set('c2', {
+      reachable: true,
+      state: { on: true, bri: 128, seg: [] },
+      info: { name: 'Bar Lights', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' }
+    });
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.click(canvas, { clientX: 10, clientY: 10 });
+    fireEvent.click(canvas, { clientX: 50, clientY: 10 });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    await screen.findByTestId('strip-save-panel');
+    expect(screen.getByRole('option', { name: 'Bar Lights' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Deck Ctrl' })).toBeNull();
+  });
+
   it('places vertices with clicks, finishes with Enter, and POSTs the strip', async () => {
     renderSection();
     await screen.findByTestId('strip-s1');
