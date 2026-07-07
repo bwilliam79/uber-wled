@@ -2,16 +2,19 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 import { createDb } from '../../src/db/client.js';
+import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createGroupRepository } from '../../src/groups/repository.js';
 import { createSchedulesRouter } from '../../src/schedules/routes.js';
 
 describe('schedules routes', () => {
   let app: express.Express;
   let groupId: string;
+  let controllerId: string;
 
   beforeEach(() => {
     const db = createDb(':memory:');
     groupId = createGroupRepository(db).add({ name: 'Front', members: [] }).id;
+    controllerId = createControllerRepository(db).add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
     app = express();
     app.use(express.json());
     app.use('/api/schedules', createSchedulesRouter(db));
@@ -45,6 +48,31 @@ describe('schedules routes', () => {
     expect(post.body.triggerType).toBe('weekly');
     expect(post.body.daysOfWeek).toEqual([1, 2, 3, 4, 5]);
     expect(post.body.timeOfDay).toBe('18:30');
+  });
+
+  it('creates a schedule targeting a controller directly (no group)', async () => {
+    const post = await request(app).post('/api/schedules').send({
+      name: 'Direct', triggerType: 'cron', cronExpr: '0 22 * * *', offsetMinutes: 0,
+      controllerId, wledSegId: null, actionType: 'power', actionPayload: { on: false }
+    });
+    expect(post.status).toBe(201);
+    expect(post.body.groupId).toBeNull();
+    expect(post.body.controllerId).toBe(controllerId);
+    expect(post.body.wledSegId).toBeNull();
+  });
+
+  it('PATCHes a schedule from a group target to a direct controller target', async () => {
+    const post = await request(app).post('/api/schedules').send({
+      name: 'Bedtime off', triggerType: 'cron', cronExpr: '0 22 * * *',
+      offsetMinutes: 0, groupId, actionType: 'power', actionPayload: { on: false }
+    });
+    const patch = await request(app).patch(`/api/schedules/${post.body.id}`).send({
+      groupId: null, controllerId, wledSegId: 0
+    });
+    expect(patch.status).toBe(200);
+    expect(patch.body.groupId).toBeNull();
+    expect(patch.body.controllerId).toBe(controllerId);
+    expect(patch.body.wledSegId).toBe(0);
   });
 
   it('deletes a schedule', async () => {

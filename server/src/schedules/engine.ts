@@ -1,9 +1,43 @@
 import type Database from 'better-sqlite3';
 import SunCalc from 'suncalc';
 import { createScheduleRepository, type Schedule } from './repository.js';
-import { createGroupRepository } from '../groups/repository.js';
 import { createCalendarRepository, type CalendarEvent } from '../calendar/repository.js';
 import { resolveDate } from '../calendar/dateRules.js';
+import { expandTargets, GroupNotFoundError, type ResolvedTarget, type Target } from '../control/applyV2.js';
+
+/**
+ * A schedule/calendar event targets exactly one of a Room group or a
+ * specific controller (whole-device when wledSegId is null, one segment
+ * when it's set) — same Target union /api/control/apply already uses.
+ * null only if somehow neither is set (shouldn't happen; callers skip it).
+ */
+function targetOf(entity: {
+  groupId: string | null;
+  controllerId: string | null;
+  wledSegId: number | null;
+}): Target | null {
+  if (entity.controllerId) {
+    return entity.wledSegId === null
+      ? { kind: 'controller', controllerId: entity.controllerId }
+      : { kind: 'segment', controllerId: entity.controllerId, wledSegId: entity.wledSegId };
+  }
+  if (entity.groupId) return { kind: 'group', groupId: entity.groupId };
+  return null;
+}
+
+/** expandTargets throws GroupNotFoundError for a deleted group; treat that
+ *  the same as "target no longer resolves to anything", same as the old
+ *  code's `if (!group) continue`. */
+function resolveMembers(db: Database.Database, entity: Parameters<typeof targetOf>[0]): ResolvedTarget[] {
+  const target = targetOf(entity);
+  if (!target) return [];
+  try {
+    return expandTargets(db, [target]);
+  } catch (err) {
+    if (err instanceof GroupNotFoundError) return [];
+    throw err;
+  }
+}
 
 export function nextTriggerDate(schedule: Schedule, now: Date): Date {
   if (schedule.triggerType === 'cron') {
@@ -83,7 +117,7 @@ function triggerTimeDue(triggerTime: CalendarEvent['triggerTime'], now: Date): b
 }
 
 type ApplyFn = (
-  members: { controllerId: string; wledSegId: number }[],
+  members: ResolvedTarget[],
   action: { type: string; [key: string]: unknown }
 ) => Promise<unknown>;
 
@@ -109,40 +143,42 @@ export class SchedulerEngine {
 
   private async runCheckAndFireDueSchedules(now: Date): Promise<void> {
     const schedules = createScheduleRepository(this.db);
-    const groups = createGroupRepository(this.db);
     const calendar = createCalendarRepository(this.db);
 
     const todaysEvents = calendar.list().filter((e) => e.enabled && todayMatches(e.dateRule, now));
 
     // Fire each matching calendar event's own action, once per minute.
     for (const event of todaysEvents) {
-      if (!event.groupId || !event.actionType) continue;
+      if (!event.actionType) continue;
       if (!triggerTimeDue(event.triggerTime, now)) continue;
 
       const key = `calendar:${event.id}`;
       const alreadyFired = this.lastFired.get(key);
       if (alreadyFired && sameMinute(alreadyFired, now)) continue;
 
-      const group = groups.list().find((g) => g.id === event.groupId);
-      if (!group) continue;
+      const members = resolveMembers(this.db, event);
+      if (members.length === 0) continue;
 
       // Claim this key for the current minute BEFORE awaiting applyFn, so a
       // concurrent/overlapping invocation sees the up-to-date claim
       // immediately instead of the stale pre-await value and does not fire
       // the same event twice for the same minute.
       this.lastFired.set(key, now);
-      await this.applyFn(group.members, { type: event.actionType, ...(event.actionPayload as object) });
+      await this.applyFn(members, { type: event.actionType, ...(event.actionPayload as object) });
     }
 
-    // Suppressed member set: every member of every group targeted by an
-    // enabled calendar event whose resolved date is today.
-    const suppressedMemberKeys = new Set<string>();
+    // Suppression map: for every enabled today-resolved calendar event's
+    // target, every controller it touches -> the set of segments suppressed
+    // for it, or 'ALL' for a whole-controller target. A whole-controller
+    // entry (either side) overlaps every segment of that controller, so the
+    // overlap check below treats 'ALL' as matching any concrete segment id
+    // and vice versa — a plain exact-key match would miss that.
+    const suppressedByController = new Map<string, Set<number | 'ALL'>>();
     for (const event of todaysEvents) {
-      if (!event.groupId) continue;
-      const group = groups.list().find((g) => g.id === event.groupId);
-      if (!group) continue;
-      for (const m of group.members) {
-        suppressedMemberKeys.add(`${m.controllerId}:${m.wledSegId}`);
+      for (const m of resolveMembers(this.db, event)) {
+        const segs = suppressedByController.get(m.controllerId) ?? new Set();
+        segs.add(m.wledSegId === null ? 'ALL' : m.wledSegId);
+        suppressedByController.set(m.controllerId, segs);
       }
     }
 
@@ -154,12 +190,14 @@ export class SchedulerEngine {
       const alreadyFired = this.lastFired.get(schedule.id);
       if (alreadyFired && sameMinute(alreadyFired, now)) continue;
 
-      const group = groups.list().find((g) => g.id === schedule.groupId);
-      if (!group) continue;
+      const members = resolveMembers(this.db, schedule);
+      if (members.length === 0) continue;
 
-      const overlapsSuppressed = group.members.some((m) =>
-        suppressedMemberKeys.has(`${m.controllerId}:${m.wledSegId}`)
-      );
+      const overlapsSuppressed = members.some((m) => {
+        const segs = suppressedByController.get(m.controllerId);
+        if (!segs) return false;
+        return m.wledSegId === null ? segs.size > 0 : segs.has('ALL') || segs.has(m.wledSegId);
+      });
       if (overlapsSuppressed) {
         this.lastFired.set(schedule.id, now); // treat as handled for this minute, don't re-check every tick
         continue;
@@ -168,7 +206,7 @@ export class SchedulerEngine {
       // Claim before awaiting (see comment above) so an overlapping
       // invocation cannot also fire this schedule for the same minute.
       this.lastFired.set(schedule.id, now);
-      await this.applyFn(group.members, { type: schedule.actionType, ...(schedule.actionPayload as object) });
+      await this.applyFn(members, { type: schedule.actionType, ...(schedule.actionPayload as object) });
     }
   }
 
