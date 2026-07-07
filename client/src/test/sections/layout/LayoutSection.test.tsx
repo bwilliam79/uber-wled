@@ -165,6 +165,27 @@ describe('draw flow', () => {
     expect(screen.getByRole('button', { name: 'Draw strip' })).toBeDefined();
   });
 
+  it('snap to grid actually snaps placed vertices, not just the preview cursor', async () => {
+    // Regression test: the toggle correctly enabled the visual grid and the
+    // rubber-band preview snapped, but handleCanvasClick placed the raw
+    // unsnapped point — so the vertex that actually landed on click ignored
+    // "Snap to grid" entirely. GRID_SIZE is 2 world units.
+    renderSection();
+    await screen.findByTestId('strip-s1');
+    fireEvent.click(screen.getByLabelText('Snap to grid'));
+    fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
+    const canvas = screen.getByTestId('layout-canvas');
+    fireEvent.click(canvas, { clientX: 11, clientY: 13 });
+    fireEvent.click(canvas, { clientX: 47, clientY: 9 });
+    fireEvent.click(screen.getByRole('button', { name: 'Finish line' }));
+    await screen.findByTestId('strip-save-panel');
+    fireEvent.click(screen.getByRole('button', { name: 'Save strip' }));
+    await waitFor(() => {
+      const post = fetchMock.mock.calls.find(([u, i]) => u === '/api/strips' && (i as RequestInit)?.method === 'POST');
+      expect(JSON.parse(String((post![1] as RequestInit).body)).points).toEqual([{ x: 12, y: 14 }, { x: 48, y: 10 }]);
+    });
+  });
+
   it('double-click finishes the path without keeping the duplicate vertex', async () => {
     renderSection();
     await screen.findByTestId('strip-s1');
