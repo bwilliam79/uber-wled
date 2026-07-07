@@ -60,4 +60,17 @@ describe('DeviceDetail', () => {
     renderDetail('info', { live: { reachable: false } });
     expect(screen.getAllByText('Offline').length).toBeGreaterThan(0);
   });
+
+  it('prefers the live device-reported name over the stored controller name', () => {
+    renderDetail('info', {
+      controller: { ...CONTROLLERS[0], name: 'cabinet-lights' },
+      live: liveEntry({ info: { name: 'Cabinet Lights', ver: '16.0.0', leds: { count: 48, rgbw: true, cct: 0, seglc: [1, 1] } } })
+    });
+    expect(screen.getByRole('heading', { name: 'Cabinet Lights' })).toBeTruthy();
+  });
+
+  it('falls back to the stored controller name when there is no live info yet', () => {
+    renderDetail('info', { controller: { ...CONTROLLERS[0], name: 'cabinet-lights' }, live: undefined });
+    expect(screen.getByRole('heading', { name: 'cabinet-lights' })).toBeTruthy();
+  });
 });
