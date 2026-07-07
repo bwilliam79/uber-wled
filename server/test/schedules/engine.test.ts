@@ -60,10 +60,12 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
   let applyFn: ReturnType<typeof vi.fn>;
 
   let controllerId: string;
+  let controllerId2: string;
 
   beforeEach(() => {
     db = createDb(':memory:');
     controllerId = createControllerRepository(db).add({ name: 'Front porch', host: '10.0.0.50', source: 'manual' }).id;
+    controllerId2 = createControllerRepository(db).add({ name: 'Kitchen', host: '10.0.0.51', source: 'manual' }).id;
     groupId = createGroupRepository(db).add({
       name: 'Front', members: [{ controllerId, wledSegId: 0 }]
     }).id;
@@ -148,7 +150,7 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
     schedules.add({
       name: 'Direct whole-controller', triggerType: 'cron', cronExpr: '0 10 * * *',
       daysOfWeek: null, timeOfDay: null, offsetMinutes: 0,
-      latitude: null, longitude: null, groupId: null, controllerId, wledSegId: null,
+      latitude: null, longitude: null, groupId: null, controllers: [{ controllerId, wledSegId: null }],
       actionType: 'power', actionPayload: { on: true }, enabled: true
     });
     const engine = new SchedulerEngine(db, applyFn);
@@ -164,13 +166,30 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
     schedules.add({
       name: 'Direct segment', triggerType: 'cron', cronExpr: '0 10 * * *',
       daysOfWeek: null, timeOfDay: null, offsetMinutes: 0,
-      latitude: null, longitude: null, groupId: null, controllerId, wledSegId: 2,
+      latitude: null, longitude: null, groupId: null, controllers: [{ controllerId, wledSegId: 2 }],
       actionType: 'power', actionPayload: { on: true }, enabled: true
     });
     const engine = new SchedulerEngine(db, applyFn);
     await engine.checkAndFireDueSchedules(new Date('2026-07-04T10:00:00'));
     expect(applyFn).toHaveBeenCalledWith(
       [{ controllerId, wledSegId: 2 }],
+      { type: 'power', on: true }
+    );
+  });
+
+  it('fires a schedule targeting several individual controllers at once (no group)', async () => {
+    const schedules = createScheduleRepository(db);
+    schedules.add({
+      name: 'Direct multi-controller', triggerType: 'cron', cronExpr: '0 10 * * *',
+      daysOfWeek: null, timeOfDay: null, offsetMinutes: 0,
+      latitude: null, longitude: null, groupId: null,
+      controllers: [{ controllerId, wledSegId: null }, { controllerId: controllerId2, wledSegId: null }],
+      actionType: 'power', actionPayload: { on: true }, enabled: true
+    });
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(new Date('2026-07-04T10:00:00'));
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId, wledSegId: null }, { controllerId: controllerId2, wledSegId: null }],
       { type: 'power', on: true }
     );
   });
@@ -287,7 +306,7 @@ describe('SchedulerEngine calendar override-for-day', () => {
     calendar.add({
       name: 'July 4th whole-controller', category: 'holiday',
       dateRule: { kind: 'fixed', month: 7, day: 4 },
-      recursYearly: true, enabled: true, groupId: null, controllerId: porchControllerId, wledSegId: null,
+      recursYearly: true, enabled: true, groupId: null, controllers: [{ controllerId: porchControllerId, wledSegId: null }],
       triggerTime: { type: 'fixed', time: '18:00' },
       actionType: 'power', actionPayload: { on: true }
     });
@@ -295,7 +314,7 @@ describe('SchedulerEngine calendar override-for-day', () => {
     schedules.add({
       name: 'Porch segment 0 (should be suppressed)', triggerType: 'weekly', cronExpr: null,
       daysOfWeek: [6], timeOfDay: '20:00', offsetMinutes: 0,
-      latitude: null, longitude: null, groupId: null, controllerId: porchControllerId, wledSegId: 0,
+      latitude: null, longitude: null, groupId: null, controllers: [{ controllerId: porchControllerId, wledSegId: 0 }],
       actionType: 'power', actionPayload: { on: false }, enabled: true
     });
 
@@ -313,7 +332,7 @@ describe('SchedulerEngine calendar override-for-day', () => {
     calendar.add({
       name: 'July 4th segment 0', category: 'holiday',
       dateRule: { kind: 'fixed', month: 7, day: 4 },
-      recursYearly: true, enabled: true, groupId: null, controllerId: porchControllerId, wledSegId: 0,
+      recursYearly: true, enabled: true, groupId: null, controllers: [{ controllerId: porchControllerId, wledSegId: 0 }],
       triggerTime: { type: 'fixed', time: '18:00' },
       actionType: 'power', actionPayload: { on: true }
     });
@@ -321,7 +340,7 @@ describe('SchedulerEngine calendar override-for-day', () => {
     schedules.add({
       name: 'Porch whole-controller (should be suppressed)', triggerType: 'weekly', cronExpr: null,
       daysOfWeek: [6], timeOfDay: '20:00', offsetMinutes: 0,
-      latitude: null, longitude: null, groupId: null, controllerId: porchControllerId, wledSegId: null,
+      latitude: null, longitude: null, groupId: null, controllers: [{ controllerId: porchControllerId, wledSegId: null }],
       actionType: 'power', actionPayload: { on: false }, enabled: true
     });
 

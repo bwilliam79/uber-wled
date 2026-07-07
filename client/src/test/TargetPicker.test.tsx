@@ -21,7 +21,7 @@ describe('TargetPicker', () => {
         groups={groups}
         controllers={controllers}
         live={new Map()}
-        value={{ groupId: 'g1', controllerId: null, wledSegId: null }}
+        value={{ groupId: 'g1', controllers: null }}
         onChange={onChange}
       />
     );
@@ -38,12 +38,50 @@ describe('TargetPicker', () => {
         groups={groups}
         controllers={controllers}
         live={new Map()}
-        value={{ groupId: 'g1', controllerId: null, wledSegId: null }}
+        value={{ groupId: 'g1', controllers: null }}
         onChange={onChange}
       />
     );
-    fireEvent.click(screen.getByRole('radio', { name: 'Controller' }));
-    expect(onChange).toHaveBeenCalledWith({ groupId: null, controllerId: 'c1', wledSegId: null });
+    fireEvent.click(screen.getByRole('radio', { name: 'Controller(s)' }));
+    expect(onChange).toHaveBeenCalledWith({ groupId: null, controllers: [{ controllerId: 'c1', wledSegId: null }] });
+  });
+
+  it('checking a second controller adds it to the list without removing the first', () => {
+    const onChange = vi.fn();
+    render(
+      <TargetPicker
+        idPrefix="test"
+        groups={groups}
+        controllers={controllers}
+        live={new Map()}
+        value={{ groupId: null, controllers: [{ controllerId: 'c1', wledSegId: null }] }}
+        onChange={onChange}
+      />
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'tv-lights' }));
+    expect(onChange).toHaveBeenCalledWith({
+      groupId: null,
+      controllers: [{ controllerId: 'c1', wledSegId: null }, { controllerId: 'c2', wledSegId: null }]
+    });
+  });
+
+  it('unchecking a controller removes just that one from the list', () => {
+    const onChange = vi.fn();
+    render(
+      <TargetPicker
+        idPrefix="test"
+        groups={groups}
+        controllers={controllers}
+        live={new Map()}
+        value={{
+          groupId: null,
+          controllers: [{ controllerId: 'c1', wledSegId: null }, { controllerId: 'c2', wledSegId: null }]
+        }}
+        onChange={onChange}
+      />
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'cabinet-lights' }));
+    expect(onChange).toHaveBeenCalledWith({ groupId: null, controllers: [{ controllerId: 'c2', wledSegId: null }] });
   });
 
   it('in Controller mode, prefers the live device-reported name over the stored controller name', () => {
@@ -56,15 +94,15 @@ describe('TargetPicker', () => {
         groups={groups}
         controllers={controllers}
         live={live as never}
-        value={{ groupId: null, controllerId: 'c1', wledSegId: null }}
+        value={{ groupId: null, controllers: [{ controllerId: 'c1', wledSegId: null }] }}
         onChange={vi.fn()}
       />
     );
-    expect(screen.getByRole('option', { name: 'Cabinet Lights' })).toBeTruthy();
-    expect(screen.queryByRole('option', { name: 'cabinet-lights' })).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Cabinet Lights' })).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: 'cabinet-lights' })).toBeNull();
   });
 
-  it('picking a different group reports it via onChange with controllerId cleared', () => {
+  it('picking a different group reports it via onChange with controllers cleared', () => {
     const onChange = vi.fn();
     render(
       <TargetPicker
@@ -72,12 +110,12 @@ describe('TargetPicker', () => {
         groups={groups}
         controllers={controllers}
         live={new Map()}
-        value={{ groupId: 'g1', controllerId: null, wledSegId: null }}
+        value={{ groupId: 'g1', controllers: null }}
         onChange={onChange}
       />
     );
     fireEvent.change(screen.getByLabelText('target group'), { target: { value: 'g2' } });
-    expect(onChange).toHaveBeenCalledWith({ groupId: 'g2', controllerId: null, wledSegId: null });
+    expect(onChange).toHaveBeenCalledWith({ groupId: 'g2', controllers: null });
   });
 
   it('shows an empty state instead of a select when there are no groups', () => {
@@ -87,10 +125,24 @@ describe('TargetPicker', () => {
         groups={[]}
         controllers={controllers}
         live={new Map()}
-        value={{ groupId: null, controllerId: null, wledSegId: null }}
+        value={{ groupId: null, controllers: null }}
         onChange={vi.fn()}
       />
     );
     expect(screen.getByText(/No groups yet/)).toBeTruthy();
+  });
+
+  it('shows an empty state in Controller mode when there are no controllers', () => {
+    render(
+      <TargetPicker
+        idPrefix="test"
+        groups={groups}
+        controllers={[]}
+        live={new Map()}
+        value={{ groupId: null, controllers: [] }}
+        onChange={vi.fn()}
+      />
+    );
+    expect(screen.getByText(/No controllers yet/)).toBeTruthy();
   });
 });

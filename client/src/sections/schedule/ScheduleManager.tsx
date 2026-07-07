@@ -23,14 +23,16 @@ interface MemberSnapshot {
   col: number[][];
 }
 
-function targetOf(t: TargetValue): Target | null {
-  if (t.controllerId) {
-    return t.wledSegId === null
-      ? { kind: 'controller', controllerId: t.controllerId }
-      : { kind: 'segment', controllerId: t.controllerId, wledSegId: t.wledSegId };
+function targetsOf(t: TargetValue): Target[] {
+  if (t.controllers && t.controllers.length > 0) {
+    return t.controllers.map((c) =>
+      c.wledSegId === null
+        ? { kind: 'controller', controllerId: c.controllerId }
+        : { kind: 'segment', controllerId: c.controllerId, wledSegId: c.wledSegId }
+    );
   }
-  if (t.groupId) return { kind: 'group', groupId: t.groupId };
-  return null;
+  if (t.groupId) return [{ kind: 'group', groupId: t.groupId }];
+  return [];
 }
 
 export function ScheduleManager() {
@@ -52,19 +54,28 @@ export function ScheduleManager() {
   }
 
   async function membersFor(target: TargetValue): Promise<{ controllerId: string; wledSegId: number }[]> {
+    if (target.controllers && target.controllers.length > 0) {
+      const members: { controllerId: string; wledSegId: number }[] = [];
+      for (const c of target.controllers) {
+        if (c.wledSegId !== null) {
+          members.push({ controllerId: c.controllerId, wledSegId: c.wledSegId });
+        } else {
+          const segs = await getSegmentsSnapshot(c.controllerId);
+          members.push(...segs.map((s) => ({ controllerId: c.controllerId, wledSegId: s.id })));
+        }
+      }
+      return members;
+    }
     if (target.groupId) {
       return (groups.data ?? []).find((g) => g.id === target.groupId)?.members ?? [];
     }
-    if (!target.controllerId) return [];
-    if (target.wledSegId !== null) return [{ controllerId: target.controllerId, wledSegId: target.wledSegId }];
-    const segs = await getSegmentsSnapshot(target.controllerId);
-    return segs.map((s) => ({ controllerId: target.controllerId!, wledSegId: s.id }));
+    return [];
   }
 
   async function handlePreview(nextDraft: WeeklyScheduleDraft) {
     const theme = themeFor(nextDraft);
-    const targetPatch = targetOf(nextDraft.target);
-    if (!theme || !targetPatch) return;
+    const targets = targetsOf(nextDraft.target);
+    if (!theme || targets.length === 0) return;
     const members = await membersFor(nextDraft.target);
     const snapshots: MemberSnapshot[] = [];
     for (const member of members) {
@@ -81,7 +92,7 @@ export function ScheduleManager() {
     setDraft(nextDraft);
     setRevertError(null);
     await applyControl(
-      [targetPatch],
+      targets,
       {
         on: true,
         bri: theme.brightness,
@@ -153,11 +164,14 @@ export function ScheduleManager() {
   }
 
   function targetLabel(s: Schedule): string {
-    if (s.controllerId) {
-      const name = live.get(s.controllerId)?.info?.name
-        || (controllers.data ?? []).find((c) => c.id === s.controllerId)?.name
-        || s.controllerId;
-      return s.wledSegId === null ? `Controller ${name}` : `Controller ${name} (segment ${s.wledSegId})`;
+    if (s.controllers && s.controllers.length > 0) {
+      const names = s.controllers.map((c) => {
+        const name = live.get(c.controllerId)?.info?.name
+          || (controllers.data ?? []).find((ctrl) => ctrl.id === c.controllerId)?.name
+          || c.controllerId;
+        return c.wledSegId === null ? name : `${name} (segment ${c.wledSegId})`;
+      });
+      return `Controller${names.length > 1 ? 's' : ''} ${names.join(', ')}`;
     }
     const group = (groups.data ?? []).find((g) => g.id === s.groupId);
     return `Group ${group?.name ?? '—'}`;
