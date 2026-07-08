@@ -72,17 +72,15 @@ bar on phones — with eight sections, opening on Home:
 7. **Firmware** — fleet view of installed vs. latest stable version
    (pre-releases opt-in via Settings), plus the detected hardware
    architecture (e.g. `esp32`) reported by each device, so it's clear what
-   the asset matching is actually keyed on. First update per controller pins
-   the correct release asset — shown by its real filename, not just the
-   pattern it's pinned to — and this pin is required before an OTA push is
-   ever attempted, even when only one candidate exists, since a wrong-variant
-   flash isn't reliably detectable as a clean failure after the fact. When a
-   plain, unspecialized build is confidently identifiable (e.g. `ESP32` vs.
-   `ESP32_HUB75`/`_Ethernet`/`_WROVER`), it's pre-highlighted as the
-   recommended pick among multiple candidates, or shown as the suggested
-   default when it's the sole candidate; genuine ambiguity across
-   fundamentally different hardware (e.g. `esp8266`'s flash-size variants)
-   is never guessed at. Later updates reuse the pin with no re-prompting. OTA
+   the asset matching is actually keyed on. First update per controller
+   requires a one-time asset pin before an OTA push is ever attempted, even
+   when only one candidate exists, since a wrong-variant flash isn't reliably
+   detectable as a clean failure after the fact — never auto-guessed or
+   auto-retried. When a plain, unspecialized build is confidently
+   identifiable (e.g. `ESP32` vs. `ESP32_HUB75`/`_Ethernet`/`_WROVER`), the
+   picker pre-highlights it as the recommended pick; genuine ambiguity across
+   fundamentally different hardware (e.g. `esp8266`'s flash-size variants) is
+   never guessed at. Later updates reuse the pin with no re-prompting. OTA
    push via WLED's own endpoint, with post-update version polling.
 8. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
@@ -223,8 +221,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 44 files / 338 tests
-cd client && npm test   # 77 files / 595 tests
+cd server && npm test   # 44 files / 339 tests
+cd client && npm test   # 77 files / 591 tests
 ```
 
 ## Running the whole app locally via Docker

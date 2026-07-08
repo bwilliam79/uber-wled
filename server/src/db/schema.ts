@@ -147,6 +147,18 @@ export function runMigrations(db: Database.Database): void {
     db.exec('ALTER TABLE wled_releases ADD COLUMN prerelease INTEGER NOT NULL DEFAULT 0');
   }
 
+  // Idempotent column add for controllers rows created before the firmware
+  // update feature existed. This one was missed when the feature shipped —
+  // it was only ever added to the CREATE TABLE statement above, which is a
+  // no-op for a controllers table that already existed (as production's
+  // did) — so every pin attempt against a pre-existing install has always
+  // failed with "no such column: pinned_asset_pattern", silently, until a
+  // client-side fix started surfacing the error instead of swallowing it.
+  const controllerCols = db.prepare('PRAGMA table_info(controllers)').all() as { name: string }[];
+  if (!controllerCols.some((c) => c.name === 'pinned_asset_pattern')) {
+    db.exec('ALTER TABLE controllers ADD COLUMN pinned_asset_pattern TEXT');
+  }
+
   // Idempotent column add for settings rows created before the controller
   // status poll interval existed.
   const settingsCols = db.prepare('PRAGMA table_info(settings)').all() as { name: string }[];
