@@ -43,4 +43,34 @@ describe('Modal', () => {
     fireEvent.click(document.querySelector('.ui-overlay') as HTMLElement);
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+
+  it('keeps focus on an input the user is typing into when the parent re-renders with a new onClose reference', () => {
+    // Regression: callers overwhelmingly pass an inline onClose arrow
+    // function, which gets a new identity on every parent re-render —
+    // including re-renders triggered by something unrelated, like a
+    // polling query elsewhere on the page (e.g. SyncSection's live-status
+    // poll while the "New sync group" modal is open). With onClose in the
+    // focus-trap effect's dependency array, that alone tore the effect down
+    // and re-ran it, yanking focus away from whatever the user was actively
+    // typing into on every poll tick.
+    const { rerender } = render(
+      <Modal open onClose={() => {}} title="New sync group">
+        <input aria-label="Name" />
+      </Modal>
+    );
+    const input = screen.getByLabelText('Name');
+    input.focus();
+    fireEvent.change(input, { target: { value: 'Front of house' } });
+    expect(document.activeElement).toBe(input);
+
+    // Simulate the parent re-rendering with a brand-new onClose identity —
+    // exactly what an inline `onClose={() => setOpen(false)}` produces.
+    rerender(
+      <Modal open onClose={() => {}} title="New sync group">
+        <input aria-label="Name" />
+      </Modal>
+    );
+
+    expect(document.activeElement).toBe(input);
+  });
 });
