@@ -76,6 +76,30 @@ describe('resolvePinnedAsset', () => {
     const asset = resolvePinnedAsset(release, 'ESP01');
     expect(asset).toBeUndefined();
   });
+
+  it('resolves a plain "ESP32" pin to the plain asset, never a variant whose name happens to start with it', () => {
+    // Regression: a real device pinned to "ESP32" got flashed with
+    // "WLED_16.0.1_ESP32-C3-QIO.bin" instead — an entirely different chip —
+    // because "ESP32-C3-QIO".includes("ESP32") is true and GitHub's asset
+    // list sorts the dashed variant before the plain filename
+    // alphabetically ('-' sorts before '.'), so .find()'s substring check
+    // hit it first. WLED's own release-name compatibility check is what
+    // actually caught this in production before any flash happened.
+    const releaseWithC3Variant: WledRelease = {
+      tag: 'v16.0.1',
+      publishedAt: '2026-06-01T00:00:00Z',
+      fetchedAt: '2026-07-04T00:00:00Z',
+      assets: [
+        // Deliberately ordered as GitHub's real API returns them: the dashed
+        // C3 variant alphabetically precedes the plain filename.
+        { name: 'WLED_16.0.1_ESP32-C3-QIO.bin', downloadUrl: 'https://example.com/c3.bin' },
+        { name: 'WLED_16.0.1_ESP32.bin', downloadUrl: 'https://example.com/plain.bin' }
+      ]
+    };
+
+    const asset = resolvePinnedAsset(releaseWithC3Variant, 'ESP32');
+    expect(asset?.name).toBe('WLED_16.0.1_ESP32.bin');
+  });
 });
 
 describe('recommendedAssetName', () => {
