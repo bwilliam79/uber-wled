@@ -19,6 +19,7 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   const [updating, setUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   async function refresh() {
     try {
@@ -36,9 +37,17 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   }, [controllerId]);
 
   async function handlePick(assetName: string) {
-    await pinFirmwareAsset(controllerId, assetNameToPattern(assetName));
-    setPickerOpen(false);
-    await refresh();
+    setPinError(null);
+    try {
+      await pinFirmwareAsset(controllerId, assetNameToPattern(assetName));
+      setPickerOpen(false);
+      await refresh();
+    } catch {
+      // Leave the picker open on failure — closing it here would silently
+      // discard the user's choice with nothing pinned and no visible sign
+      // anything went wrong (the exact bug this error state fixes).
+      setPinError('Failed to save the pinned firmware asset. Try again.');
+    }
   }
 
   async function handleUpdate() {
@@ -89,11 +98,17 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         </span>
       )}
       {!isPinned && candidates.length === 1 && (
-        <span className="controller-meta firmware-board-type">Default asset: {candidates[0].name}</span>
+        <span className="controller-meta firmware-board-type">
+          Default asset: {candidates[0].name}
+          {status.updateAvailable && ' — pin it below to enable the update'}
+        </span>
       )}
       {!isPinned && candidates.length > 1 && (
         <span className="controller-meta firmware-board-type">
-          {candidates.length} possible assets for this hardware — pick one below
+          {candidates.length} possible assets for this hardware — {status.recommendedAssetName
+            ? `${status.recommendedAssetName} is recommended for ordinary boards; confirm it or pick a different one below`
+            : 'pick the exact one below'}
+          {status.updateAvailable && ' to enable the update (required so the wrong variant is never flashed)'}
         </span>
       )}
       {hasCandidates && (
@@ -105,10 +120,12 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         <AssetPickerModal
           assets={candidates}
           currentPattern={status.pinnedAssetPattern}
+          recommendedAssetName={status.recommendedAssetName}
           onPick={handlePick}
           onCancel={() => setPickerOpen(false)}
         />
       )}
+      {pinError && <p role="alert" className="error-banner">{pinError}</p>}
       {showUpdateButton && (
         <button type="button" className="btn btn-primary" onClick={handleUpdate} disabled={updating}>
           {updating ? 'Updating…' : 'Update'}
