@@ -183,7 +183,7 @@ describe('FirmwareStatus', () => {
 
     await waitFor(() => expect(screen.getByText('Update Firmware')).toBeTruthy());
     expect(screen.queryByText('Pick Firmware Asset')).toBeNull();
-    expect(screen.getByRole('button', { name: /Hardware: esp02/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'esp02' })).toBeTruthy();
     // No more clutter once pinned.
     expect(screen.queryByText(/One-time setup/)).toBeNull();
 
@@ -221,12 +221,12 @@ describe('FirmwareStatus', () => {
 
     render(<FirmwareStatus controllerId="c1" />);
 
-    await waitFor(() => expect(screen.getByRole('button', { name: /Hardware: esp8266/ })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'esp8266' })).toBeTruthy());
     expect(screen.queryByText('Pick Firmware Asset')).toBeNull();
     expect(screen.queryByText('Update Firmware')).toBeNull();
     expect(screen.queryByText(/Available:/)).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Hardware: esp8266/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'esp8266' }));
     expect(screen.getByText('WLED_0.15.0_ESP8266.bin')).toBeTruthy();
   });
 
@@ -260,9 +260,9 @@ describe('FirmwareStatus', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<FirmwareStatus controllerId="c1" />);
-    await waitFor(() => expect(screen.getByRole('button', { name: /Hardware: esp8266/ })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'esp8266' })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: /Hardware: esp8266/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'esp8266' }));
     expect(screen.getByText(/Currently pinned to "ESP02"/)).toBeTruthy();
 
     fireEvent.click(screen.getByText('WLED_0.15.0_ESP8266.bin'));
