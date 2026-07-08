@@ -32,9 +32,19 @@ export function candidateAssets(release: WledRelease, arch: string): ReleaseAsse
   });
 }
 
+/**
+ * Resolves a pinned pattern (e.g. "ESP32") back to the exact matching
+ * release asset. Matches the stripped filename token EXACTLY rather than by
+ * substring — a substring check here let "ESP32-C3-QIO" (an entirely
+ * different chip) match a pin of "ESP32", since the string "ESP32-C3-QIO"
+ * contains "ESP32" as its own prefix. That mismatch reached a real device
+ * and was only caught by WLED's own release-name compatibility check
+ * ("Firmware release name mismatch: current='ESP32', uploaded='ESP32-C3-
+ * QIO'"), which correctly refused to flash it.
+ */
 export function resolvePinnedAsset(release: WledRelease, pinnedAssetPattern: string): ReleaseAsset | undefined {
   const pattern = pinnedAssetPattern.toUpperCase();
-  return release.assets.find((asset) => asset.name.toUpperCase().includes(pattern));
+  return release.assets.find((asset) => assetNameToPattern(asset.name).toUpperCase() === pattern);
 }
 
 /**
