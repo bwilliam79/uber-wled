@@ -45,7 +45,7 @@ describe('UpdateTab', () => {
     renderDevices(<UpdateTab controllerId="c1" />);
     expect(await screen.findByRole('button', { name: 'Update Firmware' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Pick Firmware Asset' })).toBeNull();
-    expect(screen.getByRole('button', { name: /Hardware: esp32/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'esp32' })).toBeTruthy();
     expect(screen.queryByText(/One-time setup/)).toBeNull();
   });
 });
