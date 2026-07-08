@@ -3,11 +3,16 @@ import { useEffect } from 'react';
 export function AssetPickerModal({
   assets,
   currentPattern,
+  recommendedAssetName,
   onPick,
   onCancel
 }: {
   assets: { name: string; downloadUrl: string }[];
   currentPattern?: string | null;
+  /** Filename of the plain/unspecialized build, when one is confidently
+   *  known to be correct for ordinary boards — see FirmwareStatus's
+   *  recommendedAssetName doc for why this isn't always present. */
+  recommendedAssetName?: string | null;
   onPick: (assetName: string) => void;
   onCancel: () => void;
 }) {
@@ -20,6 +25,14 @@ export function AssetPickerModal({
   }, [onCancel]);
 
   const isOverride = !!currentPattern;
+  // Recommended option first, so it's the natural first thing a scanning
+  // eye lands on — still just one button among several, never auto-picked.
+  const orderedAssets = recommendedAssetName
+    ? [
+        ...assets.filter((a) => a.name === recommendedAssetName),
+        ...assets.filter((a) => a.name !== recommendedAssetName)
+      ]
+    : assets;
 
   return (
     <div className="modal-overlay" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
@@ -33,13 +46,21 @@ export function AssetPickerModal({
             : 'Ambiguous chip family — choose the exact asset for this device. This is remembered for future updates.'}
         </p>
         <ul className="asset-picker-list">
-          {assets.map((a) => (
-            <li key={a.name}>
-              <button type="button" className="btn btn-secondary asset-picker-option" onClick={() => onPick(a.name)}>
-                {a.name}
-              </button>
-            </li>
-          ))}
+          {orderedAssets.map((a) => {
+            const isRecommended = a.name === recommendedAssetName;
+            return (
+              <li key={a.name}>
+                <button
+                  type="button"
+                  className={`btn ${isRecommended ? 'btn-primary' : 'btn-secondary'} asset-picker-option`}
+                  onClick={() => onPick(a.name)}
+                >
+                  {a.name}
+                  {isRecommended && <span className="asset-picker-recommended"> (recommended)</span>}
+                </button>
+              </li>
+            );
+          })}
         </ul>
         <button type="button" className="btn btn-secondary" onClick={onCancel}>
           Cancel

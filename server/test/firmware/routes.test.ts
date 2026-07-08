@@ -85,6 +85,36 @@ describe('firmware routes', () => {
     expect(res.body.pinnedAssetPattern).toBeNull();
     expect(res.body.candidateAssets).toHaveLength(2);
     expect(res.body.detectedArch).toBe('esp8266');
+    // esp8266 resolves to multiple genuinely different flash-size tokens
+    // (ESP8266/ESP01/ESP02) — no safe default among them.
+    expect(res.body.recommendedAssetName).toBeNull();
+  });
+
+  it('recommends the plain build for an unpinned esp32 board with specialized-hardware variants also present', async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes('api.github.com')) {
+        return {
+          ok: true,
+          json: async () => [{
+            tag_name: 'v16.0.1',
+            published_at: '2026-06-01T00:00:00Z',
+            assets: [
+              { name: 'WLED_16.0.1_ESP32.bin', browser_download_url: 'https://example.com/ESP32.bin' },
+              { name: 'WLED_16.0.1_ESP32_HUB75.bin', browser_download_url: 'https://example.com/ESP32_HUB75.bin' }
+            ]
+          }]
+        } as Response;
+      }
+      if (url.endsWith('/json/info')) {
+        return { ok: true, json: async () => ({ name: 'Cabinet', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' }) } as Response;
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await request(app).get(`/api/controllers/${controllerId}/firmware`);
+    expect(res.status).toBe(200);
+    expect(res.body.recommendedAssetName).toBe('WLED_16.0.1_ESP32.bin');
   });
 
   it('still returns candidate assets once pinned and the pin still matches, so the client can offer an override', async () => {

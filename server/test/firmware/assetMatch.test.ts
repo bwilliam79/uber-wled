@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { chipArchTokens, candidateAssets, resolvePinnedAsset } from '../../src/firmware/assetMatch.js';
-import type { WledRelease } from '../../src/firmware/githubClient.js';
+import { chipArchTokens, candidateAssets, recommendedAssetName, resolvePinnedAsset } from '../../src/firmware/assetMatch.js';
+import type { WledRelease, ReleaseAsset } from '../../src/firmware/githubClient.js';
 
 const release: WledRelease = {
   tag: 'v0.15.0',
@@ -75,5 +75,36 @@ describe('resolvePinnedAsset', () => {
   it('returns undefined when the pin no longer matches any asset in the release', () => {
     const asset = resolvePinnedAsset(release, 'ESP01');
     expect(asset).toBeUndefined();
+  });
+});
+
+describe('recommendedAssetName', () => {
+  it('recommends the plain build over specialized-hardware variants for a plain esp32 board', () => {
+    const releaseWithVariants: WledRelease = {
+      tag: 'v16.0.1',
+      publishedAt: '2026-06-01T00:00:00Z',
+      fetchedAt: '2026-07-04T00:00:00Z',
+      assets: [
+        { name: 'WLED_16.0.1_ESP32.bin', downloadUrl: 'https://example.com/ESP32.bin' },
+        { name: 'WLED_16.0.1_ESP32_DEBUG.bin', downloadUrl: 'https://example.com/ESP32_DEBUG.bin' },
+        { name: 'WLED_16.0.1_ESP32_Ethernet.bin', downloadUrl: 'https://example.com/ESP32_Ethernet.bin' },
+        { name: 'WLED_16.0.1_ESP32_HUB75.bin', downloadUrl: 'https://example.com/ESP32_HUB75.bin' },
+        { name: 'WLED_16.0.1_ESP32_WROVER.bin', downloadUrl: 'https://example.com/ESP32_WROVER.bin' }
+      ]
+    };
+    const candidates = candidateAssets(releaseWithVariants, 'esp32');
+    expect(recommendedAssetName(candidates, 'esp32')).toBe('WLED_16.0.1_ESP32.bin');
+  });
+
+  it('returns null for esp8266, which resolves to multiple genuinely different flash-size tokens, not one plain build plus add-ons', () => {
+    const candidates = candidateAssets(release, 'esp8266');
+    expect(recommendedAssetName(candidates, 'esp8266')).toBeNull();
+  });
+
+  it('returns null when no candidate matches the primary token exactly (e.g. only specialized variants present)', () => {
+    const onlySpecialized: ReleaseAsset[] = [
+      { name: 'WLED_16.0.1_ESP32_HUB75.bin', downloadUrl: 'https://example.com/ESP32_HUB75.bin' }
+    ];
+    expect(recommendedAssetName(onlySpecialized, 'esp32')).toBeNull();
   });
 });
