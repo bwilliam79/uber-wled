@@ -42,7 +42,6 @@ function FirmwareRow({
             {status.data.updateAvailable && (
               <Chip variant="warning">Update available ({status.data.latestTag})</Chip>
             )}
-            {status.data.pinnedAssetPattern && <Chip>Board type overridden</Chip>}
           </>
         )}
       </div>

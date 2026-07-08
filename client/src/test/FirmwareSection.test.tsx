@@ -50,19 +50,6 @@ describe('FirmwareSection v2', () => {
     await waitFor(() => expect(screen.getByText('No controllers yet.')).toBeTruthy());
   });
 
-  it('shows a "Board type overridden" badge when the controller has a pinned asset pattern', async () => {
-    stub({ pinnedAssetPattern: 'ESP32' });
-    renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
-    await waitFor(() => expect(screen.getByText('Board type overridden')).toBeTruthy());
-  });
-
-  it('does not show the "Board type overridden" badge when no asset pattern is pinned', async () => {
-    stub({ pinnedAssetPattern: null });
-    renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
-    await waitFor(() => expect(screen.getByText('Porch')).toBeTruthy());
-    expect(screen.queryByText('Board type overridden')).toBeNull();
-  });
-
   it('shows the detected hardware architecture in the fleet row when known', async () => {
     stub({ pinnedAssetPattern: 'ESP32', detectedArch: 'esp32' });
     renderWithQuery(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
