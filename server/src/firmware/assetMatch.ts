@@ -36,3 +36,32 @@ export function resolvePinnedAsset(release: WledRelease, pinnedAssetPattern: str
   const pattern = pinnedAssetPattern.toUpperCase();
   return release.assets.find((asset) => asset.name.toUpperCase().includes(pattern));
 }
+
+/**
+ * Recommends the plain, unspecialized build among a controller's candidate
+ * assets — e.g. "ESP32" over "ESP32_HUB75"/"ESP32_Ethernet"/"ESP32_WROVER" —
+ * so the one-time picker can pre-highlight the option that's correct for
+ * the overwhelming majority of ordinary addressable-LED WLED boards,
+ * without ever auto-selecting anything the caller didn't explicitly confirm
+ * (that stays a human click; see the firmware update design doc's bricking-
+ * risk rationale for why this never picks automatically).
+ *
+ * Deliberately only returns a name when the chip arch resolves to exactly
+ * one filename token AND a candidate's stripped name matches it exactly
+ * with no extra suffix — archs like esp8266 resolve to *multiple* tokens
+ * (ESP8266/ESP01/ESP02, genuinely different flash-size variants rather
+ * than one plain build plus specialized hardware add-ons), and there's no
+ * safe default among fundamentally different hardware; that ambiguity is
+ * exactly what the pinning step exists to resolve, so this returns null
+ * and the UI falls back to today's plain unranked list.
+ */
+export function recommendedAssetName(candidates: ReleaseAsset[], arch: string): string | null {
+  const tokens = chipArchTokens(arch);
+  if (tokens.length !== 1) return null;
+  const match = candidates.find((asset) => assetNameToPattern(asset.name).toUpperCase() === tokens[0]);
+  return match?.name ?? null;
+}
+
+function assetNameToPattern(assetName: string): string {
+  return assetName.replace(/^WLED_[^_]+_/, '').replace(/\.bin$/i, '');
+}

@@ -75,7 +75,12 @@ describe('FirmwareStatus', () => {
       })
     }));
     render(<FirmwareStatus controllerId="c1" />);
-    await waitFor(() => expect(screen.getByText('Default asset: WLED_0.15.0_ESP32.bin')).toBeTruthy());
+    // Regression: the button to unlock the update ("Pick firmware asset")
+    // was reachable but nothing told the user picking was *required* first —
+    // an update-available + unpinned single-candidate controller must say so.
+    await waitFor(() =>
+      expect(screen.getByText('Default asset: WLED_0.15.0_ESP32.bin — pin it below to enable the update')).toBeTruthy()
+    );
   });
 
   it('flags genuine ambiguity instead of guessing when unpinned with multiple candidates', async () => {
@@ -144,6 +149,84 @@ describe('FirmwareStatus', () => {
 
     const [, requestInit] = pinFetch.mock.calls[0];
     expect(JSON.parse(requestInit.body)).toEqual({ assetPattern: 'ESP02' });
+  });
+
+  it('surfaces a visible error and keeps the picker open when pinning fails, instead of silently discarding the choice', async () => {
+    // Regression: pinFirmwareAsset used a bare fetch() with no .ok check, so
+    // a failed pin (any non-2xx status) looked identical to success from the
+    // caller's point of view — the picker closed, refresh() ran, nothing was
+    // actually pinned, and the Update button never appeared with no error
+    // shown anywhere. This is the exact "I picked an asset and there's still
+    // no Update button" bug report.
+    const getFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false,
+        pinnedAssetPattern: null,
+        candidateAssets: [{ name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }]
+      })
+    });
+    vi.stubGlobal('fetch', getFetch);
+
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText('Pick firmware asset')).toBeTruthy());
+    fireEvent.click(screen.getByText('Pick firmware asset'));
+
+    const pinFetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) });
+    vi.stubGlobal('fetch', pinFetch);
+    fireEvent.click(screen.getByText('WLED_0.15.0_ESP02.bin'));
+
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/Failed to save/));
+    // Picker stays open — the user's choice wasn't silently discarded.
+    expect(screen.getByText('WLED_0.15.0_ESP02.bin')).toBeTruthy();
+    expect(screen.queryByText('Update')).toBeNull();
+  });
+
+  it('tells the user picking is required to enable the update when multiple candidates are unpinned', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+        isPrerelease: false, pinnedAssetPattern: null,
+        candidateAssets: [
+          { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
+          { name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }
+        ],
+        detectedArch: 'esp8266'
+      })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() => expect(screen.getByText(/required so the wrong variant is never flashed/)).toBeTruthy());
+  });
+
+  it('highlights the recommended plain build in the picker, ahead of specialized-hardware variants', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        installedVersion: '16.0.0', latestTag: 'v16.0.1', updateAvailable: true,
+        isPrerelease: false, pinnedAssetPattern: null,
+        candidateAssets: [
+          { name: 'WLED_16.0.1_ESP32_HUB75.bin', downloadUrl: 'https://example.com/hub75.bin' },
+          { name: 'WLED_16.0.1_ESP32.bin', downloadUrl: 'https://example.com/plain.bin' },
+          { name: 'WLED_16.0.1_ESP32_WROVER.bin', downloadUrl: 'https://example.com/wrover.bin' }
+        ],
+        recommendedAssetName: 'WLED_16.0.1_ESP32.bin',
+        detectedArch: 'esp32'
+      })
+    }));
+    render(<FirmwareStatus controllerId="c1" />);
+    await waitFor(() =>
+      expect(screen.getByText(/WLED_16\.0\.1_ESP32\.bin is recommended for ordinary boards/)).toBeTruthy()
+    );
+
+    fireEvent.click(screen.getByText('Pick firmware asset'));
+    const options = screen.getAllByRole('button', { name: /WLED_16\.0\.1/ });
+    // Recommended option sorted first, marked, and visually primary.
+    expect(options[0].textContent).toMatch(/WLED_16\.0\.1_ESP32\.bin \(recommended\)/);
+    expect(options[0].className).toMatch(/btn-primary/);
+    expect(options[1].className).toMatch(/btn-secondary/);
+    expect(options[2].className).toMatch(/btn-secondary/);
   });
 
   it('shows a one-click Update button when pinned, matched, and an update is available, and wires it to pushFirmwareUpdate', async () => {

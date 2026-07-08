@@ -218,6 +218,12 @@ export interface FirmwareStatus {
   isPrerelease: boolean;
   pinnedAssetPattern: string | null;
   candidateAssets: { name: string; downloadUrl: string }[];
+  /** The plain, unspecialized build's filename when the chip arch is
+   *  unambiguous about it (e.g. "ESP32" over "ESP32_HUB75"), so the picker
+   *  can pre-highlight the correct choice for ordinary boards — null when
+   *  no such safe default exists (e.g. esp8266's genuinely different
+   *  flash-size variants), in which case the picker shows an unranked list. */
+  recommendedAssetName?: string | null;
   /** Raw WLED-reported chip architecture (e.g. "esp32"), null when the
    *  controller is unreachable and nothing was detected yet. */
   detectedArch: string | null;
@@ -227,12 +233,20 @@ export interface FirmwareStatus {
 export const getFirmwareStatus = (controllerId: string) =>
   getJson<FirmwareStatus>(`/api/controllers/${controllerId}/firmware`);
 
-export const pinFirmwareAsset = (controllerId: string, assetPattern: string) =>
-  fetch(`/api/controllers/${controllerId}/firmware/pin`, {
+export async function pinFirmwareAsset(controllerId: string, assetPattern: string): Promise<void> {
+  // Can't use sendJson here — POST /pin returns 204 with no body, and
+  // sendJson always calls res.json(), which throws on an empty response.
+  // This used a bare fetch() to dodge that, but dropped the .ok check in
+  // the process — a failed pin (of any kind) silently looked like success,
+  // so the caller closed the picker and moved on with nothing actually
+  // pinned, and the Update button never appeared with no visible error.
+  const res = await fetch(`/api/controllers/${controllerId}/firmware/pin`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ assetPattern })
   });
+  if (!res.ok) throw new Error(`failed to pin firmware asset: ${res.status}`);
+}
 
 export const pushFirmwareUpdate = (controllerId: string) =>
   sendJson<{ ok: boolean; installedVersion?: string; error?: string }>(
