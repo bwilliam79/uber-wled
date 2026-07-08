@@ -61,6 +61,27 @@ export function useFirmwareStatus(controllerId: string): UseQueryResult<Firmware
   return useQuery({ queryKey: ['firmware', controllerId], queryFn: () => getFirmwareStatus(controllerId) });
 }
 
+/** Same queryKey per id as useFirmwareStatus, so this and each row's own
+ *  call share one cached fetch per controller rather than doubling them. */
+export function useFirmwareStatusMap(controllerIds: string[]): Map<string, FirmwareStatus> {
+  const results = useQueries({
+    queries: controllerIds.map((id) => ({
+      queryKey: ['firmware', id],
+      queryFn: () => getFirmwareStatus(id)
+    }))
+  });
+  const signature = controllerIds.join(',') + '|' + results.map((r) => r.dataUpdatedAt).join(',');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => {
+    const map = new Map<string, FirmwareStatus>();
+    results.forEach((r, i) => {
+      if (r.data) map.set(controllerIds[i], r.data);
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+}
+
 export function useCapabilities(controllerId: string | null): UseQueryResult<ControllerCapabilities> {
   return useQuery({
     queryKey: ['capabilities', controllerId],

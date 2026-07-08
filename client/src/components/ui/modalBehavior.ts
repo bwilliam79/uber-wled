@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -6,12 +6,26 @@ const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabi
 /**
  * Shared dialog behavior: focus the first focusable element on open, trap
  * Tab inside the panel, close on Escape, restore focus on unmount/close.
+ *
+ * onClose is read from a ref rather than being an effect dependency.
+ * Callers overwhelmingly pass an inline arrow function (`onClose={() =>
+ * setOpen(false)}`), which gets a new identity every render of the parent —
+ * including re-renders triggered by something unrelated to the modal, like
+ * a polling query elsewhere on the page. With onClose in the dependency
+ * array, that alone tore down and re-ran this effect: the cleanup restored
+ * focus to whatever was focused before the modal opened, then the effect
+ * body immediately refocused the panel's first focusable element — yanking
+ * focus out of whatever field the user was actively typing into, on every
+ * poll tick. The ref keeps the effect's identity tied only to `open`.
  */
 export function useModalBehavior(
   panelRef: RefObject<HTMLDivElement | null>,
   open: boolean,
   onClose: () => void
 ) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -20,7 +34,7 @@ export function useModalBehavior(
 
     function onKeyDown(e: globalThis.KeyboardEvent) {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
@@ -43,5 +57,5 @@ export function useModalBehavior(
       document.removeEventListener('keydown', onKeyDown);
       previouslyFocused?.focus();
     };
-  }, [open, onClose, panelRef]);
+  }, [open, panelRef]);
 }

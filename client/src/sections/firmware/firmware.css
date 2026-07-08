@@ -1,4 +1,5 @@
 /* Firmware section — Phase H. */
+.firmware-section-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
 .firmware-list { list-style: none; margin: 0; padding: 0; }
 .firmware-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--border); }
 .firmware-row:last-child { border-bottom: none; }
