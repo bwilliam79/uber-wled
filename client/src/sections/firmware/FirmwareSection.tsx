@@ -49,21 +49,21 @@ function FirmwareRow({
   return (
     <li className="firmware-row">
       <div className="firmware-row-info">
-        <span className="firmware-row-name">{displayName}</span>
-        {controller.stale && <Chip variant="warning">stale</Chip>}
+        <div className="firmware-row-title">
+          <span className="firmware-row-name">{displayName}</span>
+          {controller.stale && <Chip variant="warning">stale</Chip>}
+          {status.data && !status.data.unreachable && status.data.updateAvailable && (
+            <Chip variant="warning">Update available ({status.data.latestTag})</Chip>
+          )}
+        </div>
         {status.isPending && <span className="firmware-row-meta">Checking firmware…</span>}
         {status.isError && <span className="firmware-row-meta">Firmware status unavailable</span>}
         {status.data?.unreachable && <span className="firmware-row-meta">Controller offline</span>}
         {status.data && !status.data.unreachable && (
-          <>
-            <span className="firmware-row-meta">
-              Installed: {status.data.installedVersion ?? 'unknown'}
-              {status.data.isPrerelease && ' (pre-release)'}
-            </span>
-            {status.data.updateAvailable && (
-              <Chip variant="warning">Update available ({status.data.latestTag})</Chip>
-            )}
-          </>
+          <span className="firmware-row-meta">
+            Installed: {status.data.installedVersion ?? 'unknown'}
+            {status.data.isPrerelease && ' (pre-release)'}
+          </span>
         )}
         {updateError && <span className="firmware-row-error" role="alert">{updateError}</span>}
       </div>
