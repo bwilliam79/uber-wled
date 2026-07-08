@@ -7,11 +7,12 @@ import { FIRMWARE_OK } from './fixtures';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('UpdateTab', () => {
-  it('renders the reused firmware status with installed version and update badge', async () => {
+  it('renders the reused firmware status with installed/available versions and hardware', async () => {
     stubFetchRoutes({ 'GET /api/controllers/c1/firmware': FIRMWARE_OK });
     renderDevices(<UpdateTab controllerId="c1" />);
     expect(await screen.findByText('Installed: 16.0.0')).toBeTruthy();
-    expect(screen.getByText(/Update available \(v16\.1\.0\)/)).toBeTruthy();
+    expect(screen.getByText('Available: v16.1.0')).toBeTruthy();
+    expect(screen.getByText('Hardware: esp32')).toBeTruthy();
   });
 
   it('offers the asset picker when the chip family is ambiguous', async () => {
@@ -26,10 +27,11 @@ describe('UpdateTab', () => {
       }
     });
     renderDevices(<UpdateTab controllerId="c1" />);
-    expect(await screen.findByRole('button', { name: 'Pick firmware asset' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Pick Firmware Asset' })).toBeTruthy();
+    expect(await screen.findByText('One-time setup: pick the firmware asset for this device.')).toBeTruthy();
   });
 
-  it('shows the pinned board type and an "Override firmware asset" button when already pinned, even with candidates present', async () => {
+  it('shows Update Firmware and Pick Firmware Asset when already pinned, even with candidates present', async () => {
     stubFetchRoutes({
       'GET /api/controllers/c1/firmware': {
         ...FIRMWARE_OK,
@@ -41,10 +43,8 @@ describe('UpdateTab', () => {
       }
     });
     renderDevices(<UpdateTab controllerId="c1" />);
-    // Resolves the pinned pattern to the actual matching asset filename —
-    // the real thing /update will push — not just the terse pattern fragment.
-    expect(await screen.findByText('Asset: WLED_16.1.0_ESP32.bin')).toBeTruthy();
-    expect(await screen.findByRole('button', { name: 'Override firmware asset' })).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Pick firmware asset' })).toBeNull();
+    expect(await screen.findByRole('button', { name: 'Update Firmware' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Pick Firmware Asset' })).toBeTruthy();
+    expect(screen.queryByText(/One-time setup/)).toBeNull();
   });
 });
