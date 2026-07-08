@@ -134,4 +134,38 @@ describe('schema migrations (phase B additions)', () => {
     const row = db.prepare('SELECT target_controllers FROM schedules WHERE id = ?').get('s1') as any;
     expect(JSON.parse(row.target_controllers)).toEqual([{ controllerId: 'c1', wledSegId: 2 }]);
   });
+
+  it('adds pinned_asset_pattern to a controllers table that predates the firmware feature, preserving existing rows', () => {
+    // Regression: this column was only ever added to the CREATE TABLE
+    // statement, never as an idempotent ALTER for pre-existing installs —
+    // CREATE TABLE IF NOT EXISTS is a no-op against an already-existing
+    // table, so every firmware pin attempt against production (whose
+    // controllers table predates this feature) failed with "no such
+    // column: pinned_asset_pattern", silently until a client-side fix
+    // surfaced the error instead of swallowing it.
+    const db = createDb(':memory:'); // migrations already ran; simulate the OLD (pre-firmware) shape
+    db.exec(`
+      CREATE TABLE controllers_old (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        host TEXT NOT NULL UNIQUE,
+        source TEXT NOT NULL CHECK (source IN ('discovered','manual')),
+        stale INTEGER NOT NULL DEFAULT 0
+      );
+      DROP TABLE controllers;
+      ALTER TABLE controllers_old RENAME TO controllers;
+    `);
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')").run();
+    expect(columnNames(db, 'controllers')).not.toContain('pinned_asset_pattern');
+
+    runMigrations(db);
+
+    expect(columnNames(db, 'controllers')).toContain('pinned_asset_pattern');
+    const row = db.prepare('SELECT * FROM controllers WHERE id = ?').get('c1') as any;
+    expect(row.name).toBe('Cabinet');
+    expect(row.pinned_asset_pattern).toBeNull();
+    expect(() =>
+      db.prepare('UPDATE controllers SET pinned_asset_pattern = ? WHERE id = ?').run('ESP32', 'c1')
+    ).not.toThrow();
+  });
 });
