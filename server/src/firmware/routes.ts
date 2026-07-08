@@ -3,7 +3,7 @@ import type Database from 'better-sqlite3';
 import { createControllerRepository } from '../controllers/repository.js';
 import { getInfo } from '../wled/client.js';
 import { fetchLatestRelease, type ReleaseAsset } from './githubClient.js';
-import { candidateAssets, resolvePinnedAsset } from './assetMatch.js';
+import { candidateAssets, recommendedAssetName, resolvePinnedAsset } from './assetMatch.js';
 import { pushOtaUpdate } from './otaPush.js';
 import { createSettingsRepository } from '../settings/repository.js';
 
@@ -70,6 +70,7 @@ export function createFirmwareRouter(db: Database.Database): Router {
       isPrerelease: release.prerelease,
       pinnedAssetPattern: controller.pinnedAssetPattern,
       candidateAssets: assets,
+      recommendedAssetName: recommendedAssetName(assets, info.arch),
       detectedArch: info.arch
     });
   });

@@ -377,6 +377,11 @@ h2 {
   word-break: break-all;
 }
 
+.asset-picker-recommended {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
 /* ---------- Import schedules ---------- */
 
 .import-schedules {
