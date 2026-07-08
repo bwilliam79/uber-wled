@@ -69,53 +69,35 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   const candidates = status.candidateAssets ?? [];
   const hasCandidates = candidates.length > 0;
   const isPinned = !!status.pinnedAssetPattern;
-  // The server now always returns candidateAssets, whether or not a pattern
-  // is already pinned, so the picker button stays reachable as an "override"
-  // affordance after the first pin — it's no longer a one-time flow.
   const showUpdateButton = isPinned && status.updateAvailable;
-  const pickerLabel = isPinned ? 'Override firmware asset' : 'Pick firmware asset';
-
-  // The pin is a substring pattern (e.g. "ESP02"), not a full filename —
-  // resolve it to the actual matching candidate so we can show the real
-  // asset name that /update will push, not just the terse pattern fragment.
-  const pinnedAsset = isPinned
-    ? candidates.find((a) => a.name.toUpperCase().includes(status.pinnedAssetPattern!.toUpperCase()))
-    : undefined;
 
   return (
     <div className="firmware-status">
-      <span className="controller-meta">Installed: {status.installedVersion}</span>
-      {status.updateAvailable && (
-        <span className="badge badge-stale"> Update available ({status.latestTag})</span>
-      )}
-      {status.isPrerelease && <span className="badge">pre-release</span>}
+      <div className="firmware-status-row">
+        <span className="controller-meta">Installed: {status.installedVersion}</span>
+        {status.updateAvailable && <span className="controller-meta">Available: {status.latestTag}</span>}
+        {status.isPrerelease && <span className="badge">pre-release</span>}
+      </div>
       {status.detectedArch && (
-        <span className="controller-meta firmware-board-type">Detected hardware: {status.detectedArch}</span>
+        <div className="firmware-status-row">
+          <span className="controller-meta">Hardware: {status.detectedArch}</span>
+        </div>
       )}
-      {isPinned && (
-        <span className="controller-meta firmware-board-type">
-          Asset: {pinnedAsset?.name ?? status.pinnedAssetPattern}
-        </span>
+      {!isPinned && hasCandidates && (
+        <p className="controller-meta">One-time setup: pick the firmware asset for this device.</p>
       )}
-      {!isPinned && candidates.length === 1 && (
-        <span className="controller-meta firmware-board-type">
-          Default asset: {candidates[0].name}
-          {status.updateAvailable && ' — pin it below to enable the update'}
-        </span>
-      )}
-      {!isPinned && candidates.length > 1 && (
-        <span className="controller-meta firmware-board-type">
-          {candidates.length} possible assets for this hardware — {status.recommendedAssetName
-            ? `${status.recommendedAssetName} is recommended for ordinary boards; confirm it or pick a different one below`
-            : 'pick the exact one below'}
-          {status.updateAvailable && ' to enable the update (required so the wrong variant is never flashed)'}
-        </span>
-      )}
-      {hasCandidates && (
-        <button type="button" className="btn btn-secondary" onClick={() => setPickerOpen(true)}>
-          {pickerLabel}
-        </button>
-      )}
+      <div className="firmware-status-row">
+        {hasCandidates && (
+          <button type="button" className="btn btn-secondary" onClick={() => setPickerOpen(true)}>
+            Pick Firmware Asset
+          </button>
+        )}
+        {showUpdateButton && (
+          <button type="button" className="btn btn-primary" onClick={handleUpdate} disabled={updating}>
+            {updating ? 'Updating…' : 'Update Firmware'}
+          </button>
+        )}
+      </div>
       {hasCandidates && pickerOpen && (
         <AssetPickerModal
           assets={candidates}
@@ -126,11 +108,6 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         />
       )}
       {pinError && <p role="alert" className="error-banner">{pinError}</p>}
-      {showUpdateButton && (
-        <button type="button" className="btn btn-primary" onClick={handleUpdate} disabled={updating}>
-          {updating ? 'Updating…' : 'Update'}
-        </button>
-      )}
       {updateError && <p role="alert" className="error-banner">{updateError}</p>}
     </div>
   );
