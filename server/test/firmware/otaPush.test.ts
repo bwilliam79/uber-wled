@@ -6,6 +6,32 @@ const HOST = '10.0.0.50';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('pushOtaUpdate', () => {
+  it('uploads under the "update" multipart field name WLED\'s real /update form actually expects', async () => {
+    // Regression: this was previously "firmware", verified against a real
+    // device's /update page source (<input type=file name=update required>)
+    // only after every real OTA push failed with "upload failed: device
+    // responded 500" — WLED's handler has no file to act on without the
+    // field name it expects, and no test caught the mismatch since none
+    // inspected the actual FormData contents.
+    let capturedForm: FormData | undefined;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/update') && init?.method === 'POST') {
+        capturedForm = init.body as FormData;
+        return { ok: true, json: async () => ({}) } as Response;
+      }
+      if (url.endsWith('/json/info')) {
+        return { ok: true, json: async () => ({ name: 'Porch', ver: '0.15.0', leds: { count: 60 }, arch: 'esp8266' }) } as Response;
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await pushOtaUpdate(HOST, new ArrayBuffer(8), 'v0.15.0', { retryDelayMs: 0 });
+
+    expect(capturedForm?.has('update')).toBe(true);
+    expect(capturedForm?.has('firmware')).toBe(false);
+  });
+
   it('uploads the asset and confirms the new version after the device reboots', async () => {
     let infoCallCount = 0;
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
