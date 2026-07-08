@@ -16,17 +16,14 @@ function sleep(ms: number): Promise<void> {
  * Uploads a firmware asset to a WLED device's manual OTA endpoint and polls
  * for the device to come back on the expected version.
  *
- * NOTE ON THE MULTIPART FIELD NAME: WLED's `/update` endpoint (the same one
- * its own web UI's "Manual OTA Update" page posts to) expects the firmware
- * binary under a specific multipart form field name. As of the WLED 0.14/0.15
- * release cycle this has historically been documented as `firmware`, but per
- * the firmware design spec this MUST be verified against the actual WLED
- * source (`wled00/data/update.htm` / `wled00/set.cpp`) or a real device
- * before this code is considered complete — see Step 4 below. Do not change
- * the OTA-push retry/non-retry semantics below when that verification
- * happens; only the literal field name string may need to change.
+ * NOTE ON THE MULTIPART FIELD NAME: verified directly against a real
+ * device's /update page source (WLED 16.0.0) — its upload form is
+ * `<input type=file name=update required>`, so the field name is `update`,
+ * not `firmware`. The wrong field name was the root cause of every real OTA
+ * push failing with "upload failed: device responded 500" (WLED's upload
+ * handler has no firmware file to act on without the field it expects).
  */
-const OTA_UPLOAD_FIELD_NAME = 'firmware';
+const OTA_UPLOAD_FIELD_NAME = 'update';
 
 export async function pushOtaUpdate(
   host: string,
