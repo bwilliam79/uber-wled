@@ -84,7 +84,7 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
         </div>
       )}
       {!isPinned && hasCandidates && (
-        <p className="controller-meta">One-time setup: pick the firmware asset for this device.</p>
+        <p className="firmware-setup-hint">One-time setup: pick the firmware asset for this device.</p>
       )}
       <div className="firmware-status-row">
         {hasCandidates && (
