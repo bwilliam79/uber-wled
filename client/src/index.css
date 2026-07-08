@@ -325,6 +325,11 @@ h2 {
   margin-top: var(--space-xs);
 }
 
+.firmware-setup-hint {
+  color: #22c55e;
+  font-weight: 600;
+}
+
 .firmware-status-row {
   display: flex;
   flex-wrap: wrap;
