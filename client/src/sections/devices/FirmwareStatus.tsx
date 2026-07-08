@@ -80,14 +80,25 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
       </div>
       {status.detectedArch && (
         <div className="firmware-status-row">
-          <span className="controller-meta">Hardware: {status.detectedArch}</span>
+          {isPinned && hasCandidates ? (
+            <button
+              type="button"
+              className="firmware-hardware-link"
+              title="Click to change the firmware asset"
+              onClick={() => setPickerOpen(true)}
+            >
+              Hardware: {status.detectedArch}
+            </button>
+          ) : (
+            <span className="controller-meta">Hardware: {status.detectedArch}</span>
+          )}
         </div>
       )}
       {!isPinned && hasCandidates && (
         <p className="firmware-setup-hint">One-time setup: pick the firmware asset for this device.</p>
       )}
       <div className="firmware-status-row">
-        {hasCandidates && (
+        {!isPinned && hasCandidates && (
           <button type="button" className="btn btn-secondary" onClick={() => setPickerOpen(true)}>
             Pick Firmware Asset
           </button>

@@ -166,13 +166,15 @@ describe('FirmwareStatus', () => {
     expect(options[2].className).toMatch(/btn-secondary/);
   });
 
-  it('shows both Update Firmware and Pick Firmware Asset once pinned with an update available, wiring Update Firmware to pushFirmwareUpdate', async () => {
+  it('shows only Update Firmware (no separate picker button) once pinned with an update available, using the hardware line as the re-pick affordance, and wires Update Firmware to pushFirmwareUpdate', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
         isPrerelease: false,
-        pinnedAssetPattern: 'ESP02', candidateAssets: [{ name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }]
+        pinnedAssetPattern: 'ESP02',
+        candidateAssets: [{ name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }],
+        detectedArch: 'esp02'
       })
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -180,7 +182,8 @@ describe('FirmwareStatus', () => {
     render(<FirmwareStatus controllerId="c1" />);
 
     await waitFor(() => expect(screen.getByText('Update Firmware')).toBeTruthy());
-    expect(screen.getByText('Pick Firmware Asset')).toBeTruthy();
+    expect(screen.queryByText('Pick Firmware Asset')).toBeNull();
+    expect(screen.getByRole('button', { name: /Hardware: esp02/ })).toBeTruthy();
     // No more clutter once pinned.
     expect(screen.queryByText(/One-time setup/)).toBeNull();
 
@@ -200,7 +203,7 @@ describe('FirmwareStatus', () => {
     );
   });
 
-  it('shows only Pick Firmware Asset (no Update Firmware) once pinned with no update available', async () => {
+  it('shows neither button once pinned with no update available, but the hardware line still opens the picker', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -210,19 +213,24 @@ describe('FirmwareStatus', () => {
         candidateAssets: [
           { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
           { name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }
-        ]
+        ],
+        detectedArch: 'esp8266'
       })
     });
     vi.stubGlobal('fetch', fetchMock);
 
     render(<FirmwareStatus controllerId="c1" />);
 
-    await waitFor(() => expect(screen.getByText('Pick Firmware Asset')).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: /Hardware: esp8266/ })).toBeTruthy());
+    expect(screen.queryByText('Pick Firmware Asset')).toBeNull();
     expect(screen.queryByText('Update Firmware')).toBeNull();
     expect(screen.queryByText(/Available:/)).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Hardware: esp8266/ }));
+    expect(screen.getByText('WLED_0.15.0_ESP8266.bin')).toBeTruthy();
   });
 
-  it('re-pins to a new asset via Pick Firmware Asset', async () => {
+  it('re-pins to a new asset by clicking the hardware line', async () => {
     // A single stateful mock server: GET reflects whatever was last pinned,
     // POST /pin updates that state, so the component's own post-pin refresh()
     // call (not a second act from the test) is what drives the re-render.
@@ -242,7 +250,8 @@ describe('FirmwareStatus', () => {
             candidateAssets: [
               { name: 'WLED_0.15.0_ESP8266.bin', downloadUrl: 'https://example.com/a.bin' },
               { name: 'WLED_0.15.0_ESP02.bin', downloadUrl: 'https://example.com/b.bin' }
-            ]
+            ],
+            detectedArch: 'esp8266'
           })
         } as Response;
       }
@@ -251,9 +260,9 @@ describe('FirmwareStatus', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<FirmwareStatus controllerId="c1" />);
-    await waitFor(() => expect(screen.getByText('Pick Firmware Asset')).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: /Hardware: esp8266/ })).toBeTruthy());
 
-    fireEvent.click(screen.getByText('Pick Firmware Asset'));
+    fireEvent.click(screen.getByRole('button', { name: /Hardware: esp8266/ }));
     expect(screen.getByText(/Currently pinned to "ESP02"/)).toBeTruthy();
 
     fireEvent.click(screen.getByText('WLED_0.15.0_ESP8266.bin'));
