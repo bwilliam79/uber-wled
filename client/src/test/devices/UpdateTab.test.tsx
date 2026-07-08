@@ -31,7 +31,7 @@ describe('UpdateTab', () => {
     expect(await screen.findByText('One-time setup: pick the firmware asset for this device.')).toBeTruthy();
   });
 
-  it('shows Update Firmware and Pick Firmware Asset when already pinned, even with candidates present', async () => {
+  it('shows only Update Firmware once pinned, with the hardware line as the re-pick affordance instead of a separate button', async () => {
     stubFetchRoutes({
       'GET /api/controllers/c1/firmware': {
         ...FIRMWARE_OK,
@@ -44,7 +44,8 @@ describe('UpdateTab', () => {
     });
     renderDevices(<UpdateTab controllerId="c1" />);
     expect(await screen.findByRole('button', { name: 'Update Firmware' })).toBeTruthy();
-    expect(await screen.findByRole('button', { name: 'Pick Firmware Asset' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Pick Firmware Asset' })).toBeNull();
+    expect(screen.getByRole('button', { name: /Hardware: esp32/ })).toBeTruthy();
     expect(screen.queryByText(/One-time setup/)).toBeNull();
   });
 });
