@@ -32,6 +32,25 @@ describe('pushOtaUpdate', () => {
     expect(capturedForm?.has('firmware')).toBe(false);
   });
 
+  it('surfaces the actual error text WLED sends in the response body, not just the bare status code', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.endsWith('/update') && init?.method === 'POST') {
+        return {
+          ok: false,
+          status: 500,
+          text: async () => 'This firmware file is missing compatibility metadata.',
+          json: async () => ({})
+        } as unknown as Response;
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await pushOtaUpdate(HOST, new ArrayBuffer(8), 'v0.15.0');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/missing compatibility metadata/);
+  });
+
   it('uploads the asset and confirms the new version after the device reboots', async () => {
     let infoCallCount = 0;
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -55,7 +74,7 @@ describe('pushOtaUpdate', () => {
   it('reports a failure without retrying the upload when the upload itself fails', async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (url.endsWith('/update') && init?.method === 'POST') {
-        return { ok: false, status: 500, json: async () => ({}) } as Response;
+        return { ok: false, status: 500, text: async () => '', json: async () => ({}) } as Response;
       }
       throw new Error(`unexpected fetch: ${url}`);
     });

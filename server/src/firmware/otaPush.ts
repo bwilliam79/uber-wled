@@ -19,9 +19,19 @@ function sleep(ms: number): Promise<void> {
  * NOTE ON THE MULTIPART FIELD NAME: verified directly against a real
  * device's /update page source (WLED 16.0.0) — its upload form is
  * `<input type=file name=update required>`, so the field name is `update`,
- * not `firmware`. The wrong field name was the root cause of every real OTA
- * push failing with "upload failed: device responded 500" (WLED's upload
- * handler has no firmware file to act on without the field it expects).
+ * not `firmware`.
+ *
+ * NOTE ON WLED's server-side compatibility check: ota_update.cpp
+ * (validateOTA/shouldAllowOTA) independently compares the uploaded binary's
+ * embedded release_name against the device's own currently-running
+ * release_name, and 500s on a mismatch ("Firmware release name mismatch:
+ * current=..., uploaded=..."). This is a real, usually-correct anti-bricking
+ * check (it succeeds for ordinary same-variant updates), not something to
+ * blanket-bypass via the "skipValidation" field WLED's own OTA page exposes
+ * for this — see the discussion in the firmware design work around
+ * 2026-07-08 for why. If this starts showing up as the actual cause via the
+ * captured error text below, the real fix is matching the asset to the
+ * board's specific release variant more precisely, not disabling the check.
  */
 const OTA_UPLOAD_FIELD_NAME = 'update';
 
@@ -45,7 +55,12 @@ export async function pushOtaUpdate(
     return { ok: false, error: `upload failed: ${err.message}` };
   }
   if (!uploadRes.ok) {
-    return { ok: false, error: `upload failed: device responded ${uploadRes.status}` };
+    // WLED's error responses carry the actual reason in the body (e.g. the
+    // specific compatibility-check failure text) — surface it instead of
+    // just the bare status code.
+    const body = await uploadRes.text().catch(() => '');
+    const detail = body.trim() ? `: ${body.trim()}` : '';
+    return { ok: false, error: `upload failed: device responded ${uploadRes.status}${detail}` };
   }
 
   const maxRetries = opts.maxRetries ?? DEFAULT_MAX_RETRIES;
