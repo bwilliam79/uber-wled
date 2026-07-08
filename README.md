@@ -70,18 +70,21 @@ bar on phones — with eight sections, opening on Home:
    hand-editing each device's Sync Interfaces settings page. See "Sync
    groups" below for how this actually works on the wire.
 7. **Firmware** — fleet view of installed vs. latest stable version
-   (pre-releases opt-in via Settings), plus the detected hardware
-   architecture (e.g. `esp32`) reported by each device, so it's clear what
-   the asset matching is actually keyed on. First update per controller
-   requires a one-time asset pin before an OTA push is ever attempted, even
-   when only one candidate exists, since a wrong-variant flash isn't reliably
-   detectable as a clean failure after the fact — never auto-guessed or
-   auto-retried. When a plain, unspecialized build is confidently
-   identifiable (e.g. `ESP32` vs. `ESP32_HUB75`/`_Ethernet`/`_WROVER`), the
-   picker pre-highlights it as the recommended pick; genuine ambiguity across
-   fundamentally different hardware (e.g. `esp8266`'s flash-size variants) is
-   never guessed at. Later updates reuse the pin with no re-prompting. OTA
-   push via WLED's own endpoint, with post-update version polling.
+   (pre-releases opt-in via Settings) per controller, with a one-click
+   Update button once a device is pinned and a newer release exists, plus a
+   gear icon into that device's own Update tab for first-time setup or
+   re-pinning; detected hardware architecture and the asset picker itself
+   live there rather than cluttering the fleet list. First update per
+   controller requires a one-time asset pin before an OTA push is ever
+   attempted, even when only one candidate exists, since a wrong-variant
+   flash isn't reliably detectable as a clean failure after the fact — never
+   auto-guessed or auto-retried. When a plain, unspecialized build is
+   confidently identifiable (e.g. `ESP32` vs. `ESP32_HUB75`/`_Ethernet`/
+   `_WROVER`), the picker pre-highlights it as the recommended pick; genuine
+   ambiguity across fundamentally different hardware (e.g. `esp8266`'s
+   flash-size variants) is never guessed at. Later updates reuse the pin
+   with no re-prompting. OTA push via WLED's own endpoint, with post-update
+   version polling.
 8. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
@@ -222,7 +225,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 45 files / 348 tests
-cd client && npm test   # 77 files / 589 tests
+cd client && npm test   # 77 files / 591 tests
 ```
 
 ## Running the whole app locally via Docker
