@@ -7,6 +7,7 @@ import { Chip } from '../../components/ui/Chip';
 import { Slider } from '../../components/ui/Slider';
 import { LiveOutputStrip } from '../../components/ui/LiveOutputStrip';
 import { swatchesForEntry } from '../../lib/liveOutputSwatches';
+import { cachedDeviceName } from '../../lib/deviceNames';
 import { throttle } from '../../lib/throttle';
 import { ChevronRightIcon } from '../../components/icons';
 import './devices.css';
@@ -25,8 +26,9 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
   const info = live?.info;
   const state = live?.state;
   const offline = live !== undefined && !live.reachable;
-  // Prefer the live device-reported name over the frozen add/discovery name.
-  const displayName = info?.name || controller.name;
+  // Prefer the live device-reported name over the frozen add/discovery name;
+  // the cache bridges the gap before the live stream connects (no flash).
+  const displayName = info?.name || cachedDeviceName(controller.id) || controller.name;
 
   const litHosts = useMemo(
     () => (live?.reachable && live.state?.on ? [controller.host] : []),
