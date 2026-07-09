@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ColorWheel } from '../../components/ui/ColorWheel';
+import { ConicColorWheel } from '../../components/ui/ConicColorWheel';
 import { hexToRgb, rgbToHex } from '../../lib/color';
 
 export function ColorSlotButton({
@@ -48,9 +48,10 @@ export function ColorSlotButton({
       <span className="color-slot-label">{label}</span>
       {open && (
         <div className="color-pop" role="dialog" aria-label={`Pick ${label}`}>
-          <ColorWheel
-            color={{ r: wheelR, g: wheelG, b: wheelB }}
-            onChange={(c) => onChange(rgbToHex([c.r, c.g, c.b]))}
+          <ConicColorWheel
+            colorHex={rgbToHex([wheelR, wheelG, wheelB])}
+            onPick={(rgb) => onChange(rgbToHex(rgb))}
+            size={180}
           />
           <input
             className="input color-pop-hex"

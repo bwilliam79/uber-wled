@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FxMeta } from '../api/client';
 import type { AggregatedControlState } from './controlState';
-import { ColorWheel } from '../components/ui/ColorWheel';
+import { ConicColorWheel } from '../components/ui/ConicColorWheel';
 import { Slider } from '../components/ui/Slider';
 import { Chip } from '../components/ui/Chip';
 import { kelvinToRgb, rgbToHex, hexToRgb } from '../lib/color';
@@ -29,9 +29,11 @@ export interface ColorTabProps {
   cctSupported: boolean;
   onColorChange: (slot: number, rgb: number[]) => void;
   onCctChange: (cct: number) => void;
+  /** Hide the hue wheel (e.g. when a parent already shows one). Default true. */
+  showWheel?: boolean;
 }
 
-export function ColorTab({ agg, fxMeta, anyRgbw, cctSupported, onColorChange, onCctChange }: ColorTabProps) {
+export function ColorTab({ agg, fxMeta, anyRgbw, cctSupported, onColorChange, onCctChange, showWheel = true }: ColorTabProps) {
   const labels: (string | null)[] = (fxMeta?.colorLabels ?? [...DEFAULT_SLOT_LABELS]).map(
     (label, i) => (label === '!' ? DEFAULT_SLOT_LABELS[i] : label)
   );
@@ -96,7 +98,13 @@ export function ColorTab({ agg, fxMeta, anyRgbw, cctSupported, onColorChange, on
           {current === 'mixed' && <Chip variant="warning">Mixed</Chip>}
         </div>
 
-        <ColorWheel color={wheelColor} onChange={(c) => emit([c.r, c.g, c.b])} />
+        {showWheel && (
+          <ConicColorWheel
+            colorHex={rgbToHex([wheelColor.r, wheelColor.g, wheelColor.b])}
+            onPick={(rgb) => emit(rgb)}
+            size={188}
+          />
+        )}
       </div>
 
       <div className="color-tab-controls-col">

@@ -22,7 +22,6 @@ import { Select } from '../components/ui/Select';
 import { ConicColorWheel } from '../components/ui/ConicColorWheel';
 import { LedPreview } from '../components/ui/LedPreview';
 import { effectToPreview } from '../lib/effectPreview';
-import { paletteGradientCss } from '../lib/paletteCss';
 import { rgbToHex } from '../lib/color';
 import { ColorTab } from './ColorTab';
 import { EffectsTab, type EffectOptionKey, type EffectParamKey } from './EffectsTab';
@@ -49,6 +48,15 @@ const NL_MODES: { value: 0 | 1 | 2 | 3; label: string }[] = [
 ];
 
 const THROTTLE_MS = 250; // ≤ 4 writes/sec per control
+
+// Quick primary + white swatches for the main control (palettes live in
+// Advanced). W maps to the dedicated white channel on RGBW strips.
+const QUICK_COLORS: { label: string; name: string; rgb: number[]; swatch: string; text: string }[] = [
+  { label: 'R', name: 'Red', rgb: [255, 0, 0], swatch: '#ff3b3b', text: '#2a0000' },
+  { label: 'G', name: 'Green', rgb: [0, 255, 0], swatch: '#37d84a', text: '#002a06' },
+  { label: 'B', name: 'Blue', rgb: [0, 0, 255], swatch: '#3b6bff', text: '#00082a' },
+  { label: 'W', name: 'White', rgb: [255, 255, 255], swatch: '#ffffff', text: '#333333' }
+];
 
 export interface ControlSurfaceProps {
   targets: Target[];
@@ -294,17 +302,19 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
         <div className="cs-main">
           <div className="cs-main-left">
             <ConicColorWheel colorHex={centerHex} onPick={(rgb) => setSlotColor(0, rgb)} size={210} />
-            <div className="cs-palette-row" role="group" aria-label="Palettes">
-              {palettes.slice(0, 24).map((p) => (
+            <div className="cs-quick-colors" role="group" aria-label="Quick colors">
+              {QUICK_COLORS.map((q) => (
                 <button
-                  key={p.name}
+                  key={q.label}
                   type="button"
-                  className={`cs-palette-swatch${eff.palName === p.name ? ' active' : ''}`}
-                  style={{ background: paletteGradientCss(p.preview ?? undefined, slotHexes) }}
-                  aria-label={`palette ${p.name}`}
-                  title={p.name}
-                  onClick={() => selectPalette(p.name)}
-                />
+                  className="cs-quick-color"
+                  style={{ background: q.swatch, color: q.text }}
+                  aria-label={`Set ${q.name}`}
+                  title={q.name}
+                  onClick={() => setSlotColor(0, q.label === 'W' && anyRgbw ? [0, 0, 0, 255] : q.rgb)}
+                >
+                  {q.label}
+                </button>
               ))}
             </div>
           </div>
@@ -370,7 +380,7 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
           <div className="cs-tab-body">
             {activeTab === 'colors' && (
               <ColorTab agg={eff} fxMeta={selectedFxMeta} anyRgbw={anyRgbw} cctSupported={cctSupported}
-                onColorChange={setSlotColor} onCctChange={setCct} />
+                onColorChange={setSlotColor} onCctChange={setCct} showWheel={false} />
             )}
             {activeTab === 'effects' && (
               <EffectsTab effects={effects} agg={eff}
