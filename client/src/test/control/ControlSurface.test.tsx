@@ -135,7 +135,9 @@ describe('ControlSurface', () => {
     ]));
     render(<ControlSurface targets={TWO_TARGETS} open onClose={vi.fn()} />);
     fireEvent.click(screen.getByRole('tab', { name: 'Effects' }));
-    fireEvent.click(screen.getByRole('button', { name: /Colortwinkles/ }));
+    // The effect appears as a main-view chip and again in the Advanced Effects
+    // tab; either applies it. Click the first (the compact chip).
+    fireEvent.click(screen.getAllByRole('button', { name: /Colortwinkles/ })[0]);
     expect(applyControl).toHaveBeenCalledWith(TWO_TARGETS, { seg: { fxName: 'Colortwinkles' } });
   });
 
@@ -146,7 +148,7 @@ describe('ControlSurface', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply theme Sunset' }));
     expect(applyControl).toHaveBeenCalledWith(
       [TWO_TARGETS[0]],
-      { bri: 180, seg: { fxId: 2, palId: 5, col: [[255, 100, 0]] } }
+      { bri: 180, seg: { fxId: 2, palId: 5, col: [[255, 100, 0]], sx: 128, ix: 128 } }
     );
   });
 
