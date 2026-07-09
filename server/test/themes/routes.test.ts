@@ -75,6 +75,58 @@ describe('themes routes', () => {
     expect(res.status).toBe(404);
   });
 
+  it('previews a preset import: classifies new/duplicate/conflict and skips non-themes', async () => {
+    // One existing theme identical to a preset (duplicate), one same-name-different (conflict).
+    await request(app).post('/api/themes').send({ name: 'Christmas Chase', effect: 34, palette: 5, colors: [[255, 0, 0]], brightness: 255 });
+    await request(app).post('/api/themes').send({ name: 'Candy Cane', effect: 78, palette: 3, colors: [[255, 0, 0]], brightness: 40 });
+
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url === `http://${HOST}/presets.json`) {
+        return { ok: true, json: async () => ({
+          '5': { n: 'Christmas Chase', bri: 255, seg: [{ fx: 34, pal: 5, col: [[255, 0, 0]] }] },
+          '6': { n: 'Candy Cane', bri: 128, seg: [{ fx: 34, pal: 0, col: [[255, 0, 0]] }] },
+          '7': { n: 'USA', bri: 64, seg: [{ fx: 76, pal: 5, col: [[255, 0, 0], [255, 255, 255], [0, 0, 255]] }] },
+          '8': { n: 'TV Architectural', bri: 96, seg: [{}] }
+        }) } as Response;
+      }
+      throw new Error(`unexpected fetch: ${url}`);
+    }));
+
+    const res = await request(app).get(`/api/themes/preset-import/${controllerId}`);
+    expect(res.status).toBe(200);
+    const byId = Object.fromEntries(res.body.candidates.map((c: any) => [c.presetId, c]));
+    expect(byId[5].status).toBe('duplicate');
+    expect(byId[6].status).toBe('conflict');
+    expect(byId[7].status).toBe('new');
+    expect(res.body.skipped.map((s: any) => s.name)).toEqual(['TV Architectural']);
+  });
+
+  it('applies a resolved preset import: creates new themes and overwrites a conflict in place', async () => {
+    const existing = (await request(app).post('/api/themes').send({
+      name: 'Candy Cane', effect: 78, palette: 3, colors: [[255, 0, 0]], brightness: 40
+    })).body;
+
+    const res = await request(app).post('/api/themes/preset-import').send({
+      imports: [
+        { name: 'USA', effect: 76, palette: 5, colors: [[255, 0, 0]], brightness: 64 },
+        { name: 'Candy Cane', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128, overwriteThemeId: existing.id }
+      ]
+    });
+    expect(res.body).toEqual({ created: 1, overwritten: 1 });
+
+    const themes = (await request(app).get('/api/themes')).body;
+    expect(themes).toHaveLength(2); // Candy Cane overwritten in place (not duplicated) + new USA
+    const candy = themes.find((t: any) => t.name === 'Candy Cane');
+    expect(candy.id).toBe(existing.id);
+    expect(candy.effect).toBe(34);
+  });
+
+  it('returns 503 when the controller is unreachable during preset-import preview', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('ECONNREFUSED'); }));
+    const res = await request(app).get(`/api/themes/preset-import/${controllerId}`);
+    expect(res.status).toBe(503);
+  });
+
   it('proxies a controller\'s WLED presets', async () => {
     stubFetchOnce({ url: `http://${HOST}/presets.json` }, { '1': { n: 'Party' } });
     const res = await request(app).get(`/api/themes/presets/${controllerId}`);
