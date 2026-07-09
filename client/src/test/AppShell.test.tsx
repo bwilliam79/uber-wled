@@ -5,7 +5,7 @@ import { AppShell, sectionFromHash } from '../components/AppShell';
 import { ToastProvider } from '../components/ui/Toast';
 import { ThemeProvider } from '../theme/ThemeProvider';
 
-const SECTION_NAMES = ['Home', 'Devices', 'Themes', 'Schedule', 'Sync', 'Firmware', 'Settings'];
+const SECTION_NAMES = ['Devices', 'Themes', 'Schedule', 'Sync', 'Firmware', 'Settings'];
 
 function renderShell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
@@ -28,16 +28,18 @@ afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
 describe('AppShell v2', () => {
-  it('opens on Home and lists the sections in the sidebar (no Groups, no Layout)', async () => {
+  it('opens on Devices and lists the sections in the sidebar (no Home, no Groups, no Layout)', async () => {
     stubFetchEmpty();
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Sections' });
     await waitFor(() =>
-      expect(within(sidebar).getByRole('button', { name: /Home/ }).className).toContain('active')
+      expect(within(sidebar).getByRole('button', { name: /Devices/ }).className).toContain('active')
     );
     for (const name of SECTION_NAMES) {
       expect(within(sidebar).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
+    // Home was removed and its rooms folded into Devices.
+    expect(within(sidebar).queryByRole('button', { name: /Home/ })).toBeNull();
     expect(within(sidebar).queryByRole('button', { name: /Groups/ })).toBeNull();
     expect(within(sidebar).queryByRole('button', { name: /Controllers/ })).toBeNull();
     // Layout is hidden from the nav for now (component/route kept in code).

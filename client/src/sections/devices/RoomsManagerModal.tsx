@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { addGroup, updateGroup, deleteGroup, type Controller, type Group } from '../../api/client';
 import { Modal } from '../../components/ui/Modal';
 import { Button } from '../../components/ui/Button';
-import { IconPicker } from '../home/IconPicker';
+import { IconPicker } from '../../components/ui/IconPicker';
 
 /**
  * Room (group) management for the Devices page — create/rename/icon/delete a
