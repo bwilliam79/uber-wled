@@ -67,7 +67,6 @@ export interface LayoutCanvasProps {
   live: Map<string, LiveControllerStatus>;
   selection: string[];
   viewport: Viewport;
-  gridSnap: boolean;
   /** Non-null while in draw mode (may be empty before the first click). */
   drawVertices: Point[] | null;
   /** Rubber-band endpoint, already snapped by the container. */
@@ -127,7 +126,7 @@ export function LayoutCanvas(props: LayoutCanvasProps) {
         onPointerDown={props.onBackgroundPointerDown}
       />
       <g data-testid="world-group" transform={`translate(${vp.tx} ${vp.ty}) scale(${vp.scale})`}>
-        {props.gridSnap && canvasSize.width > 0 && canvasSize.height > 0 && (() => {
+        {canvasSize.width > 0 && canvasSize.height > 0 && (() => {
           const { vertical, horizontal } = computeGridLines(canvasSize, vp);
           const minY = horizontal.length > 0 ? horizontal[0].pos : 0;
           const maxY = horizontal.length > 0 ? horizontal[horizontal.length - 1].pos : 0;
