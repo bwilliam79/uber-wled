@@ -24,7 +24,10 @@
 .theme-row-name { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .theme-row-meta { color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .theme-row-preview { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
-.theme-row-swatches { display: flex; gap: 4px; }
+/* Animated LED preview on a dark housing (glow reads like real light). */
+.theme-row-preview-well { flex: 1; min-width: 60px; height: 24px; border-radius: 8px; background: var(--led-housing); overflow: hidden; }
+.theme-row-preview-canvas { display: block; width: 100%; height: 100%; }
+.theme-row-swatches { display: flex; gap: 4px; flex-shrink: 0; }
 .theme-row-swatch { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--border); }
 
 /* background-clip: padding-box keeps the gradient inside the border. Without
