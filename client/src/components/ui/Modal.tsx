@@ -11,9 +11,12 @@ export interface ModalProps {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** 'lg' widens the panel for content with side-by-side columns (e.g. the
+   *  theme form's effect + palette pickers) so it doesn't scroll sideways. */
+  size?: 'md' | 'lg';
 }
 
-export function Modal({ open, onClose, title, children, footer }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'md' }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   useModalBehavior(panelRef, open, onClose);
   if (!open) return null;
@@ -21,7 +24,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
     <div className="ui-overlay" onClick={onClose}>
       <div
         ref={panelRef}
-        className="ui-modal"
+        className={`ui-modal${size === 'lg' ? ' ui-modal-lg' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
