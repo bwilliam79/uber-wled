@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  deleteCalendarEvent, updateCalendarEvent, type CalendarEvent
+  deleteCalendarEvent, updateCalendarEvent, importSchedulesFile, SCHEDULES_EXPORT_URL,
+  type CalendarEvent
 } from '../../api/client';
 import { useCalendarEvents, useControllers, useGroups, useThemes } from '../../api/queries';
 import { useLiveStatus } from '../../api/live';
@@ -10,6 +11,9 @@ import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import { Modal } from '../../components/ui/Modal';
 import { Toggle } from '../../components/ui/Toggle';
+import { ImportButton } from '../../components/ImportButton';
+import { useToast } from '../../components/ui/Toast';
+import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import { CalendarEventForm } from './CalendarEventForm';
 import { CalendarGrid, eventsForDay } from './CalendarGrid';
 import { ScheduleManager } from './ScheduleManager';
@@ -34,6 +38,23 @@ export function ScheduleSection({
   const live = useLiveStatus((controllers.data ?? []).map((c) => c.id));
   const themes = useThemes();
   const queryClient = useQueryClient();
+  const toast = useToast();
+
+  async function handleImport(file: File) {
+    try {
+      const data = await readJsonFile(file);
+      const r = await importSchedulesFile(data);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['schedules'] }),
+        queryClient.invalidateQueries({ queryKey: ['calendarEvents'] })
+      ]);
+      const summary = `${r.schedules} schedule${r.schedules === 1 ? '' : 's'} + ${r.calendarEvents} event${r.calendarEvents === 1 ? '' : 's'}`;
+      const skipNote = r.skipped > 0 ? ` (${r.skipped} skipped — referenced a room/controller not on this instance)` : '';
+      toast.show({ title: `Imported ${summary}${skipNote}`, variant: r.skipped > 0 ? 'error' : 'success' });
+    } catch (err) {
+      toast.show({ title: 'Schedule import failed', description: (err as Error).message, variant: 'error' });
+    }
+  }
 
   function prev() {
     setSelectedDay(null);
@@ -89,6 +110,15 @@ export function ScheduleSection({
 
   return (
     <section className="section schedule-section">
+      <div className="schedule-header">
+        <h2>Schedule</h2>
+        <div className="schedule-header-actions">
+          <Button variant="secondary" size="sm" onClick={() => triggerDownload(SCHEDULES_EXPORT_URL)}>
+            Export
+          </Button>
+          <ImportButton label="Import" size="sm" onFile={handleImport} />
+        </div>
+      </div>
       <div className="schedule-body">
         <Card className="schedule-calendar">
           <CalendarGrid

@@ -1,11 +1,17 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteTheme, type ControllerCapabilities, type CustomTheme } from '../../api/client';
+import {
+  deleteTheme, importThemesFile, THEMES_EXPORT_URL,
+  type ControllerCapabilities, type CustomTheme
+} from '../../api/client';
 import { useCapabilities, useControllers, useThemes } from '../../api/queries';
 import { useLiveStatus } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Select } from '../../components/ui/Select';
+import { ImportButton } from '../../components/ImportButton';
+import { useToast } from '../../components/ui/Toast';
+import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import { paletteGradientCss } from '../../lib/paletteCss';
 import { rgbToHex } from '../../lib/color';
 import { ThemeForm } from './ThemeForm';
@@ -60,6 +66,7 @@ export function ThemesSection() {
   const effectiveSource = sourceId ?? defaultSource;
   const capabilities = useCapabilities(effectiveSource);
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const removeTheme = useMutation({
     mutationFn: deleteTheme,
@@ -70,9 +77,35 @@ export function ThemesSection() {
     }
   });
 
+  async function handleImport(file: File) {
+    try {
+      const data = await readJsonFile(file);
+      const result = await importThemesFile(data);
+      await queryClient.invalidateQueries({ queryKey: ['themes'] });
+      toast.show({ title: `Imported ${result.imported} theme${result.imported === 1 ? '' : 's'}`, variant: 'success' });
+    } catch (err) {
+      toast.show({ title: 'Theme import failed', description: (err as Error).message, variant: 'error' });
+    }
+  }
+
+  const themeCount = themes.data?.length ?? 0;
+
   return (
     <section className="section themes-section">
-      <h2>Themes</h2>
+      <div className="themes-header">
+        <h2>Themes</h2>
+        <div className="themes-header-actions">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={themeCount === 0}
+            onClick={() => triggerDownload(THEMES_EXPORT_URL)}
+          >
+            Export
+          </Button>
+          <ImportButton label="Import" size="sm" onFile={handleImport} />
+        </div>
+      </div>
       <Card className="themes-list-card">
         {themes.data && themes.data.length === 0 && (
           <p className="empty-state">No custom themes yet.</p>

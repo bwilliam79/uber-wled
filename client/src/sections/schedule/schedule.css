@@ -1,5 +1,8 @@
 /* Schedule section — Phase H. All colors/radii come from design/tokens.css. */
 .schedule-section { display: flex; flex-direction: column; gap: 16px; }
+.schedule-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+.schedule-header h2 { margin: 0; }
+.schedule-header-actions { display: flex; align-items: center; gap: 8px; }
 .schedule-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .schedule-body { grid-template-columns: 1fr; } }
 
