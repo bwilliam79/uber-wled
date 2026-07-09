@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { registerCanvas, unregisterCanvas, paintCanvas, type LedEffect } from '../../lib/ledRenderer';
+import { registerCanvas, unregisterCanvas, paintCanvas, isStaticEffect, type LedEffect } from '../../lib/ledRenderer';
 
 export interface LedPreviewProps {
   /** Effect name understood by the renderer (see LedEffect). */
@@ -10,6 +10,8 @@ export interface LedPreviewProps {
   count?: number;
   /** Animation speed factor. */
   speed?: number;
+  /** For effect="segmented": JSON of zones [{start,end,effect,colors,bri,on}]. */
+  zones?: string;
   className?: string;
   ariaLabel?: string;
 }
@@ -25,17 +27,20 @@ export function LedPreview({
   colors,
   count = 40,
   speed = 1,
+  zones,
   className,
   ariaLabel = 'effect preview'
 }: LedPreviewProps) {
   const ref = useRef<HTMLCanvasElement | null>(null);
 
+  // Only animated effects join the shared rAF loop; static ones (solid/bands)
+  // paint a single frame (see the effect below) and never re-paint.
   useEffect(() => {
     const canvas = ref.current;
-    if (!canvas) return;
+    if (!canvas || isStaticEffect(effect)) return;
     registerCanvas(canvas);
     return () => unregisterCanvas(canvas);
-  }, []);
+  }, [effect]);
 
   // Keep the static frame (reduced-motion / no-canvas) in sync with params.
   useEffect(() => {
@@ -46,7 +51,7 @@ export function LedPreview({
         /* ignore */
       }
     }
-  }, [effect, colors, count, speed]);
+  }, [effect, colors, count, speed, zones]);
 
   return (
     <canvas
@@ -58,6 +63,7 @@ export function LedPreview({
       data-count={count}
       data-colors={colors}
       data-speed={speed}
+      data-zones={zones}
     />
   );
 }

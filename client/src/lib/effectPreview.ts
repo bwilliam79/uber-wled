@@ -7,21 +7,26 @@ import { rgbToHex } from './color';
 // goal is a live sense of the look, not a bit-exact reproduction.
 export function effectToPreview(effectName: string | undefined): LedEffect {
   const n = (effectName ?? '').toLowerCase();
+  // Static effects first — these must NOT animate.
+  if (n.includes('solid') && n.includes('pattern')) return 'bands'; // Solid Pattern (Tri) = static bands
+  if (n === 'solid' || n.startsWith('solid ')) return 'solid';
   if (n.includes('rainbow')) return 'rainbow';
   if (n.includes('fire')) return 'fire';
-  if (n.includes('twinkle') || n.includes('glitter') || n.includes('sparkle') || n.includes('fairy') || n.includes('saw'))
+  if (n.includes('twinkle') || n.includes('glitter') || n.includes('sparkle') || n.includes('fairy'))
     return 'sparkle';
   if (n.includes('chase') || n.includes('theater') || n.includes('marquee') || n.includes('lighthouse'))
     return 'chase';
-  if (n.includes('comet') || n.includes('meteor') || n.includes('scan') || n.includes('runner') || n.includes('chase flash'))
+  if (n.includes('comet') || n.includes('meteor') || n.includes('scan') || n.includes('runner'))
     return 'comet';
+  // Multi-color palette-flow effects must come BEFORE the single-color "wave"
+  // (Colorwaves contains "wave" but cycles the whole palette, not one color).
+  if (n.includes('colorwave') || n.includes('colorloop') || n.includes('colorflow') || n.includes('aurora')
+    || n.includes('gradient') || n.includes('palette') || n.includes('flow') || n.includes('loop') || n.includes('colorful'))
+    return 'gradient';
   if (n.includes('wave') || n.includes('sine') || n.includes('ripple') || n.includes('dissolve') || n.includes('noise'))
     return 'wave';
   if (n.includes('breathe') || n.includes('fade') || n.includes('pulse') || n.includes('blink') || n.includes('strobe'))
     return 'breathe';
-  if (n.includes('solid') && !n.includes('pattern')) return 'solid';
-  if (n.includes('gradient') || n.includes('loop') || n.includes('flow') || n.includes('palette') || n.includes('aurora') || n.includes('pattern'))
-    return 'gradient';
   return 'gradient';
 }
 
