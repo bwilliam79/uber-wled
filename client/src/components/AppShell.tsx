@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { MasterBar } from './MasterBar';
 import { BottomNav } from './BottomNav';
-import { SECTIONS, type SectionKey } from './nav';
+import { SECTIONS, SECTION_META, type SectionKey } from './nav';
+import { useControllers } from '../api/queries';
+import { useLiveStatus } from '../api/live';
 import { HomeSection } from '../sections/home/HomeSection';
 import { DevicesSection } from '../sections/devices/DevicesSection';
 import { ThemesSection } from '../sections/themes/ThemesSection';
@@ -27,9 +30,15 @@ export function sectionFromHash(): SectionKey {
 
 export function AppShell() {
   const [active, setActive] = useState<SectionKey>(sectionFromHash());
-  const [collapsed, setCollapsed] = useState(false);
   const firmwareUpdateAvailable = useFirmwareUpdateAvailable();
   const appUpdate = useAppUpdateStatus();
+
+  // Single live-status subscription for the shell chrome (lit logo + master
+  // bar); sections open their own as needed. One EventSource, not several.
+  const controllers = useControllers().data ?? [];
+  const ids = useMemo(() => controllers.map((c) => c.id), [controllers]);
+  const live = useLiveStatus(ids);
+  const anyOn = controllers.some((c) => live.get(c.id)?.state?.on);
 
   useEffect(() => {
     const onHash = () => setActive(sectionFromHash());
@@ -43,33 +52,36 @@ export function AppShell() {
   }
 
   const badges = { firmware: firmwareUpdateAvailable };
+  const meta = SECTION_META[active];
 
   return (
     <div className="app-shell">
       <Sidebar
         active={active}
         onNavigate={navigate}
-        collapsed={collapsed}
-        onToggleCollapsed={() => setCollapsed((c) => !c)}
         badges={badges}
         appUpdate={appUpdate.data}
+        logoLit={anyOn}
       />
-      <main className="app-main">
-        {active === 'home' && <HomeSection />}
-        {active === 'layout' && <LayoutSection />}
-        {active === 'devices' && <DevicesSection />}
-        {active === 'themes' && <ThemesSection />}
-        {active === 'schedule' && <ScheduleSection />}
-        {active === 'sync' && <SyncSection />}
-        {active === 'firmware' && (
-          <FirmwareSection
-            onOpenDeviceUpdate={(controllerId) => {
-              window.location.hash = `#/devices/${controllerId}/update`;
-            }}
-          />
-        )}
-        {active === 'settings' && <SettingsSection />}
-      </main>
+      <div className="app-content">
+        <MasterBar title={meta.title} subtitle={meta.subtitle} controllers={controllers} live={live} />
+        <main className="app-main">
+          {active === 'home' && <HomeSection />}
+          {active === 'layout' && <LayoutSection />}
+          {active === 'devices' && <DevicesSection />}
+          {active === 'themes' && <ThemesSection />}
+          {active === 'schedule' && <ScheduleSection />}
+          {active === 'sync' && <SyncSection />}
+          {active === 'firmware' && (
+            <FirmwareSection
+              onOpenDeviceUpdate={(controllerId) => {
+                window.location.hash = `#/devices/${controllerId}/update`;
+              }}
+            />
+          )}
+          {active === 'settings' && <SettingsSection />}
+        </main>
+      </div>
       <BottomNav active={active} onNavigate={navigate} badges={badges} />
     </div>
   );

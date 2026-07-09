@@ -23,3 +23,15 @@ export const SECTIONS: { key: SectionKey; label: string; Icon: IconComp }[] = [
   { key: 'firmware', label: 'Firmware', Icon: DownloadIcon },
   { key: 'settings', label: 'Settings', Icon: GearIcon }
 ];
+
+/** Master-bar title + mono subtitle per view (incl. hidden 'layout'). */
+export const SECTION_META: Record<SectionKey, { title: string; subtitle: string }> = {
+  home: { title: 'Home', subtitle: 'rooms & controllers at a glance' },
+  devices: { title: 'Devices', subtitle: 'controllers on the network' },
+  themes: { title: 'Themes', subtitle: 'effects, palettes & presets' },
+  schedule: { title: 'Schedule', subtitle: 'weekly & calendar automation' },
+  sync: { title: 'Sync', subtitle: 'multi-controller sync groups' },
+  firmware: { title: 'Firmware', subtitle: 'WLED updates across the fleet' },
+  settings: { title: 'Settings', subtitle: 'app configuration & backup' },
+  layout: { title: 'Segments', subtitle: 'per-controller segment editor' }
+};

@@ -1,42 +1,24 @@
 import type { AppUpdateStatus } from '../api/client';
 import { SECTIONS, type SectionKey } from './nav';
-import { LightbulbIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
+import { LightbulbIcon } from './icons';
 
 export function Sidebar({
   active,
   onNavigate,
-  collapsed,
-  onToggleCollapsed,
   badges,
-  appUpdate
+  appUpdate,
+  logoLit
 }: {
   active: SectionKey;
   onNavigate: (s: SectionKey) => void;
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
   badges?: Partial<Record<SectionKey, boolean>>;
   appUpdate?: AppUpdateStatus;
+  logoLit?: boolean;
 }) {
   return (
-    <nav className={`sidebar${collapsed ? ' collapsed' : ''}`} aria-label="Sections">
-      <div className="sidebar-brand">
+    <nav className="sidebar" aria-label="Sections">
+      <div className={`sidebar-logo${logoLit ? ' lit' : ''}`} aria-hidden="true">
         <LightbulbIcon className="logo-mark" />
-        <div className="sidebar-brand-info">
-          <span className="sidebar-brand-text">uber-wled</span>
-          {appUpdate?.updateAvailable ? (
-            <a
-              className="sidebar-version sidebar-version-update"
-              href={appUpdate.repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={`Update available: ${appUpdate.latestVersion} (you have ${appUpdate.currentVersion})`}
-            >
-              v{__APP_VERSION__} · update available
-            </a>
-          ) : (
-            <span className="sidebar-version">v{__APP_VERSION__}</span>
-          )}
-        </div>
       </div>
       <ul className="sidebar-nav">
         {SECTIONS.map(({ key, label, Icon }) => (
@@ -56,14 +38,22 @@ export function Sidebar({
           </li>
         ))}
       </ul>
-      <button
-        type="button"
-        className="sidebar-collapse-toggle"
-        onClick={onToggleCollapsed}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-      </button>
+      <div className="sidebar-footer">
+        {appUpdate?.updateAvailable ? (
+          <a
+            className="sidebar-version sidebar-version-update"
+            href={appUpdate.repoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Update available: ${appUpdate.latestVersion} (you have ${appUpdate.currentVersion})`}
+            title={`Update available: ${appUpdate.latestVersion} (you have ${appUpdate.currentVersion})`}
+          >
+            v{__APP_VERSION__} · update
+          </a>
+        ) : (
+          <span className="sidebar-version">v{__APP_VERSION__}</span>
+        )}
+      </div>
     </nav>
   );
 }
