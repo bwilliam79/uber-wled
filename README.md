@@ -1,7 +1,7 @@
 # uber-wled
 
 A self-hosted, LAN-only control plane for every [WLED](https://kno.wled.ge/)
-device in the house. One app replaces the per-device WLED web UIs and the
+device on your network. One app replaces the per-device WLED web UIs and the
 WLED phone app — multi-controller-first: select any mix of rooms, devices,
 or segments and apply the complete WLED control surface (colors, effects,
 palettes, presets, nightlight) to all of them at once. Fan-out writes carry
@@ -11,10 +11,32 @@ fights an existing UDP sync group.
 Full design rationale lives in [docs/superpowers/specs/](docs/superpowers/specs/);
 implementation plans live in [docs/superpowers/plans/](docs/superpowers/plans/).
 
-## The eight sections
+## Quick start
+
+Runs as a single Docker container.
+
+```bash
+git clone https://github.com/bwilliam79/uber-wled.git && cd uber-wled
+cp .env.example .env      # pick a PORT if 8081 is already taken
+docker compose up -d --build
+```
+
+Open `http://localhost:<PORT>` (default `8081`). The container uses
+`network_mode: host` — binding directly to a host port — so it can discover
+WLED devices on your LAN via mDNS. SQLite data persists in `./data/`
+(gitignored, mounted into the container) — nothing personal (controller
+IPs, rooms, schedules) is ever committed to the repo.
+
+**On a home server:** `git clone`/`git pull` into `~/docker/uber-wled/` and
+run `docker compose up -d --build` there; pick a free `PORT` in a local
+`.env`. **To update later:** `git pull && docker compose up -d --build`.
+
+(Node 20+ is only needed for local development — see below.)
+
+## The sections
 
 The app is a responsive shell — left sidebar on desktop, bottom navigation
-bar on phones — with eight sections, opening on Home:
+bar on phones — opening on Home:
 
 1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
    controller. Tiles show live power/brightness with a small status dot
@@ -26,22 +48,7 @@ bar on phones — with eight sections, opening on Home:
    hover-checkbox (desktop) multi-selects tiles into one Control session.
    Edit mode creates/renames/deletes rooms, assigns controller+segment
    members inline, and drag-reorders tiles.
-2. **Layout** — _currently hidden from the nav_ (the section and its code
-   are kept intact; re-adding its entry to `SECTIONS` in
-   `client/src/components/nav.ts` brings it back). An imageless canvas of
-   the house. Draw each strip as a
-   multi-point path (click to place vertices, then either click the
-   "Finish line" button or press Enter/double-click to finish, Esc/Cancel
-   to abandon, Shift for 45° angles; an always-on grid with visible minor
-   and major lines that every placement, drag, and vertex-move snaps to),
-   drag strips or individual vertices to arrange,
-   wheel/pinch zoom and pan, "fit all". Strips render in their real live
-   color from the live stream. Click or marquee-select strips to open the
-   Control surface for exactly those (controller, segment) targets. Room
-   labels can be dragged, double-clicked to rename inline, and clicked/
-   hovered to reveal a delete (×) button (Delete/Backspace also removes
-   the selected label).
-3. **Devices** — one card per controller: name, host, firmware chip, live
+2. **Devices** — one card per controller: name, host, firmware chip, live
    WiFi signal, FPS, power, uptime, stale/offline and update-available
    badges, plus a live-output strip (one swatch per segment, driven by the
    live stream) so a card shows what its lights are actually doing without
@@ -55,7 +62,7 @@ bar on phones — with eight sections, opening on Home:
    and playlists: apply, delete with confirm, save-current-state with
    include-brightness and save-bounds options), **Config** (below), and
    **Update** (the per-controller firmware pin/OTA flow).
-4. **Themes** — custom effect/palette/color/brightness combos independent of
+3. **Themes** — custom effect/palette/color/brightness combos independent of
    any device's presets. The form reads the per-controller capability cache:
    effect search with 2D/audio badges, palette picker with real gradient
    previews, color slots, brightness. Existing themes can be edited in place
@@ -64,7 +71,7 @@ bar on phones — with eight sections, opening on Home:
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.
-5. **Schedule** — a real month calendar. Holidays and custom events sit as
+4. **Schedule** — a real month calendar. Holidays and custom events sit as
    chips on their dates; a side panel shows the selected day plus weekly and
    cron recurring schedules, each targeting either a Room group or a set of
    specific controllers directly. An enabled calendar event overrides overlapping
@@ -73,11 +80,11 @@ bar on phones — with eight sections, opening on Home:
    date too, unless it's a computed rule like "4th Thursday of November"), not just
    toggled or removed. Editors preview a theme live against the real lights
    and revert exactly on approve or discard.
-6. **Sync** — user-managed sync groups: pick any set of controllers and
+5. **Sync** — user-managed sync groups: pick any set of controllers and
    activate WLED's own native real-time UDP sync across exactly them, no
    hand-editing each device's Sync Interfaces settings page. See "Sync
    groups" below for how this actually works on the wire.
-7. **Firmware** — fleet view of installed vs. latest stable version
+6. **Firmware** — fleet view of installed vs. latest stable version
    (pre-releases opt-in via Settings) per controller, with a one-click
    Update button (and an "Update All" button fleet-wide) once a device is
    pinned and a newer release exists, plus a gear icon into that device's
@@ -94,7 +101,7 @@ bar on phones — with eight sections, opening on Home:
    variants) is never guessed at. Later updates reuse the pin with no
    re-prompting. OTA push via WLED's own endpoint, with post-update version
    polling.
-8. **Settings** — pre-release firmware toggle, home latitude/longitude for
+7. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
    streaming sessions, and the WLED schedule-import default. Home
@@ -107,8 +114,8 @@ bar on phones — with eight sections, opening on Home:
    LAN-only, plain-HTTP app never is, so it would always fail. Settings also
    has **Backup & restore**: download a full-config snapshot
    (`uber-wled-backup.json` — controllers, rooms, sync groups, themes,
-   schedules, calendar events, layout, and settings), or restore one after a
-   rebuild. The restore preserves every record's id so cross-references
+   schedules, calendar events, room labels, and settings), or restore one
+   after a rebuild. The restore preserves every record's id so cross-references
    survive (a rebuilt instance re-discovers controllers under new ids, so
    the backup brings the original controller ids back too, keeping schedules
    and rooms pointing at the right devices); it replaces everything and is
@@ -128,9 +135,9 @@ repo. There is no in-place self-update: updating means `git pull` +
 
 ## The Control surface
 
-One shared component, three entry points (Home tiles, Layout selection,
-Devices "Control" button). Desktop: a ~760px right slide-over with a
-two-column Colors tab and multi-column effect/palette/preset lists. Phone: a
+One shared component, two entry points (Home tiles and the Devices
+"Control" button). Desktop: a ~760px right slide-over with a two-column
+Colors tab and multi-column effect/palette/theme lists. Phone: a
 full-height draggable bottom sheet.
 
 - A selection is a list of targets — whole controllers or
@@ -147,8 +154,8 @@ full-height draggable bottom sheet.
   checkbox options) with the labels the firmware itself reports.
 - **Palettes** tab: searchable list with true gradient previews; randomized
   and color-slot palettes render sensibly.
-- **Presets** tab: saved Themes always; device presets/playlists when the
-  selection is a single controller.
+- **Themes** tab: your saved Themes always; the device's own presets and
+  playlists too when the selection is a single controller.
 - Effects and palettes are resolved **by name per device**, so mixed-firmware
   fleets apply the same-named effect even when ids differ; a device lacking
   the name reports a per-target failure without failing the batch. Every
@@ -157,7 +164,7 @@ full-height draggable bottom sheet.
 
 ## Live streaming
 
-While Home, Layout, or the Control surface is open, the client subscribes to
+While Home or the Control surface is open, the client subscribes to
 `GET /api/live?controllers=...` (Server-Sent Events). The server keeps one
 refcounted fast-poll session per watched controller (default every 2s,
 configurable in Settings) and stops it when the last subscriber disconnects.
@@ -177,8 +184,8 @@ this firmware — that's not what either live view relies on.)
 
 ## Sync groups
 
-Distinct from a Home room (a Home-layout organizational label with no
-bearing on real-time playback): a sync group is a set of controllers wired
+Distinct from a Home room (an organizational grouping with no bearing on
+real-time playback): a sync group is a set of controllers wired
 together via WLED's own native UDP sync (broadcast on LAN port 21324) so
 their effects and colors play in lockstep, managed entirely through this
 app instead of each device's own Sync Interfaces settings page.
@@ -257,25 +264,8 @@ cd server && npm test   # 47 files / 362 tests
 cd client && npm test   # 77 files / 597 tests
 ```
 
-## Running the whole app locally via Docker
-
-```bash
-cp .env.example .env   # adjust PORT if 8081 is taken on your machine
-docker compose up --build
-```
-
-The app will be reachable at `http://localhost:<PORT>` (default `8081`).
-SQLite data persists in `./data/`, which is gitignored and mounted into the
-container — nothing personal (your home layout, controller IPs, etc.) is
-ever committed to this repo.
-
-## Deployment
-
-This repo is deployed to a home server via: push to GitHub, then on the
-target host, `git clone`/`git pull` into `~/docker/uber-wled/` and run
-`docker compose up -d --build` from there. The compose file uses
-`network_mode: host`, so pick a `PORT` (via a local `.env` file, not
-committed) that isn't already taken by another service on that host.
+(Running the whole app via Docker and deploying to a home server are covered
+in **Quick start** at the top.)
 
 ## Configuration
 
@@ -293,34 +283,29 @@ committed) that isn't already taken by another service on that host.
    controller + segment members, drag tiles into the order you want.
 3. **Control** — tap a tile (or select several) and the Control surface
    opens: power, brightness, colors, effects with their real per-effect
-   controls, palettes with previews, presets. Same surface from Layout
-   selections and the Devices list.
-4. **Draw the house** — on Layout, draw each strip as a path where it
-   physically runs, bind it to a controller + segment, and drop room
-   labels. Strips light up in their true live colors.
-5. **Save Themes** — build effect/palette/color/brightness combos; apply
-   them anywhere, schedule them, or hang them on holidays.
-6. **Schedule** — weekly/cron schedules and calendar events (pre-seeded US
+   controls, palettes with previews, themes. Same surface from the Devices
+   list.
+4. **Save Themes** — build effect/palette/color/brightness combos; edit or
+   export them; apply them anywhere, schedule them, or hang them on holidays.
+5. **Schedule** — weekly/cron schedules and calendar events (pre-seeded US
    holidays + custom dates) target either a Room group or a set of specific
    controllers directly; sunset/sunrise offsets use the home location from Settings;
    preview shows the real lights before you commit, then restores them
    exactly.
-7. **Sync groups** — on Sync, create a group, pick its controllers, and hit
+6. **Sync groups** — on Sync, create a group, pick its controllers, and hit
    Activate to wire them together on WLED's own real-time UDP sync; hit
    Deactivate to pull them apart. Rename anytime; membership only while
    inactive.
-8. **Stay current** — Firmware shows installed vs. latest stable per
+7. **Stay current** — Firmware shows installed vs. latest stable per
    controller; pin the right release asset once, then update in one click
    (also per-device under Devices → Update).
+8. **Back up** — Settings → Back up configuration downloads a full snapshot
+   you can restore after a rebuild (see Settings above).
 
 ## Known limitations / follow-up items
 
 - Playlist editing is out of scope (apply/delete only); no custom palette
   builder (built-ins browse only, by design).
-- The WLED OTA upload's exact multipart field name is implemented against
-  the best available documentation — verify against a device you can
-  re-flash by hand before relying on it (see
-  `server/src/firmware/otaPush.ts`).
 - Sync groups (see "Sync groups" above) manage WLED's own native UDP sync
   rather than replacing it with an app-level protocol — a controller can
   only be an active member of one sync group at a time (no combined-bitmask
