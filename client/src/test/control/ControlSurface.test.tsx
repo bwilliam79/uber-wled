@@ -142,7 +142,7 @@ describe('ControlSurface', () => {
   it('applies a theme as an id-based ControlPatch', () => {
     setupMocks(new Map([['cA', liveEntry(makeState([makeSeg(0)]))]]));
     render(<ControlSurface targets={[TWO_TARGETS[0]]} open onClose={vi.fn()} />);
-    fireEvent.click(screen.getByRole('tab', { name: 'Presets' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Themes' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply theme Sunset' }));
     expect(applyControl).toHaveBeenCalledWith(
       [TWO_TARGETS[0]],
@@ -157,7 +157,7 @@ describe('ControlSurface', () => {
     } as never);
     render(<ControlSurface targets={[TWO_TARGETS[0]]} open onClose={vi.fn()} />);
     expect(useDevicePresets).toHaveBeenLastCalledWith('cA');
-    fireEvent.click(screen.getByRole('tab', { name: 'Presets' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Themes' }));
     fireEvent.click(screen.getByRole('button', { name: 'Apply preset Night' }));
     expect(applyControl).toHaveBeenCalledWith(
       [{ kind: 'controller', controllerId: 'cA' }],

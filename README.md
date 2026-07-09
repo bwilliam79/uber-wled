@@ -58,8 +58,12 @@ bar on phones — with eight sections, opening on Home:
 4. **Themes** — custom effect/palette/color/brightness combos independent of
    any device's presets. The form reads the per-controller capability cache:
    effect search with 2D/audio badges, palette picker with real gradient
-   previews, color slots, brightness. Themes are applicable from the Control
-   surface, schedules, and calendar events.
+   previews, color slots, brightness. Existing themes can be edited in place
+   (Edit on any row prefills the form and saves back over the same theme) or
+   removed, and the whole set can be exported/imported as JSON. Themes are
+   applicable from the Control surface (where the tab is labeled "Themes" to
+   match this section — WLED device presets remain a separate, clearly
+   labeled subsection there), schedules, and calendar events.
 5. **Schedule** — a real month calendar. Holidays and custom events sit as
    chips on their dates; a side panel shows the selected day plus weekly and
    cron recurring schedules, each targeting either a Room group or a set of
@@ -249,8 +253,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 47 files / 360 tests
-cd client && npm test   # 77 files / 596 tests
+cd server && npm test   # 47 files / 362 tests
+cd client && npm test   # 77 files / 597 tests
 ```
 
 ## Running the whole app locally via Docker

@@ -3,6 +3,9 @@
 .themes-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
 .themes-header h2 { margin: 0; }
 .themes-header-actions { display: flex; align-items: center; gap: 8px; }
+.theme-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.theme-form-title { margin: 0 0 4px; font-size: 1rem; }
+.theme-form-actions { display: flex; align-items: center; gap: 8px; }
 
 .theme-list { list-style: none; margin: 0; padding: 0; }
 .theme-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--border); }

@@ -52,6 +52,29 @@ describe('themes routes', () => {
     expect((await request(app).get('/api/themes')).body).toHaveLength(0);
   });
 
+  it('updates an existing custom theme in place via PUT', async () => {
+    const post = await request(app).post('/api/themes').send({
+      name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180
+    });
+    const put = await request(app).put(`/api/themes/${post.body.id}`).send({
+      name: 'Sunset (brighter)', effect: 74, palette: 5, colors: [[255, 120, 0], [0, 0, 0]], brightness: 220
+    });
+    expect(put.status).toBe(200);
+    expect(put.body.id).toBe(post.body.id);
+    expect(put.body.name).toBe('Sunset (brighter)');
+    // No duplicate row — still exactly one theme, now with the new values.
+    const list = (await request(app).get('/api/themes')).body;
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ id: post.body.id, name: 'Sunset (brighter)', effect: 74, brightness: 220 });
+  });
+
+  it('returns 404 when updating a theme that does not exist', async () => {
+    const res = await request(app).put('/api/themes/nope').send({
+      name: 'X', effect: 0, palette: 0, colors: [[1, 1, 1]], brightness: 1
+    });
+    expect(res.status).toBe(404);
+  });
+
   it('proxies a controller\'s WLED presets', async () => {
     stubFetchOnce({ url: `http://${HOST}/presets.json` }, { '1': { n: 'Party' } });
     const res = await request(app).get(`/api/themes/presets/${controllerId}`);
