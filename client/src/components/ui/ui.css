@@ -46,22 +46,23 @@
 
 .ui-btn-primary {
   background: var(--accent);
-  color: #06110C;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
 .ui-btn-primary:hover:not(:disabled) {
-  background: var(--color-accent-hover, #0E9E70);
+  background: var(--accent-hover);
 }
 
 .ui-btn-secondary {
-  background: var(--surface-2);
-  color: var(--text);
-  border-color: var(--border);
+  background: var(--w6);
+  color: var(--text2);
+  border-color: var(--w10);
 }
 
 .ui-btn-secondary:hover:not(:disabled) {
-  border-color: var(--text-muted);
+  color: var(--text);
+  border-color: var(--w14);
 }
 
 .ui-btn-ghost {
@@ -138,10 +139,11 @@
 /* ---------- Card ---------- */
 
 .ui-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--panel);
+  border: 1px solid var(--w6);
   border-radius: var(--radius-card);
   padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
 }
 
 /* ---------- Chip ---------- */
@@ -153,9 +155,9 @@
   font-size: 0.75rem;
   font-weight: 600;
   padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-muted);
+  border-radius: var(--radius-chip);
+  background: var(--w6);
+  color: var(--text2);
   white-space: nowrap;
 }
 
@@ -165,17 +167,17 @@
 }
 
 .ui-chip-success {
-  background: rgba(34, 197, 94, 0.16);
-  color: var(--success);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .ui-chip-danger {
-  background: rgba(239, 68, 68, 0.16);
-  color: #FCA5A5;
+  background: rgba(255, 107, 107, 0.16);
+  color: var(--danger);
 }
 
 .ui-chip-warning {
-  background: rgba(245, 158, 11, 0.16);
+  background: rgba(255, 176, 32, 0.16);
   color: var(--warning);
 }
 
@@ -254,9 +256,9 @@
   display: inline-block;
   background: linear-gradient(
     90deg,
-    var(--surface-2) 25%,
-    rgba(148, 163, 184, 0.18) 50%,
-    var(--surface-2) 75%
+    var(--w6) 25%,
+    var(--w10) 50%,
+    var(--w6) 75%
   );
   background-size: 200% 100%;
   animation: ui-shimmer 1.4s ease infinite;
@@ -292,7 +294,7 @@
   background: linear-gradient(
     to right,
     var(--ui-slider-color) var(--ui-slider-fill),
-    var(--surface-2) var(--ui-slider-fill)
+    var(--w9) var(--ui-slider-fill)
   );
 }
 
@@ -311,7 +313,7 @@
 .ui-slider::-moz-range-track {
   height: 8px;
   border-radius: 999px;
-  background: var(--surface-2);
+  background: var(--w9);
 }
 
 .ui-slider::-moz-range-progress {
@@ -365,8 +367,8 @@
   height: 40px; /* touch target ≥ 40px */
   flex-shrink: 0;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid transparent;
+  background: var(--w12);
   padding: 0;
   cursor: pointer;
   transition: background-color 180ms ease, border-color 180ms ease;
@@ -472,8 +474,8 @@
   display: inline-flex;
   padding: 3px;
   gap: 2px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--w4);
+  border: 1px solid var(--w8);
   border-radius: var(--radius-control);
 }
 
@@ -491,7 +493,7 @@
 }
 
 .ui-segment.active {
-  background: var(--surface);
+  background: var(--panel);
   color: var(--text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
@@ -612,7 +614,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-lg);
-  background: rgba(4, 7, 14, 0.66);
+  background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(3px);
 }
 
@@ -624,9 +626,9 @@
   max-height: min(85svh, 720px);
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
+  background: var(--panel);
+  border: 1px solid var(--w8);
+  border-radius: var(--radius-modal);
   box-shadow: var(--shadow-lg);
 }
 
@@ -813,18 +815,33 @@
   align-items: flex-start;
   gap: var(--space-sm);
   padding: var(--space-md);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--toast);
+  border: 1px solid var(--w8);
   border-radius: var(--radius-control);
   box-shadow: var(--shadow-lg);
 }
 
+/* Leading accent status dot (per the prototype toast recipe). */
+.ui-toast::before {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.ui-toast-error::before {
+  background: var(--danger);
+}
+
 .ui-toast-success {
-  border-color: rgba(34, 197, 94, 0.4);
+  border-color: rgba(46, 230, 192, 0.4);
 }
 
 .ui-toast-error {
-  border-color: rgba(239, 68, 68, 0.5);
+  border-color: rgba(255, 107, 107, 0.5);
 }
 
 .ui-toast-content {
@@ -871,4 +888,46 @@
 .ui-toast-dismiss svg {
   width: 14px;
   height: 14px;
+}
+
+/* ---------- Utilities ---------- */
+
+/* Numeric / metadata mono (IPs, %, px counts, versions, hex, BPM). Tabular
+   figures so digits don't shift width as values change. */
+.ui-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ---------- Progress bar (firmware / uploads) ---------- */
+/* Reuses the slider track look: accent fill over a --w9 track, mono status. */
+
+.ui-progress {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--w9);
+  overflow: hidden;
+}
+
+.ui-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+.ui-progress-status {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--m3);
+}
+
+.ui-progress-status.active {
+  color: var(--accent);
+}
+
+.ui-progress-status.error {
+  color: var(--danger);
 }
