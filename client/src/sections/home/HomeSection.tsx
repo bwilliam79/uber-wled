@@ -134,8 +134,6 @@ export function HomeSection() {
 
   const [controlTargets, setControlTargets] = useState<Target[] | null>(null);
   const [overrides, setOverrides] = useState<Map<string, QuickOverride>>(new Map());
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const queryClient = useQueryClient();
   const [editMode, setEditMode] = useState(false);
@@ -224,35 +222,6 @@ export function HomeSection() {
     });
   }
 
-  function toggleSelect(id: string) {
-    setSelectMode(true);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  function enterSelectMode(id: string) {
-    setSelectMode(true);
-    setSelectedIds(new Set([id]));
-  }
-
-  function exitSelectMode() {
-    setSelectMode(false);
-    setSelectedIds(new Set());
-  }
-
-  function selectAll() {
-    setSelectedIds(new Set(tiles.map((t) => t.id)));
-  }
-
-  function controlSelected() {
-    const targets = tiles.filter((t) => selectedIds.has(t.id)).flatMap(targetsFor);
-    if (targets.length > 0) setControlTargets(targets);
-  }
-
   function statusFor(tile: HomeTileData): TileStatusV2 {
     const base = aggregateTileStatusLive(tile.members, live);
     const o = overrides.get(tile.id);
@@ -317,10 +286,7 @@ export function HomeSection() {
             type="button"
             className="btn btn-secondary"
             aria-pressed={editMode}
-            onClick={() => {
-              setEditMode((v) => !v);
-              exitSelectMode();
-            }}
+            onClick={() => setEditMode((v) => !v)}
           >
             {editMode ? 'Done' : 'Edit'}
           </button>
@@ -351,7 +317,7 @@ export function HomeSection() {
           ))}
         </div>
       ) : (
-        <div className={`home-grid${selectMode ? ' home-select-mode' : ''}`}>
+        <div className="home-grid">
           {tiles.map((tile) => {
             const status = statusFor(tile);
             return (
@@ -360,31 +326,12 @@ export function HomeSection() {
                 tile={tile}
                 status={status}
                 liveSwatches={liveSwatchesFor(tile)}
-                selectMode={selectMode}
-                selected={selectedIds.has(tile.id)}
-                onToggleSelect={toggleSelect}
-                onLongPress={enterSelectMode}
                 onOpenControl={(t) => setControlTargets(targetsFor(t))}
                 onPower={handlePower}
                 onBrightness={handleBrightness}
               />
             );
           })}
-        </div>
-      )}
-      {selectMode && (
-        <div className="home-action-bar" role="toolbar" aria-label="selection actions">
-          <span className="home-action-count">{selectedIds.size} selected</span>
-          <button type="button" className="btn btn-secondary" onClick={selectAll}>Select all</button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={selectedIds.size === 0}
-            onClick={controlSelected}
-          >
-            Control
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={exitSelectMode}>Cancel</button>
         </div>
       )}
       <ControlSurface
