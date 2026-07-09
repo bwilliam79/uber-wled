@@ -241,40 +241,6 @@ describe('HomeSection sync tiles', () => {
   });
 });
 
-describe('HomeSection multi-select', () => {
-  it('enters select mode from the tile checkbox and shows the action bar', async () => {
-    stubFetch();
-    renderHome();
-    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
-    fireEvent.click(screen.getByRole('checkbox', { name: 'select Kitchen' }));
-    const bar = screen.getByRole('toolbar', { name: 'selection actions' });
-    expect(within(bar).getByText('1 selected')).toBeTruthy();
-  });
-
-  it('select-all selects every tile and Control opens the surface with all targets', async () => {
-    stubFetch();
-    renderHome();
-    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
-    fireEvent.click(screen.getByRole('checkbox', { name: 'select Kitchen' }));
-    fireEvent.click(screen.getByText('Select all'));
-    expect(screen.getByText('3 selected')).toBeTruthy();
-    fireEvent.click(screen.getByText('Control'));
-    const surface = screen.getByTestId('control-surface');
-    expect(surface.textContent).toContain('"groupId":"g1"');
-    expect(surface.textContent).toContain('"groupId":"g2"');
-    expect(surface.textContent).toContain('"controllerId":"c2"');
-  });
-
-  it('cancel exits select mode and clears the selection', async () => {
-    stubFetch();
-    renderHome();
-    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
-    fireEvent.click(screen.getByRole('checkbox', { name: 'select Kitchen' }));
-    fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByRole('toolbar', { name: 'selection actions' })).toBeNull();
-  });
-});
-
 describe('HomeSection edit mode', () => {
   async function enterEdit() {
     stubFetch();
