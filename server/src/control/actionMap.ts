@@ -23,7 +23,7 @@ export interface Member {
 
 export function actionToPatch(
   action: ControlAction,
-  resolveTheme: (id: string) => { effect: number; palette: number; colors: number[][]; brightness: number } | undefined
+  resolveTheme: (id: string) => { effect: number; palette: number; colors: number[][]; brightness: number; speed: number; intensity: number } | undefined
 ): ControlPatch {
   switch (action.type) {
     case 'power':
@@ -41,7 +41,7 @@ export function actionToPatch(
       if (!theme) throw new Error(`theme ${action.themeId} not found`);
       return {
         bri: theme.brightness,
-        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors }
+        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
       };
     }
   }

@@ -7,7 +7,7 @@ afterEach(() => vi.unstubAllGlobals());
 const groups = [{ id: 'g1', name: 'Front', icon: null, sortOrder: 0, members: [] }];
 const controllers: never[] = [];
 const live = new Map();
-const themes = [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128 }];
+const themes = [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128, speed: 128, intensity: 128 }];
 
 describe('CalendarEventForm v2', () => {
   it('POSTs a fixed-date custom event and reports it to the parent', async () => {

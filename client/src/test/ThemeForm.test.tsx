@@ -55,6 +55,8 @@ describe('ThemeForm', () => {
       effect: 1,
       palette: 6,
       brightness: 200,
+      speed: 128,
+      intensity: 128,
       colors: [[255, 136, 0], [0, 0, 0], [0, 0, 0]]
     });
   });

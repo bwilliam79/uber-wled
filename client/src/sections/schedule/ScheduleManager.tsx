@@ -96,7 +96,7 @@ export function ScheduleManager() {
       {
         on: true,
         bri: theme.brightness,
-        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors }
+        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
       }
     );
   }

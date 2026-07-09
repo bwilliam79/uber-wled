@@ -10,6 +10,8 @@ export interface LedPreviewProps {
   count?: number;
   /** Animation speed factor. */
   speed?: number;
+  /** WLED effect intensity (0–255); drives density-type effects. */
+  intensity?: number;
   /** For effect="segmented": JSON of zones [{start,end,effect,colors,bri,on}]. */
   zones?: string;
   className?: string;
@@ -27,6 +29,7 @@ export function LedPreview({
   colors,
   count = 40,
   speed = 1,
+  intensity = 128,
   zones,
   className,
   ariaLabel = 'effect preview'
@@ -51,7 +54,7 @@ export function LedPreview({
         /* ignore */
       }
     }
-  }, [effect, colors, count, speed, zones]);
+  }, [effect, colors, count, speed, intensity, zones]);
 
   return (
     <canvas
@@ -63,6 +66,7 @@ export function LedPreview({
       data-count={count}
       data-colors={colors}
       data-speed={speed}
+      data-intensity={intensity}
       data-zones={zones}
     />
   );

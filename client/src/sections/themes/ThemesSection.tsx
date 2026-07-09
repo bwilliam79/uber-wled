@@ -47,7 +47,8 @@ function ThemeRow({
             effect={previewEffect}
             colors={previewColors}
             count={48}
-            speed={1}
+            speed={Math.max(0.15, theme.speed / 128)}
+            intensity={theme.intensity}
             className="theme-row-preview-canvas"
             ariaLabel={`${theme.name} preview`}
           />

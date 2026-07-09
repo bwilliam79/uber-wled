@@ -10,7 +10,8 @@ describe('presetToTheme', () => {
     };
     expect(presetToTheme(preset)).toEqual({
       name: 'Christmas Chase', effect: 34, palette: 5,
-      colors: [[255, 0, 0, 0], [255, 255, 255, 0], [8, 255, 0, 0]], brightness: 255
+      colors: [[255, 0, 0, 0], [255, 255, 255, 0], [8, 255, 0, 0]], brightness: 255,
+      speed: 128, intensity: 128
     });
   });
 
@@ -29,8 +30,8 @@ describe('presetToTheme', () => {
 
 describe('classifyPresetImport', () => {
   const existing: CustomTheme[] = [
-    { id: 'x1', name: 'Christmas Chase', effect: 34, palette: 5, colors: [[255, 0, 0, 0]], brightness: 255 },
-    { id: 'x2', name: 'Candy Cane', effect: 78, palette: 3, colors: [[255, 0, 0, 0]], brightness: 40 }
+    { id: 'x1', name: 'Christmas Chase', effect: 34, palette: 5, colors: [[255, 0, 0, 0]], brightness: 255, speed: 128, intensity: 128 },
+    { id: 'x2', name: 'Candy Cane', effect: 78, palette: 3, colors: [[255, 0, 0, 0]], brightness: 40, speed: 128, intensity: 128 }
   ];
 
   it('classifies new, already-imported (duplicate), and conflicting presets, and skips non-themes', () => {

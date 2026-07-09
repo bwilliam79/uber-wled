@@ -27,7 +27,7 @@ function stub(events: unknown[] = [halloween]) {
     if (url.startsWith('/api/themes')) {
       return Promise.resolve({
         ok: true,
-        json: async () => [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128 }]
+        json: async () => [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128, speed: 128, intensity: 128 }]
       });
     }
     if (url.startsWith('/api/schedules')) {

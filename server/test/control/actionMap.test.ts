@@ -44,10 +44,10 @@ describe('actionToPatch', () => {
 
   it('maps theme by resolving stored effect/palette/colors/brightness', () => {
     const resolve = (id: string) =>
-      id === 't1' ? { effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180 } : undefined;
+      id === 't1' ? { effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180, speed: 200, intensity: 90 } : undefined;
     expect(actionToPatch({ type: 'theme', themeId: 't1' }, resolve)).toEqual({
       bri: 180,
-      seg: { fxId: 2, palId: 5, col: [[255, 100, 0]] }
+      seg: { fxId: 2, palId: 5, col: [[255, 100, 0]], sx: 200, ix: 90 }
     });
   });
 
