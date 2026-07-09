@@ -71,14 +71,21 @@ export function CalendarGrid({
                     <span className="calendar-add" aria-hidden="true">+</span>
                   ) : (
                     <span className="calendar-chips">
-                      {dayEvents.map((e) => (
-                        <span
-                          key={e.id}
-                          className={`event-chip ${e.enabled ? 'enabled' : 'disabled'} ${e.category}`}
-                        >
-                          {e.name}
-                        </span>
-                      ))}
+                      {dayEvents.map((e) => {
+                        // "Configured" = enabled AND has an action set (a theme
+                        // to apply). A seeded holiday with no theme yet is a
+                        // placeholder — shown differently so it's clear at a
+                        // glance which holidays are actually set up.
+                        const configured = e.enabled && e.actionType != null;
+                        return (
+                          <span
+                            key={e.id}
+                            className={`event-chip ${e.enabled ? 'enabled' : 'disabled'} ${e.category} ${configured ? 'configured' : 'unconfigured'}`}
+                          >
+                            {e.name}
+                          </span>
+                        );
+                      })}
                     </span>
                   )}
                 </button>
