@@ -8,8 +8,10 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { DeviceCard } from './DeviceCard';
 import { DeviceDetail } from './DeviceDetail';
 import { RoomGroup } from './RoomGroup';
+import { RoomsManagerModal } from './RoomsManagerModal';
 import { groupControllersByRoom } from './deviceGrouping';
 import { deviceHash, parseDevicesHash, type DeviceTab } from './route';
+import { cachedDeviceName } from '../../lib/deviceNames';
 import './devices.css';
 
 export function DevicesSection() {
@@ -17,6 +19,7 @@ export function DevicesSection() {
   const controllers = useControllers();
   const groups = useGroups();
   const [controlId, setControlId] = useState<string | null>(null);
+  const [roomsOpen, setRoomsOpen] = useState(false);
 
   useEffect(() => {
     const onHash = () => setRoute(parseDevicesHash(window.location.hash));
@@ -38,6 +41,10 @@ export function DevicesSection() {
   const renderCard = (c: Controller) => (
     <DeviceCard key={c.id} controller={c} live={live.get(c.id)} onControl={setControlId} onOpen={openDetail} />
   );
+  // Same resolution as DeviceCard so the room manager labels controllers with
+  // their live/friendly name rather than the frozen add-time name.
+  const nameFor = (id: string) =>
+    live.get(id)?.info?.name || cachedDeviceName(id) || list.find((c) => c.id === id)?.name || id;
 
   function openDetail(controllerId: string, tab: DeviceTab = 'info') {
     window.location.hash = deviceHash(controllerId, tab);
@@ -78,6 +85,9 @@ export function DevicesSection() {
     <section className="section devices-section">
       <header className="devices-header">
         <h2>Devices</h2>
+        {list.length > 0 && (
+          <Button variant="secondary" size="sm" onClick={() => setRoomsOpen(true)}>Manage rooms</Button>
+        )}
       </header>
       {controllers.isLoading && (
         <div className="devices-grid">
@@ -111,6 +121,13 @@ export function DevicesSection() {
         targets={controlId ? [{ kind: 'controller', controllerId: controlId }] : []}
         open={controlId !== null}
         onClose={() => setControlId(null)}
+      />
+      <RoomsManagerModal
+        open={roomsOpen}
+        onClose={() => setRoomsOpen(false)}
+        groups={groups.data ?? []}
+        controllers={list}
+        nameFor={nameFor}
       />
     </section>
   );
