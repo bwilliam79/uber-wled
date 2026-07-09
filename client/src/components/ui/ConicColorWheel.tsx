@@ -11,7 +11,7 @@ function hslToRgb(h: number, s: number, l: number): [number, number, number] {
 }
 
 export interface ConicColorWheelProps {
-  /** Current color as a CSS color string (shown in the center). */
+  /** Current color as a CSS color string (shown as the center dot). */
   colorHex: string;
   /** Called with a full-saturation RGB for the picked hue. */
   onPick: (rgb: [number, number, number]) => void;
@@ -56,7 +56,6 @@ export function ConicColorWheel({ colorHex, onPick, size = 200 }: ConicColorWhee
     >
       <div className="cs-wheel-center">
         <span className="cs-wheel-swatch" style={{ background: colorHex, color: colorHex }} />
-        <span className="cs-wheel-hex ui-mono">{colorHex}</span>
       </div>
     </div>
   );
