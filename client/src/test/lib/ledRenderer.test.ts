@@ -36,13 +36,13 @@ describe('effectToPreview', () => {
   it.each([
     ['Fire 2012', 'fire'],
     ['Colortwinkles', 'sparkle'],
-    ['Colorwaves', 'wave'],
     ['Rainbow Runner', 'rainbow'],
     ['Theater Chase', 'chase'],
     ['Meteor', 'comet'],
     ['Breathe', 'breathe'],
     ['Solid', 'solid'],
-    ['Solid Pattern Tri', 'gradient'],
+    ['Solid Pattern Tri', 'bands'],
+    ['Colorwaves', 'gradient'],
     ['Something Unknown', 'gradient']
   ])('maps %s → %s', (name, expected) => {
     expect(effectToPreview(name)).toBe(expected);

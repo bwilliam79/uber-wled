@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react';
 import type { DeviceSegment } from '../../api/client';
+import type { LedEffect } from '../../lib/ledRenderer';
+import { rgbToHex } from '../../lib/color';
+import { LedPreview } from '../../components/ui/LedPreview';
 import { sortedByStart, clampBoundary, canSplitSegment, splitMidpoint } from './segmentLogic';
 
 interface SegmentStripProps {
@@ -11,29 +14,20 @@ interface SegmentStripProps {
   onSplit: (segId: number, boundary: number) => void;
   onMerge: (leftId: number, rightId: number) => void;
   onBoundary: (leftId: number, rightId: number, boundary: number) => void;
+  /** Maps a segment to the closest preview animation (via its effect name). */
+  effectFor: (seg: DeviceSegment) => LedEffect;
 }
 
-/** A segment's first color slot, or null when it has none set (→ accent fill). */
-function segColorSlot(seg: DeviceSegment): number[] | null {
-  const c = seg.col?.[0];
-  return c && (c[0] || c[1] || c[2]) ? c : null;
-}
-
-/** The segment's actual color (for the small swatch dot); accent if unset. */
-function segColor(seg: DeviceSegment): string {
-  const c = segColorSlot(seg);
-  return c ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : 'var(--accent)';
-}
-
-/** A translucent tint of the color for the zone fill — keeps a bright/white
- *  segment from rendering as a blinding solid block over the dark housing. */
-function zoneFill(seg: DeviceSegment): string {
-  const c = segColorSlot(seg);
-  return c ? `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.22)` : 'rgba(46, 230, 192, 0.16)';
+/** A segment's non-black color slots as a comma hex string, defaulting to teal. */
+function segColorsStr(seg: DeviceSegment): string {
+  const hexes = (seg.col || [])
+    .filter((c) => c && (c[0] || c[1] || c[2]))
+    .map((c) => rgbToHex([c[0], c[1], c[2]]));
+  return hexes.length > 0 ? hexes.join(',') : '#2ee6c0';
 }
 
 export function SegmentStrip({
-  segments, ledCount, busy, selectedId, onSelect, onSplit, onMerge, onBoundary
+  segments, ledCount, busy, selectedId, onSelect, onSplit, onMerge, onBoundary, effectFor
 }: SegmentStripProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<{ leftId: number; rightId: number; boundary: number } | null>(null);
@@ -48,34 +42,57 @@ export function SegmentStrip({
     return clampBoundary(led, leftStart, rightStop);
   }
 
+  // Zone geometry, applying a live drag to the two affected boundaries.
+  const zones = ordered.map((seg) => {
+    let start = seg.start;
+    let stop = seg.stop;
+    if (drag) {
+      if (seg.id === drag.leftId) stop = drag.boundary;
+      if (seg.id === drag.rightId) start = drag.boundary;
+    }
+    return { seg, start, stop };
+  });
+
+  const zonesJson = JSON.stringify(
+    zones.map(({ seg, start, stop }) => ({
+      start,
+      end: stop,
+      effect: effectFor(seg),
+      colors: segColorsStr(seg),
+      bri: Math.round((seg.bri / 255) * 100),
+      on: seg.on
+    }))
+  );
+
   return (
     <div className="segment-strip">
-      <div className="segment-strip-track" ref={trackRef} data-testid="segment-strip">
-        {ordered.map((seg) => {
-          // While dragging a shared boundary, show the two affected zones
-          // resizing live without committing to the device.
-          let start = seg.start;
-          let stop = seg.stop;
-          if (drag) {
-            if (seg.id === drag.leftId) stop = drag.boundary;
-            if (seg.id === drag.rightId) start = drag.boundary;
-          }
-          return (
-            <button
-              key={seg.id}
-              type="button"
-              className={`segment-zone${selectedId === seg.id ? ' selected' : ''}${seg.on ? '' : ' off'}`}
-              style={{ left: pct(start), width: pct(stop - start), background: zoneFill(seg) }}
-              onClick={() => onSelect(seg.id)}
-              aria-label={`Segment ${seg.id}, LEDs ${start} to ${stop}`}
-              aria-pressed={selectedId === seg.id}
-            >
-              <span className="segment-zone-swatch" style={{ background: segColor(seg) }} aria-hidden="true" />
-              <span className="segment-zone-label">{seg.n || `Seg ${seg.id}`}</span>
-            </button>
-          );
-        })}
+      {/* Zone label chips hanging over the strip (click to select). */}
+      <div className="segment-chips">
+        {zones.map(({ seg, start, stop }) => (
+          <button
+            key={seg.id}
+            type="button"
+            className={`segment-chip${selectedId === seg.id ? ' selected' : ''}${seg.on ? '' : ' off'}`}
+            style={{ left: pct(start), width: pct(stop - start) }}
+            onClick={() => onSelect(seg.id)}
+            aria-label={`Segment ${seg.id}, LEDs ${start} to ${stop}`}
+            aria-pressed={selectedId === seg.id}
+          >
+            <span className="segment-chip-label">{seg.n || `Seg ${seg.id}`}</span>
+          </button>
+        ))}
+      </div>
 
+      {/* Animated segmented strip: each zone runs its own effect. */}
+      <div className="segment-strip-track" ref={trackRef} data-testid="segment-strip">
+        <LedPreview
+          effect="segmented"
+          colors="#2ee6c0"
+          count={ledCount}
+          zones={zonesJson}
+          className="segment-strip-canvas"
+          ariaLabel="Segment layout preview"
+        />
         {/* Draggable handles on contiguous boundaries (left.stop === right.start). */}
         {ordered.map((left, i) => {
           const right = ordered[i + 1];
@@ -119,6 +136,11 @@ export function SegmentStrip({
         })}
       </div>
 
+      <div className="segment-scale ui-mono">
+        <span>0</span>
+        <span>{ledCount} px</span>
+      </div>
+
       <div className="segment-strip-actions">
         {selectedId !== null ? (
           (() => {
@@ -128,9 +150,7 @@ export function SegmentStrip({
             const next = ordered[idx + 1];
             return (
               <>
-                <span className="segment-strip-sel ui-mono">
-                  Seg {sel.id} · {sel.start}–{sel.stop}
-                </span>
+                <span className="segment-strip-sel ui-mono">Seg {sel.id} · {sel.start}–{sel.stop}</span>
                 <button
                   type="button"
                   className="ui-btn ui-btn-secondary ui-btn-sm"
