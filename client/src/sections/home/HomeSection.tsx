@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   listControllers,
   listGroups,
+  listSyncGroups,
   applyControl,
   addGroup,
   updateGroup,
@@ -12,6 +13,7 @@ import {
   type ControlPatch,
   type Group,
   type GroupMember,
+  type SyncGroup,
   type Target
 } from '../../api/client';
 import { useLiveStatus, type LiveStatusEntry } from '../../api/live';
@@ -39,8 +41,26 @@ interface QuickOverride {
 export function buildTiles(
   groups: Group[],
   controllers: Controller[],
-  live: ReadonlyMap<string, LiveStatusEntry> = new Map()
+  live: ReadonlyMap<string, LiveStatusEntry> = new Map(),
+  syncGroups: SyncGroup[] = []
 ): HomeTileData[] {
+  const controllerIds = new Set(controllers.map((c) => c.id));
+  // Active sync groups surface as their own tiles at the top of Home — the
+  // members still get their own tiles too (the user asked to keep both).
+  // Controlling a sync tile targets its member controllers directly; since
+  // the group is broadcasting WLED's native UDP sync, they move together.
+  const syncTiles: HomeTileData[] = syncGroups
+    .filter((sg) => sg.active)
+    .map((sg) => ({
+      id: `sync:${sg.id}`,
+      kind: 'sync' as const,
+      title: sg.name,
+      icon: null,
+      members: sg.memberControllerIds
+        .filter((id) => controllerIds.has(id))
+        .map((id) => ({ controllerId: id, wledSegId: null }))
+    }));
+
   const grouped = new Set(groups.flatMap((g) => g.members.map((m) => m.controllerId)));
   const groupTiles: HomeTileData[] = groups
     .slice()
@@ -66,20 +86,26 @@ export function buildTiles(
       icon: null,
       members: [{ controllerId: c.id, wledSegId: null }]
     }));
-  return [...groupTiles, ...controllerTiles];
+  return [...syncTiles, ...groupTiles, ...controllerTiles];
 }
 
 function targetsFor(tile: HomeTileData): Target[] {
-  return tile.kind === 'group'
-    ? [{ kind: 'group', groupId: tile.id }]
-    : [{ kind: 'controller', controllerId: tile.id }];
+  if (tile.kind === 'group') return [{ kind: 'group', groupId: tile.id }];
+  // A sync tile's id is a synthetic `sync:<id>`, not a controller id — target
+  // its member controllers directly.
+  if (tile.kind === 'sync') {
+    return tile.members.map((m) => ({ kind: 'controller', controllerId: m.controllerId }));
+  }
+  return [{ kind: 'controller', controllerId: tile.id }];
 }
 
 export function HomeSection() {
   const groupsQuery = useQuery({ queryKey: ['groups'], queryFn: listGroups });
   const controllersQuery = useQuery({ queryKey: ['controllers'], queryFn: listControllers });
+  const syncGroupsQuery = useQuery({ queryKey: ['sync-groups'], queryFn: listSyncGroups });
   const groups = groupsQuery.data ?? [];
   const controllers = controllersQuery.data ?? [];
+  const syncGroups = syncGroupsQuery.data ?? [];
 
   const controllerIds = useMemo(() => controllers.map((c) => c.id), [controllers]);
   const live = useLiveStatus(controllerIds);
@@ -116,7 +142,10 @@ export function HomeSection() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Group | null>(null);
 
-  const tiles = useMemo(() => buildTiles(groups, controllers, live), [groups, controllers, live]);
+  const tiles = useMemo(
+    () => buildTiles(groups, controllers, live, syncGroups),
+    [groups, controllers, live, syncGroups]
+  );
   const sortedGroups = useMemo(
     () => groups.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),
     [groups]

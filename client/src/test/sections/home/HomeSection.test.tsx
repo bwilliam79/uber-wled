@@ -43,6 +43,8 @@ const CONTROLLERS = [
   { id: 'c1', name: 'Cabinet Lights', host: '192.168.1.86', source: 'manual', stale: false, pinnedAssetPattern: null },
   { id: 'c2', name: 'Desk Strip', host: '192.168.1.90', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
+// Per-test sync-group fixture; reset to empty in beforeEach.
+let SYNC_GROUPS: unknown[] = [];
 
 // captured 2026-07-04 from GET http://192.168.1.86/json/state (color slot changed for test clarity)
 const LIVE_STATE_C1 = {
@@ -77,6 +79,7 @@ function stubFetch() {
     if (url.startsWith('/api/groups/') && method === 'PATCH') return respond(GROUPS[0]);
     if (url.startsWith('/api/groups/') && method === 'DELETE') return respond({});
     if (url === '/api/controllers') return respond(CONTROLLERS);
+    if (url === '/api/sync-groups') return respond(SYNC_GROUPS);
     if (url === '/api/control/apply') return respond({ results: [] });
     if (url === '/api/controllers/c1/status') return respond(statusFixture('c1', [0, 1]));
     if (url === '/api/controllers/c2/status') return respond(statusFixture('c2', [0]));
@@ -98,6 +101,7 @@ function renderHome() {
 beforeEach(() => {
   liveMap.clear();
   liveMap.set('c1', { reachable: true, state: LIVE_STATE_C1 });
+  SYNC_GROUPS = [];
 });
 
 describe('HomeSection grid', () => {
@@ -187,6 +191,53 @@ describe('HomeSection grid', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderHome();
     await waitFor(() => expect(screen.getByText(/Add a controller in Devices/)).toBeTruthy());
+  });
+});
+
+describe('HomeSection sync tiles', () => {
+  const ACTIVE_SYNC = {
+    id: 's1', name: 'Downstairs Sync', active: true, bitmask: 2,
+    memberControllerIds: ['c1', 'c2']
+  };
+
+  it('prepends an active sync group as a tile ahead of the room/controller tiles, keeping them', async () => {
+    SYNC_GROUPS = [ACTIVE_SYNC];
+    stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Downstairs Sync')).toBeTruthy());
+    const ids = screen.getAllByTestId(/^home-tile-/).map((el) => el.getAttribute('data-testid'));
+    // Sync tile first; member controllers still appear as their own tiles.
+    expect(ids).toEqual(['home-tile-sync:s1', 'home-tile-g1', 'home-tile-g2', 'home-tile-c2']);
+  });
+
+  it('does not show a tile for an inactive sync group', async () => {
+    SYNC_GROUPS = [{ ...ACTIVE_SYNC, active: false }];
+    stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Kitchen')).toBeTruthy());
+    expect(screen.queryByText('Downstairs Sync')).toBeNull();
+  });
+
+  it('powering a sync tile sends a whole-controller patch to each member controller', async () => {
+    SYNC_GROUPS = [ACTIVE_SYNC];
+    // Both members on → the sync tile reads "on", so the toggle sends on:false.
+    liveMap.set('c2', { reachable: true, state: LIVE_STATE_C1 });
+    const fetchMock = stubFetch();
+    renderHome();
+    await waitFor(() => expect(screen.getByText('Downstairs Sync')).toBeTruthy());
+    fireEvent.click(screen.getByRole('switch', { name: 'power for Downstairs Sync' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/control/apply', expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          targets: [
+            { kind: 'controller', controllerId: 'c1' },
+            { kind: 'controller', controllerId: 'c2' }
+          ],
+          patch: { on: false }
+        })
+      }))
+    );
   });
 });
 

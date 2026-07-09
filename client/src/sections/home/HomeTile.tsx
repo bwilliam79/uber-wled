@@ -7,8 +7,8 @@ import type { TileStatusV2, TileTargetMember } from '../../lib/tileStatus';
 import type { LiveOutputSwatch } from '../../lib/liveOutputSwatches';
 
 export interface HomeTileData {
-  id: string; // group id, or controller id for ungrouped tiles
-  kind: 'group' | 'controller';
+  id: string; // group id, controller id for ungrouped tiles, or `sync:<id>`
+  kind: 'group' | 'controller' | 'sync';
   title: string;
   icon: string | null;
   members: TileTargetMember[];
@@ -143,6 +143,7 @@ export function HomeTile({
             <span className="home-tile-icon" aria-hidden="true">{tile.icon}</span>
           )}
           <span className="home-tile-name">{tile.title}</span>
+          {tile.kind === 'sync' && <Chip variant="accent">Sync</Chip>}
           {status.anyOffline && !status.allOffline && <Chip variant="warning">offline</Chip>}
         </div>
         <div className="home-tile-status">
