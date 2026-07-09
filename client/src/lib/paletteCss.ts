@@ -8,6 +8,22 @@ export const EMPTY_BAR = 'linear-gradient(90deg, #3a4358 0%, #232b3d 100%)';
 
 const SLOT_INDEX = { c1: 0, c2: 1, c3: 2 } as const;
 
+/**
+ * A gradient built straight from a theme's color slots, dropping unused
+ * (pure-black) trailing slots. Used for the "Default" palette (index 0),
+ * whose cached preview is a generic FastLED rainbow that looks nothing like
+ * a theme whose colors actually come from its slots (e.g. a red/green/white
+ * Solid Pattern Tri). Returns null when every slot is black/unused so the
+ * caller can fall back to the palette preview.
+ */
+export function slotsGradientCss(slotColorsHex: string[]): string | null {
+  const used = slotColorsHex.filter((c) => c && c.toLowerCase() !== '#000000');
+  if (used.length === 0) return null;
+  if (used.length === 1) return `linear-gradient(90deg, ${used[0]} 0%, ${used[0]} 100%)`;
+  const stops = used.map((c, i) => `${c} ${Math.round((i / (used.length - 1)) * 100)}%`);
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
+
 export function paletteGradientCss(
   preview: PalettePreview | undefined,
   slotColorsHex: string[]
