@@ -63,13 +63,17 @@ describe('LiveOutputStrip', () => {
     expect(wide.style.flexBasis).toBe('0px');
   });
 
-  it('renders the live-pixel gradient instead of the flat color when one is available', () => {
-    const withGradient: LiveOutputSwatch[] = [
-      { key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)', len: 39, gradient: 'linear-gradient(to right, rgb(1, 2, 3), rgb(4, 5, 6))' }
+  it('renders a row of per-pixel dots instead of the flat color when live pixels are available', () => {
+    const withPixels: LiveOutputSwatch[] = [
+      { key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)', len: 39, pixels: ['rgb(1, 2, 3)', 'rgb(4, 5, 6)', 'rgb(7, 8, 9)'] }
     ];
-    render(<LiveOutputStrip swatches={withGradient} />);
+    render(<LiveOutputStrip swatches={withPixels} />);
     const el = screen.getByTestId('live-swatch-c1:0');
-    expect(el.style.background).toContain('linear-gradient');
+    // The swatch becomes a transparent container of dots, not a solid fill.
+    expect(el.className).toContain('ui-live-swatch-pixels');
     expect(el.style.backgroundColor).toBe('');
+    const dots = el.querySelectorAll('.ui-live-dot');
+    expect(dots).toHaveLength(3);
+    expect((dots[0] as HTMLElement).style.backgroundColor).toBe('rgb(1, 2, 3)');
   });
 });
