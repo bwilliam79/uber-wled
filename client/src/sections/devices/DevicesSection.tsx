@@ -1,17 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { Controller } from '../../api/client';
 import { useLiveStatus } from '../../api/live';
-import { useControllers } from '../../api/queries';
+import { useControllers, useGroups } from '../../api/queries';
 import { ControlSurface } from '../../control/ControlSurface';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { DeviceCard } from './DeviceCard';
 import { DeviceDetail } from './DeviceDetail';
+import { RoomGroup } from './RoomGroup';
+import { groupControllersByRoom } from './deviceGrouping';
 import { deviceHash, parseDevicesHash, type DeviceTab } from './route';
 import './devices.css';
 
 export function DevicesSection() {
   const [route, setRoute] = useState(() => parseDevicesHash(window.location.hash));
   const controllers = useControllers();
+  const groups = useGroups();
   const [controlId, setControlId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,6 +30,14 @@ export function DevicesSection() {
     [route.controllerId, list]
   );
   const live = useLiveStatus(liveIds);
+
+  const { rooms, ungrouped } = useMemo(
+    () => groupControllersByRoom(groups.data ?? [], list),
+    [groups.data, list]
+  );
+  const renderCard = (c: Controller) => (
+    <DeviceCard key={c.id} controller={c} live={live.get(c.id)} onControl={setControlId} onOpen={openDetail} />
+  );
 
   function openDetail(controllerId: string, tab: DeviceTab = 'info') {
     window.location.hash = deviceHash(controllerId, tab);
@@ -76,15 +88,25 @@ export function DevicesSection() {
       {controllers.isError && <p role="alert">Could not load controllers.</p>}
       {!controllers.isLoading && !controllers.isError && list.length === 0 && (
         <p className="empty-state">
-          No controllers yet — discovery adds them automatically, or add one by IP.
+          No controllers yet — discovery adds them automatically, or add one in Settings.
         </p>
       )}
-      <div className="devices-grid">
-        {list.map((c) => (
-          <DeviceCard key={c.id} controller={c} live={live.get(c.id)}
-            onControl={setControlId} onOpen={openDetail} />
-        ))}
-      </div>
+      {rooms.length === 0 ? (
+        <div className="devices-grid">{list.map(renderCard)}</div>
+      ) : (
+        <div className="devices-rooms">
+          {rooms.map(({ group, controllers: members }) => (
+            <RoomGroup key={group.id} title={group.name} icon={group.icon} count={members.length}>
+              {members.map(renderCard)}
+            </RoomGroup>
+          ))}
+          {ungrouped.length > 0 && (
+            <RoomGroup title="Ungrouped" count={ungrouped.length}>
+              {ungrouped.map(renderCard)}
+            </RoomGroup>
+          )}
+        </div>
+      )}
       <ControlSurface
         targets={controlId ? [{ kind: 'controller', controllerId: controlId }] : []}
         open={controlId !== null}
