@@ -11,8 +11,9 @@ import { Card } from '../../components/ui/Card';
 import { Select } from '../../components/ui/Select';
 import { ImportButton } from '../../components/ImportButton';
 import { useToast } from '../../components/ui/Toast';
+import { Modal } from '../../components/ui/Modal';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
-import { paletteGradientCss } from '../../lib/paletteCss';
+import { paletteGradientCss, slotsGradientCss } from '../../lib/paletteCss';
 import { rgbToHex } from '../../lib/color';
 import { ThemeForm } from './ThemeForm';
 import './themes.css';
@@ -30,7 +31,12 @@ function ThemeRow({
 }) {
   const effectName = capabilities?.effects[theme.effect] ?? `Effect #${theme.effect}`;
   const slotHexes = theme.colors.map(rgbToHex);
-  const gradient = paletteGradientCss(capabilities?.palettePreviews[theme.palette], slotHexes);
+  // Palette 0 ("Default") caches a rainbow preview, but such themes render
+  // from their color slots — so show a slot-based gradient instead, falling
+  // back to the palette preview only if every slot is black/unused.
+  const gradient =
+    (theme.palette === 0 ? slotsGradientCss(slotHexes) : null) ??
+    paletteGradientCss(capabilities?.palettePreviews[theme.palette], slotHexes);
   return (
     <li className="theme-row">
       <div className="theme-row-info">
@@ -162,15 +168,26 @@ export function ThemesSection() {
             Could not load capabilities for this controller — pick another source.
           </p>
         )}
-        {capabilities.data && (
+        {/* Add flow stays inline; editing happens in a modal (below) so the
+            user isn't sent scrolling to the bottom of the page to change a
+            theme. */}
+        {capabilities.data && <ThemeForm capabilities={capabilities.data} />}
+      </Card>
+
+      <Modal
+        open={editingTheme !== null && capabilities.data !== undefined}
+        onClose={() => setEditingTheme(null)}
+        title={editingTheme ? `Edit “${editingTheme.name}”` : 'Edit theme'}
+      >
+        {editingTheme && capabilities.data && (
           <ThemeForm
-            key={editingTheme?.id ?? 'new'}
+            key={editingTheme.id}
             capabilities={capabilities.data}
             editing={editingTheme}
             onDone={() => setEditingTheme(null)}
           />
         )}
-      </Card>
+      </Modal>
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { paletteGradientCss, RANDOM_BAR, EMPTY_BAR } from '../../lib/paletteCss';
+import { paletteGradientCss, slotsGradientCss, RANDOM_BAR, EMPTY_BAR } from '../../lib/paletteCss';
 
 describe('paletteGradientCss', () => {
   it('renders palx gradient stops as a left-to-right linear-gradient (positions 0-255 → %)', () => {
@@ -28,5 +28,24 @@ describe('paletteGradientCss', () => {
     expect(paletteGradientCss({ type: 'slots', slots: ['c1'] }, ['#abcdef'])).toBe(
       'linear-gradient(90deg, #abcdef 0%, #abcdef 100%)'
     );
+  });
+});
+
+describe('slotsGradientCss', () => {
+  it('builds a gradient from the theme color slots (e.g. Christmas red/green/white)', () => {
+    expect(slotsGradientCss(['#dc0000', '#00a028', '#ffffff'])).toBe(
+      'linear-gradient(90deg, #dc0000 0%, #00a028 50%, #ffffff 100%)'
+    );
+  });
+
+  it('drops unused (pure black) trailing slots so a 1-color theme reads as a flat bar', () => {
+    expect(slotsGradientCss(['#ff8800', '#000000', '#000000'])).toBe(
+      'linear-gradient(90deg, #ff8800 0%, #ff8800 100%)'
+    );
+  });
+
+  it('returns null when every slot is black/unused so the caller can fall back', () => {
+    expect(slotsGradientCss(['#000000', '#000000', '#000000'])).toBeNull();
+    expect(slotsGradientCss([])).toBeNull();
   });
 });
