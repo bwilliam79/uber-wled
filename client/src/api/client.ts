@@ -164,6 +164,8 @@ export const deactivateSyncGroup = (id: string) =>
 export const listThemes = () => getJson<CustomTheme[]>('/api/themes');
 export const addTheme = (input: Omit<CustomTheme, 'id'>) =>
   sendJson<CustomTheme>('/api/themes', 'POST', input);
+export const updateTheme = (id: string, input: Omit<CustomTheme, 'id'>) =>
+  sendJson<CustomTheme>(`/api/themes/${id}`, 'PUT', input);
 export const deleteTheme = (id: string) => fetch(`/api/themes/${id}`, { method: 'DELETE' });
 
 // --- Backup / export / import ---
