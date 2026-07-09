@@ -65,10 +65,9 @@ Home:
    live-output strip with one swatch per segment for an at-a-glance read of
    exactly what's showing. Quick power toggle and
    brightness slider on the tile; tapping a tile opens the Control surface
-   for it. Long-press (touch) or
-   hover-checkbox (desktop) multi-selects tiles into one Control session.
-   Edit mode creates/renames/deletes rooms, assigns controller+segment
-   members inline, and drag-reorders tiles.
+   for it. To control several controllers together, use a **sync group** (it
+   appears as its own Home tile). Edit mode creates/renames/deletes rooms,
+   assigns controller+segment members inline, and drag-reorders tiles.
 2. **Devices** — one card per controller: name, host, firmware chip, live
    WiFi signal, FPS, power, uptime, stale/offline and update-available
    badges, plus a live-output strip (one swatch per segment, driven by the
@@ -85,10 +84,13 @@ Home:
    and playlists: apply, delete with confirm, save-current-state with
    include-brightness and save-bounds options), **Config** (below), and
    **Update** (the per-controller firmware pin/OTA flow).
-3. **Themes** — custom effect/palette/color/brightness combos independent of
-   any device's presets. The form reads the per-controller capability cache:
-   effect search with 2D/audio badges, palette picker with real gradient
-   previews, color slots, brightness. Existing themes can be edited in place
+3. **Themes** — custom effect/palette/color/brightness/**speed/intensity** combos
+   independent of any device's presets. Each theme row shows a **live animated
+   LED preview** of its effect (rendered as a row of glowing dots on a dark
+   housing — static effects stay static). The form reads the per-controller
+   capability cache: effect search with 2D/audio badges, palette picker with
+   real gradient previews, color slots, brightness, and effect speed +
+   intensity sliders. Existing themes can be edited in place
    (Edit on any row prefills the form and saves back over the same theme) or
    removed, the whole set can be exported/imported as JSON, and a
    controller's own WLED device presets can be imported as themes — with
@@ -173,9 +175,12 @@ repo. There is no in-place self-update: updating means `git pull` +
 ## The Control surface
 
 One shared component, two entry points (Home tiles and the Devices
-"Control" button). Desktop: a ~760px right slide-over with a two-column
-Colors tab and multi-column effect/palette/theme lists. Phone: a
-full-height draggable bottom sheet.
+"Control" button). It's a centered modal: a header (status dot, name, mono
+`ip · px`, power, close), a live per-pixel preview strip, then a two-column
+control — conic color wheel + hex + palette swatches on the left, effect chips
++ brightness on the right. An **Advanced controls** disclosure holds the rest
+(white channel, CCT/kelvin, per-effect parameter sliders, the full palette and
+themes/device-preset lists, nightlight, transition) so nothing is lost.
 
 - A selection is a list of targets — whole controllers or
   (controller, segment) pairs; room targets expand to their members. Header
@@ -314,11 +319,12 @@ in **Quick start** at the top.)
 ## Using the app
 
 1. **Add controllers** — Devices fills itself via mDNS discovery (interval
-   in Settings), or add one manually by name + IP/hostname. A stale badge
-   means a discovered controller stopped responding; it's kept, not deleted.
+   in Settings), or add one manually by name + IP/hostname from **Settings →
+   Add a controller**. A stale badge means a discovered controller stopped
+   responding; it's kept, not deleted.
 2. **Make rooms** — on Home, hit Edit, create a room, pick its
    controller + segment members, drag tiles into the order you want.
-3. **Control** — tap a tile (or select several) and the Control surface
+3. **Control** — tap a tile and the Control surface
    opens: power, brightness, colors, effects with their real per-effect
    controls, palettes with previews, themes. Same surface from the Devices
    list.
