@@ -109,15 +109,15 @@
    v2 deep-control modal (matches design/Uber-WLED Prototype.dc.html)
    ============================================================ */
 .cs-modal {
-  width: 640px;
-  max-width: 92vw;
+  width: 900px;
+  max-width: 94vw;
   max-height: 90svh;
   overflow-y: auto;
   background: var(--panel);
   border: 1px solid var(--w8);
   border-radius: 20px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
-  padding: 22px 24px 24px;
+  padding: 26px 30px 30px;
 }
 
 .cs-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -134,17 +134,39 @@
 .cs-preview-well { height: 46px; border-radius: 11px; background: #0c0c0e; overflow: hidden; margin-bottom: 20px; }
 .cs-preview-canvas { display: block; width: 100%; height: 100%; }
 
-.cs-main { display: flex; gap: 26px; }
-.cs-main-left { flex: none; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 190px; }
-.cs-main-left .iro-wheel, .cs-main-left canvas { max-width: 184px; }
-.cs-center-hex { font-size: 10px; color: var(--m2); }
-.cs-palette-row { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-.cs-palette-swatch { width: 30px; height: 22px; border-radius: 6px; border: none; cursor: pointer; box-shadow: inset 0 0 0 1px var(--w10); padding: 0; }
+.cs-main { display: flex; gap: 34px; }
+.cs-main-left { flex: none; display: flex; flex-direction: column; align-items: center; gap: 16px; width: 240px; }
+
+/* Conic hue wheel (matches the prototype). */
+.cs-wheel {
+  position: relative;
+  border-radius: 50%;
+  cursor: crosshair;
+  touch-action: none;
+  background: conic-gradient(from 90deg, #ff2e2e, #ffb020, #e6ff2e, #2eff6b, #2ee6c0, #2e8bff, #7c3aed, #ff2e93, #ff2e2e);
+  box-shadow: inset 0 0 0 1px var(--w12);
+}
+.cs-wheel-center {
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.cs-wheel-swatch { width: 52px; height: 52px; border-radius: 50%; box-shadow: 0 0 22px currentColor; }
+.cs-wheel-hex { font-size: 10px; color: var(--m2); margin-top: 8px; }
+
+.cs-palette-row { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.cs-palette-swatch { width: 34px; height: 24px; border-radius: 6px; border: none; cursor: pointer; box-shadow: inset 0 0 0 1px var(--w10); padding: 0; }
 .cs-palette-swatch.active { box-shadow: 0 0 0 2px var(--accent); }
 
-.cs-main-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.cs-main-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 22px; }
 .cs-section-label { font-size: 10px; letter-spacing: 1.5px; color: var(--m3); text-transform: uppercase; }
-.cs-effect-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 168px; overflow-y: auto; margin-top: 10px; }
+.cs-effect-chips { display: flex; flex-wrap: wrap; gap: 8px; max-height: 220px; overflow-y: auto; margin-top: 10px; padding-right: 4px; }
 .cs-effect-chip {
   padding: 7px 13px;
   border-radius: 9px;
@@ -168,7 +190,8 @@
 .cs-advanced[open] > summary::before { content: '▾ '; }
 .cs-advanced > summary:hover { color: var(--text); }
 
-@media (max-width: 620px) {
+@media (max-width: 760px) {
   .cs-main { flex-direction: column; align-items: stretch; }
   .cs-main-left { width: 100%; }
+  .cs-modal { padding: 20px 18px 22px; }
 }
