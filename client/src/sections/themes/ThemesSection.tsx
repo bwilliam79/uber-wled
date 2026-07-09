@@ -13,7 +13,8 @@ import { ImportButton } from '../../components/ImportButton';
 import { useToast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
-import { paletteGradientCss, slotsGradientCss } from '../../lib/paletteCss';
+import { LedPreview } from '../../components/ui/LedPreview';
+import { effectToPreview, themeColorsString } from '../../lib/effectPreview';
 import { rgbToHex } from '../../lib/color';
 import { ThemeForm } from './ThemeForm';
 import { PresetImportModal } from './PresetImportModal';
@@ -32,12 +33,8 @@ function ThemeRow({
 }) {
   const effectName = capabilities?.effects[theme.effect] ?? `Effect #${theme.effect}`;
   const slotHexes = theme.colors.map(rgbToHex);
-  // Palette 0 ("Default") caches a rainbow preview, but such themes render
-  // from their color slots — so show a slot-based gradient instead, falling
-  // back to the palette preview only if every slot is black/unused.
-  const gradient =
-    (theme.palette === 0 ? slotsGradientCss(slotHexes) : null) ??
-    paletteGradientCss(capabilities?.palettePreviews[theme.palette], slotHexes);
+  const previewEffect = effectToPreview(effectName);
+  const previewColors = themeColorsString(theme.colors);
   return (
     <li className="theme-row">
       <div className="theme-row-info">
@@ -45,11 +42,16 @@ function ThemeRow({
         <span className="theme-row-meta">{effectName}</span>
       </div>
       <div className="theme-row-preview">
-        <span
-          className="palette-bar"
-          data-testid={`theme-preview-${theme.id}`}
-          style={{ backgroundImage: gradient }}
-        />
+        <div className="theme-row-preview-well" data-testid={`theme-preview-${theme.id}`}>
+          <LedPreview
+            effect={previewEffect}
+            colors={previewColors}
+            count={48}
+            speed={1}
+            className="theme-row-preview-canvas"
+            ariaLabel={`${theme.name} preview`}
+          />
+        </div>
         <span className="theme-row-swatches">
           {slotHexes.map((hex, i) => (
             <span key={i} className="theme-row-swatch" style={{ backgroundColor: hex }} />
