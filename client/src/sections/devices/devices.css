@@ -10,51 +10,115 @@
 
 .devices-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: var(--space-md);
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  max-width: 1000px;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 720px) {
   .devices-grid { grid-template-columns: 1fr; }
 }
 
-/* ---------- Device card (list view) ---------- */
+/* ---------- Device card (list view) — matches the prototype device card ---------- */
 
-.device-card { display: flex; flex-direction: column; gap: var(--space-sm); }
+.device-card { display: flex; flex-direction: column; gap: 14px; }
+.device-card-offline { opacity: 0.7; }
 
-.device-card-header { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.device-card-top { display: flex; align-items: flex-start; gap: 10px; }
 
 .device-card-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: 0;
   padding: 0;
-  color: var(--text);
-  font-size: 1.05rem;
-  font-weight: 600;
   cursor: pointer;
-  min-height: 40px;
   text-align: left;
+  color: var(--text);
 }
 
-.device-card-title:hover { color: var(--accent); }
+.device-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
-.device-card-host { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
+.device-card-chevron { width: 14px; height: 14px; color: var(--m2); flex-shrink: 0; }
+.device-card-title:hover .device-card-name { color: var(--accent); }
 
-.device-card-live { display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap; }
+/* Inline power toggle (44x25 per the prototype device card). */
+.device-toggle {
+  position: relative;
+  width: 44px;
+  height: 25px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 13px;
+  background: var(--w12);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
 
-.device-card-metric { color: var(--text-muted); font-size: 0.85rem; }
+.device-toggle.on { background: var(--accent); }
+.device-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.device-card-live-strip { margin: -2px 0 2px; }
+.device-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease;
+}
 
-.device-card-actions { display: flex; gap: var(--space-sm); margin-top: auto; }
+.device-toggle.on .device-toggle-knob { transform: translateX(19px); }
 
-.signal-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 16px; }
-.signal-bar { width: 4px; background: var(--border); border-radius: 1px; }
-.signal-bar:nth-child(1) { height: 4px; }
-.signal-bar:nth-child(2) { height: 8px; }
-.signal-bar:nth-child(3) { height: 12px; }
-.signal-bar:nth-child(4) { height: 16px; }
-.signal-bar-on { background: var(--success); }
+.device-card-meta { font-size: 10px; color: var(--m3); margin: 0; }
+
+/* LED strip on a dark housing in both themes so glow reads like real light. */
+.device-card-strip-well {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 9px;
+  background: var(--led-housing);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.device-card-live-strip { width: 100%; }
+
+.device-card-controls { display: flex; align-items: center; gap: 12px; }
+.device-card-controls .ui-slider { flex: 1; }
+.device-card-bri { font-size: 11px; color: var(--m1); width: 34px; text-align: right; }
+
+.device-card-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.device-card-fps { font-size: 10px; color: var(--m3); }
+
+.device-card-open {
+  margin-left: auto;
+  background: var(--w6);
+  color: var(--text2);
+  border: 1px solid var(--w10);
+  border-radius: var(--radius-control);
+  padding: 6px 14px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.device-card-open:hover { color: var(--text); border-color: var(--w14); }
 
 /* ---------- Device detail ---------- */
 
