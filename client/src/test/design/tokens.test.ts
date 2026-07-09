@@ -9,16 +9,19 @@ import { describe, it, expect } from 'vitest';
 const moduleUrl = import.meta.url;
 const css = readFileSync(new URL('../../design/tokens.css', moduleUrl), 'utf-8');
 
-describe('design tokens (master-plan binding contract)', () => {
+// The palette was rethemed (2026-07-09) from the original blue-slate/grey
+// master-plan values to a neutral-charcoal surface set with an emerald accent
+// (Operator-inspired). These assertions track the current contract.
+describe('design tokens (charcoal + emerald contract)', () => {
   it.each([
-    ['--bg', '#0B0F1A'],
-    ['--surface', '#131A2A'],
-    ['--surface-2', '#1A2338'],
-    ['--border', 'rgba(148,163,184,.10)'],
-    ['--text', '#E6EAF2'],
-    ['--text-muted', '#8A94A8'],
-    ['--accent', '#6B7280'],
-    ['--accent-soft', 'rgba(107,114,128,.16)'],
+    ['--bg', '#0A0A0C'],
+    ['--surface', '#141417'],
+    ['--surface-2', '#1D1D21'],
+    ['--border', 'rgba(255,255,255,.09)'],
+    ['--text', '#F4F4F6'],
+    ['--text-muted', '#9A9AA4'],
+    ['--accent', '#10B981'],
+    ['--accent-soft', 'rgba(16,185,129,.15)'],
     ['--success', '#22C55E'],
     ['--danger', '#EF4444'],
     ['--warning', '#F59E0B'],

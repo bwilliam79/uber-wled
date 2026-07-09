@@ -82,7 +82,7 @@ export function CalendarGrid({
                             key={e.id}
                             className={`event-chip ${e.enabled ? 'enabled' : 'disabled'} ${e.category} ${configured ? 'configured' : 'unconfigured'}`}
                           >
-                            {e.name}
+                            <span className="event-chip-label">{e.name}</span>
                           </span>
                         );
                       })}

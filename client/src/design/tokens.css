@@ -6,17 +6,17 @@
    ============================================================ */
 
 :root {
-  /* Surfaces & text */
-  --bg: #0B0F1A;
-  --surface: #131A2A;
-  --surface-2: #1A2338;
-  --border: rgba(148,163,184,.10);
-  --text: #E6EAF2;
-  --text-muted: #8A94A8;
+  /* Surfaces & text — neutral charcoal (Operator-inspired), no blue tint. */
+  --bg: #0A0A0C;
+  --surface: #141417;
+  --surface-2: #1D1D21;
+  --border: rgba(255,255,255,.09);
+  --text: #F4F4F6;
+  --text-muted: #9A9AA4;
 
-  /* Accent & status */
-  --accent: #6B7280;
-  --accent-soft: rgba(107,114,128,.16);
+  /* Accent & status — emerald primary accent. */
+  --accent: #10B981;
+  --accent-soft: rgba(16,185,129,.15);
   --success: #22C55E;
   --danger: #EF4444;
   --warning: #F59E0B;
