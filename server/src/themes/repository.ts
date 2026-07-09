@@ -37,6 +37,15 @@ export function createThemeRepository(db: Database.Database) {
       ).run(id, input.name, input.effect, input.palette, JSON.stringify(input.colors), input.brightness);
       return { id, ...input };
     },
+    update(id: string, patch: Partial<Omit<CustomTheme, 'id'>>): CustomTheme {
+      const current = db.prepare('SELECT * FROM themes WHERE id = ?').get(id);
+      if (!current) throw new Error(`theme ${id} not found`);
+      const next = { ...fromRow(current), ...patch };
+      db.prepare(
+        'UPDATE themes SET name = ?, effect = ?, palette = ?, colors = ?, brightness = ? WHERE id = ?'
+      ).run(next.name, next.effect, next.palette, JSON.stringify(next.colors), next.brightness, id);
+      return next;
+    },
     remove(id: string): void {
       db.prepare('DELETE FROM themes WHERE id = ?').run(id);
     }
