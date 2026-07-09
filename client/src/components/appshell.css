@@ -37,6 +37,11 @@
 
 .sidebar.collapsed {
   width: 56px;
+  /* The sidebar's 1px right border lives inside its border-box width, so
+     symmetric L/R padding actually leaves 1px more space on the right. With
+     the rail collapsed to a centered icon column that 1px reads as off-center
+     — add it back on the left so the column is optically centered. */
+  padding-left: calc(var(--space-sm) + 1px);
 }
 
 /* Rows stretch to fill the column's cross-axis (no align-items override
