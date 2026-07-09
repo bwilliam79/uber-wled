@@ -19,7 +19,7 @@ import { Chip } from '../components/ui/Chip';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
 import { Select } from '../components/ui/Select';
-import { ColorWheel } from '../components/ui/ColorWheel';
+import { ConicColorWheel } from '../components/ui/ConicColorWheel';
 import { LedPreview } from '../components/ui/LedPreview';
 import { effectToPreview } from '../lib/effectPreview';
 import { paletteGradientCss } from '../lib/paletteCss';
@@ -224,10 +224,7 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
     return Array.isArray(c) ? rgbToHex([c[0] ?? 0, c[1] ?? 0, c[2] ?? 0]) : '#000000';
   };
   const color0 = eff.colors[0];
-  const wheelColor = Array.isArray(color0)
-    ? { r: color0[0] ?? 0, g: color0[1] ?? 0, b: color0[2] ?? 0 }
-    : { r: 255, g: 255, b: 255 };
-  const centerHex = Array.isArray(color0) ? slotHex(0) : '—';
+  const centerHex = Array.isArray(color0) ? slotHex(0) : '#ffffff';
   const briValue = typeof eff.bri === 'number' ? eff.bri : 128;
   const briPct = Math.round((briValue / 255) * 100);
   const slotHexes = [0, 1, 2].map(slotHex);
@@ -296,8 +293,7 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
         {/* Two-column control: color wheel + palettes | effect chips + brightness. */}
         <div className="cs-main">
           <div className="cs-main-left">
-            <ColorWheel color={wheelColor} onChange={(c) => setSlotColor(0, [c.r, c.g, c.b])} />
-            <div className="cs-center-hex ui-mono">{centerHex}</div>
+            <ConicColorWheel colorHex={centerHex} onPick={(rgb) => setSlotColor(0, rgb)} size={210} />
             <div className="cs-palette-row" role="group" aria-label="Palettes">
               {palettes.slice(0, 24).map((p) => (
                 <button
