@@ -56,6 +56,13 @@
   gap: 0;
 }
 
+/* The toggle is normally left-aligned to sit under the expanded nav's text
+   column; collapsed, that leaves it hugging the left edge with dead space to
+   its right. Center it so it lines up with the centered icon column. */
+.sidebar.collapsed .sidebar-collapse-toggle {
+  align-self: center;
+}
+
 .sidebar-brand {
   display: flex;
   align-items: center;
