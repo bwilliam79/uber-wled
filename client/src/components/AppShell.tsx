@@ -10,7 +10,7 @@ import { ScheduleSection } from '../sections/schedule/ScheduleSection';
 import { SyncSection } from '../sections/sync/SyncSection';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 import { SettingsSection } from '../sections/settings/SettingsSection';
-import { useFirmwareUpdateAvailable } from '../api/queries';
+import { useFirmwareUpdateAvailable, useAppUpdateStatus } from '../api/queries';
 import './appshell.css';
 
 const DEFAULT_SECTION: SectionKey = 'home';
@@ -29,6 +29,7 @@ export function AppShell() {
   const [active, setActive] = useState<SectionKey>(sectionFromHash());
   const [collapsed, setCollapsed] = useState(false);
   const firmwareUpdateAvailable = useFirmwareUpdateAvailable();
+  const appUpdate = useAppUpdateStatus();
 
   useEffect(() => {
     const onHash = () => setActive(sectionFromHash());
@@ -51,6 +52,7 @@ export function AppShell() {
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((c) => !c)}
         badges={badges}
+        appUpdate={appUpdate.data}
       />
       <main className="app-main">
         {active === 'home' && <HomeSection />}
