@@ -103,6 +103,35 @@ describe('ThemesSection', () => {
     await waitFor(() => expect(screen.queryByText('Sunset Party')).toBeNull());
   });
 
+  it('edits an existing theme in place: prefills the form and PUTs the changes', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (url === '/api/controllers' && method === 'GET') return Promise.resolve({ ok: true, json: async () => CONTROLLERS });
+      if (url === '/api/themes' && method === 'GET') return Promise.resolve({ ok: true, json: async () => THEMES });
+      if (url === '/api/controllers/c1/capabilities') return Promise.resolve({ ok: true, json: async () => CAPS });
+      if (url === '/api/themes/t1' && method === 'PUT') {
+        return Promise.resolve({ ok: true, json: async () => ({ ...THEMES[0], name: JSON.parse(init!.body as string).name }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderWithQuery(<ThemesSection />);
+
+    fireEvent.click(await screen.findByLabelText('Edit Sunset Party'));
+    // The form prefills with the theme being edited.
+    const nameInput = await screen.findByDisplayValue('Sunset Party');
+    expect(screen.getByText(/Editing/)).toBeTruthy();
+
+    fireEvent.change(nameInput, { target: { value: 'Sunset Party 2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/themes/t1', expect.objectContaining({ method: 'PUT' }))
+    );
+    const putCall = fetchMock.mock.calls.find(([u, i]) => u === '/api/themes/t1' && (i as RequestInit)?.method === 'PUT')!;
+    expect(JSON.parse((putCall[1] as RequestInit).body as string).name).toBe('Sunset Party 2');
+  });
+
   it('exports themes by downloading the themes export endpoint', async () => {
     stubFetch();
     renderWithQuery(<ThemesSection />);

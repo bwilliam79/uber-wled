@@ -16,6 +16,15 @@ export function createThemesRouter(db: Database.Database): Router {
     res.status(201).json(repo.add({ name, effect, palette, colors, brightness }));
   });
 
+  router.put('/:id', (req, res) => {
+    const { name, effect, palette, colors, brightness } = req.body;
+    try {
+      res.json(repo.update(req.params.id, { name, effect, palette, colors, brightness }));
+    } catch {
+      res.status(404).json({ error: 'theme not found' });
+    }
+  });
+
   router.delete('/:id', (req, res) => {
     repo.remove(req.params.id);
     res.status(204).end();

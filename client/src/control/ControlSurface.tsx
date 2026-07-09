@@ -30,7 +30,11 @@ const TABS = [
   { id: 'colors', label: 'Colors' },
   { id: 'effects', label: 'Effects' },
   { id: 'palettes', label: 'Palettes' },
-  { id: 'presets', label: 'Presets' }
+  // Primarily this app's Themes (device presets are a secondary subsection
+  // inside). Labeled "Themes" to match the Themes section; the id stays
+  // 'presets' to avoid churn. The Device Detail page's own "Presets" tab is
+  // genuinely WLED device presets and keeps that name.
+  { id: 'presets', label: 'Themes' }
 ];
 
 const NL_MODES: { value: 0 | 1 | 2 | 3; label: string }[] = [

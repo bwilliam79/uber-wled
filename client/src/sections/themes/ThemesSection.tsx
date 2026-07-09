@@ -20,10 +20,12 @@ import './themes.css';
 function ThemeRow({
   theme,
   capabilities,
+  onEdit,
   onDelete
 }: {
   theme: CustomTheme;
   capabilities: ControllerCapabilities | undefined;
+  onEdit: (theme: CustomTheme) => void;
   onDelete: (id: string) => void;
 }) {
   const effectName = capabilities?.effects[theme.effect] ?? `Effect #${theme.effect}`;
@@ -47,9 +49,14 @@ function ThemeRow({
           ))}
         </span>
       </div>
-      <Button variant="danger" aria-label={`Remove ${theme.name}`} onClick={() => onDelete(theme.id)}>
-        Remove
-      </Button>
+      <div className="theme-row-actions">
+        <Button variant="secondary" size="sm" aria-label={`Edit ${theme.name}`} onClick={() => onEdit(theme)}>
+          Edit
+        </Button>
+        <Button variant="danger" size="sm" aria-label={`Remove ${theme.name}`} onClick={() => onDelete(theme.id)}>
+          Remove
+        </Button>
+      </div>
     </li>
   );
 }
@@ -67,6 +74,7 @@ export function ThemesSection() {
   const capabilities = useCapabilities(effectiveSource);
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
 
   const removeTheme = useMutation({
     mutationFn: deleteTheme,
@@ -117,7 +125,11 @@ export function ThemesSection() {
                 key={t.id}
                 theme={t}
                 capabilities={capabilities.data}
-                onDelete={(id) => removeTheme.mutate(id)}
+                onEdit={setEditingTheme}
+                onDelete={(id) => {
+                  if (editingTheme?.id === id) setEditingTheme(null);
+                  removeTheme.mutate(id);
+                }}
               />
             ))}
           </ul>
@@ -150,7 +162,14 @@ export function ThemesSection() {
             Could not load capabilities for this controller — pick another source.
           </p>
         )}
-        {capabilities.data && <ThemeForm capabilities={capabilities.data} />}
+        {capabilities.data && (
+          <ThemeForm
+            key={editingTheme?.id ?? 'new'}
+            capabilities={capabilities.data}
+            editing={editingTheme}
+            onDone={() => setEditingTheme(null)}
+          />
+        )}
       </Card>
     </section>
   );
