@@ -1,14 +1,14 @@
-import { useMemo } from 'react';
-import type { Controller } from '../../api/client';
+import { useMemo, useRef, useState } from 'react';
+import { applyControl, type Controller, type Target } from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
 import { useLiveWsPixels } from '../../api/liveWsPixels';
 import { useFirmwareStatus } from '../../api/queries';
-import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
+import { Slider } from '../../components/ui/Slider';
 import { LiveOutputStrip } from '../../components/ui/LiveOutputStrip';
 import { swatchesForEntry } from '../../lib/liveOutputSwatches';
-import { humanizeUptime, signalBars } from './format';
+import { throttle } from '../../lib/throttle';
+import { ChevronRightIcon } from '../../components/icons';
 import './devices.css';
 
 export interface DeviceCardProps {
@@ -18,28 +18,14 @@ export interface DeviceCardProps {
   onOpen: (controllerId: string) => void;
 }
 
-function SignalBars({ signal }: { signal: number }) {
-  const bars = signalBars(signal);
-  return (
-    <span className="signal-bars" role="img" aria-label={`WiFi signal ${bars} of 4 bars`}>
-      {[1, 2, 3, 4].map((level) => (
-        <span key={level} className={level <= bars ? 'signal-bar signal-bar-on' : 'signal-bar'} />
-      ))}
-    </span>
-  );
-}
+const BRIGHTNESS_THROTTLE_MS = 120;
 
 export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardProps) {
   const firmware = useFirmwareStatus(controller.id);
   const info = live?.info;
   const state = live?.state;
   const offline = live !== undefined && !live.reachable;
-  // controller.name is frozen at add/discovery time — for mDNS-discovered
-  // controllers that's the raw service name (e.g. "cabinet-lights"), which
-  // can be a lot less readable than the name the user has actually set on
-  // the device itself (e.g. "Cabinet Lights", from /json/info). Prefer the
-  // live name whenever we have one; fall back to the stored name when the
-  // device hasn't reported in yet or is offline.
+  // Prefer the live device-reported name over the frozen add/discovery name.
   const displayName = info?.name || controller.name;
 
   const litHosts = useMemo(
@@ -49,40 +35,110 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
   const livePixelsByHost = useLiveWsPixels(litHosts);
   const livePixels = livePixelsByHost.get(controller.host);
 
+  const target: Target[] = useMemo(
+    () => [{ kind: 'controller', controllerId: controller.id }],
+    [controller.id]
+  );
+
+  // Optimistic power/brightness so the control feels instant; the live SSE
+  // reconciles it on the next status frame.
+  const [override, setOverride] = useState<{ on?: boolean; bri?: number }>({});
+  const on = override.on ?? state?.on ?? false;
+  const bri = override.bri ?? state?.bri ?? 0;
+  const briPct = Math.round((bri / 255) * 100);
+
+  const pushBri = useRef(
+    throttle((v: number) => {
+      applyControl(target, { bri: v }).catch(() => {});
+    }, BRIGHTNESS_THROTTLE_MS)
+  ).current;
+
+  function togglePower() {
+    const next = !on;
+    setOverride((o) => ({ ...o, on: next }));
+    applyControl(target, { on: next }).catch(() => {});
+  }
+
+  function setBrightness(v: number) {
+    setOverride((o) => ({ ...o, bri: v }));
+    pushBri(v);
+  }
+
   return (
-    <Card className="device-card">
-      <div className="device-card-header">
-        <button type="button" className="device-card-title"
-          onClick={() => onOpen(controller.id)} aria-label={`Open ${displayName}`}>
-          {displayName}
+    <div className={`device-card ui-card${offline ? ' device-card-offline' : ''}`}>
+      <div className="device-card-top">
+        <button
+          type="button"
+          className="device-card-title"
+          onClick={() => onOpen(controller.id)}
+          aria-label={`Open ${displayName}`}
+        >
+          <span className="device-card-name">{displayName}</span>
+          <ChevronRightIcon className="device-card-chevron" />
         </button>
-        {info?.ver && <Chip>v{info.ver}</Chip>}
-        {offline && <Chip variant="danger">Offline</Chip>}
+        <button
+          type="button"
+          className={`device-toggle${on ? ' on' : ''}`}
+          role="switch"
+          aria-checked={on}
+          aria-label={`Power for ${displayName}`}
+          disabled={offline}
+          onClick={togglePower}
+        >
+          <span className="device-toggle-knob" />
+        </button>
+      </div>
+
+      <p className="device-card-meta ui-mono">
+        {controller.host}
+        {info?.leds.count !== undefined && <> · {info.leds.count} px</>}
+      </p>
+
+      <button
+        type="button"
+        className="device-card-strip-well"
+        onClick={() => onOpen(controller.id)}
+        aria-label={`Open live view for ${displayName}`}
+      >
+        <LiveOutputStrip
+          swatches={swatchesForEntry(live, livePixels)}
+          size="sm"
+          className="device-card-live-strip"
+        />
+      </button>
+
+      <div className="device-card-controls">
+        <Slider
+          min={0}
+          max={255}
+          value={bri}
+          onChange={setBrightness}
+          label={`Brightness for ${displayName}`}
+          disabled={offline || !on}
+        />
+        <span className="device-card-bri ui-mono">{briPct}%</span>
+      </div>
+
+      <div className="device-card-status">
+        {offline ? (
+          <Chip variant="danger">Offline</Chip>
+        ) : (
+          <Chip variant={on ? 'success' : 'default'}>{on ? 'Online' : 'Off'}</Chip>
+        )}
         {!offline && controller.stale && <Chip variant="warning">Stale</Chip>}
-        {firmware.data?.updateAvailable && <Chip variant="warning">Update available</Chip>}
-      </div>
-      <p className="device-card-host">{controller.host}</p>
-      <div className="device-card-live">
-        {state && <Chip variant={state.on ? 'success' : 'default'}>{state.on ? 'On' : 'Off'}</Chip>}
-        {info?.wifi && <SignalBars signal={info.wifi.signal} />}
-        {info?.leds.fps !== undefined && (
-          <span className="device-card-metric">{info.leds.fps} FPS</span>
+        {firmware.data?.updateAvailable && <Chip variant="warning">Update</Chip>}
+        {info?.leds.fps !== undefined && !offline && (
+          <span className="device-card-fps ui-mono">{info.leds.fps} FPS</span>
         )}
-        {info?.uptime !== undefined && (
-          <span className="device-card-metric">Up {humanizeUptime(info.uptime)}</span>
-        )}
-      </div>
-      <LiveOutputStrip swatches={swatchesForEntry(live, livePixels)} size="sm" className="device-card-live-strip" />
-      <div className="device-card-actions">
-        <Button variant="primary" size="sm" onClick={() => onControl(controller.id)}
-          aria-label={`Control ${displayName}`}>
+        <button
+          type="button"
+          className="device-card-open"
+          onClick={() => onControl(controller.id)}
+          aria-label={`Control ${displayName}`}
+        >
           Control
-        </Button>
-        <Button variant="ghost" size="sm" onClick={() => onOpen(controller.id)}
-          aria-label={`Details for ${displayName}`}>
-          Details
-        </Button>
+        </button>
       </div>
-    </Card>
+    </div>
   );
 }
