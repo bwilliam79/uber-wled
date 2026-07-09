@@ -78,8 +78,12 @@ describe('ThemesSection', () => {
     const row = (await screen.findByText('Sunset Party')).closest('li')!;
     // effect name resolved through the capability cache, not shown as a raw id
     expect(within(row as HTMLElement).getByText('Blink')).toBeTruthy();
-    const bar = screen.getByTestId('theme-preview-t1') as HTMLElement;
-    expect(bar.style.backgroundImage).not.toBe('');
+    // The preview is now a live animated LED canvas mapped from the effect
+    // ("Blink" → the "breathe" preview animation).
+    const preview = screen.getByTestId('theme-preview-t1') as HTMLElement;
+    const canvas = preview.querySelector('canvas');
+    expect(canvas).toBeTruthy();
+    expect(canvas!.getAttribute('data-strip')).toBe('breathe');
     // three color swatches rendered from the stored theme colors
     expect((row as HTMLElement).querySelectorAll('.theme-row-swatch')).toHaveLength(3);
   });
