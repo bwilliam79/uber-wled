@@ -21,7 +21,6 @@
   background: var(--surface, #131a2a); color: var(--text, #e6eaf2);
 }
 
-.layout-snap-toggle { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; color: var(--text-muted, #8a94a8); }
 .layout-draw-hint { color: var(--text-muted, #8a94a8); font-size: 13px; }
 .layout-draw-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 

@@ -12,13 +12,11 @@ export type LayoutMode =
 export interface LayoutState {
   mode: LayoutMode;
   selection: string[];
-  gridSnap: boolean;
 }
 
 export const initialLayoutState: LayoutState = {
   mode: { name: 'idle' },
-  selection: [],
-  gridSnap: false
+  selection: []
 };
 
 export type LayoutEvent =
@@ -28,7 +26,6 @@ export type LayoutEvent =
   | { type: 'FINISH_DRAW' }
   | { type: 'STRIP_SAVED' }
   | { type: 'CANCEL' }
-  | { type: 'TOGGLE_GRID_SNAP' }
   | { type: 'STRIP_POINTER_DOWN'; stripId: string; point: Point; shift: boolean }
   | { type: 'VERTEX_POINTER_DOWN'; stripId: string; vertexIndex: number }
   | { type: 'BG_POINTER_DOWN'; world: Point; screen: Point; shift: boolean }
@@ -73,9 +70,6 @@ export function layoutReducer(state: LayoutState, event: LayoutEvent): LayoutSta
 
     case 'CANCEL':
       return { ...state, mode: { name: 'idle' } };
-
-    case 'TOGGLE_GRID_SNAP':
-      return { ...state, gridSnap: !state.gridSnap };
 
     case 'STRIP_POINTER_DOWN': {
       if (state.mode.name !== 'idle') return state;

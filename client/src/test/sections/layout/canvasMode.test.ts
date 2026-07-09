@@ -184,9 +184,4 @@ describe('pan and marquee on empty canvas', () => {
     expect(s.selection).toEqual(['s1', 's2']);   // no duplicate s1
     expect(s.mode).toEqual({ name: 'idle' });
   });
-
-  it('TOGGLE_GRID_SNAP flips the flag', () => {
-    expect(run([{ type: 'TOGGLE_GRID_SNAP' }]).gridSnap).toBe(true);
-    expect(run([{ type: 'TOGGLE_GRID_SNAP' }, { type: 'TOGGLE_GRID_SNAP' }]).gridSnap).toBe(false);
-  });
 });

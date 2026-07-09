@@ -178,7 +178,7 @@ export function LayoutSection() {
     if (state.mode.name === 'draw' && shift && state.mode.vertices.length > 0) {
       out = snapAngle(state.mode.vertices[state.mode.vertices.length - 1], out);
     }
-    if (state.gridSnap) out = snapToGrid(out, gridStep);
+    out = snapToGrid(out, gridStep);
     return out;
   }
 
@@ -270,12 +270,10 @@ export function LayoutSection() {
         // selection, rather than snapping each point independently — which
         // would distort the strip's shape instead of just repositioning it.
         let correction = { x: 0, y: 0 };
-        if (state.gridSnap) {
-          const anchor = rawPoints.get(state.selection[0])?.[0];
-          if (anchor) {
-            const snapped = snapToGrid(anchor, gridStep);
-            correction = { x: snapped.x - anchor.x, y: snapped.y - anchor.y };
-          }
+        const anchor = rawPoints.get(state.selection[0])?.[0];
+        if (anchor) {
+          const snapped = snapToGrid(anchor, gridStep);
+          correction = { x: snapped.x - anchor.x, y: snapped.y - anchor.y };
         }
         for (const [id, points] of rawPoints) {
           next.set(id, points.map((p) => ({ x: p.x + correction.x, y: p.y + correction.y })));
@@ -285,7 +283,7 @@ export function LayoutSection() {
     }
     if (state.mode.name === 'dragVertex') {
       const { stripId, vertexIndex } = state.mode;
-      const target = state.gridSnap ? snapToGrid(world, gridStep) : world;
+      const target = snapToGrid(world, gridStep);
       setDragOverride((prev) => {
         const next = new Map(prev);
         const base = next.get(stripId) ?? strips.find((s) => s.id === stripId)?.points;
@@ -376,10 +374,6 @@ export function LayoutSection() {
       <div className="layout-toolbar">
         <h2>Layout</h2>
         <div className="layout-toolbar-actions">
-          <label className="layout-snap-toggle">
-            <input type="checkbox" checked={state.gridSnap} onChange={() => dispatch({ type: 'TOGGLE_GRID_SNAP' })} />
-            Snap to grid
-          </label>
           <button type="button" className="layout-btn" onClick={handleFitAll}>Fit all</button>
           <input
             aria-label="new room label"
@@ -424,7 +418,6 @@ export function LayoutSection() {
           live={live}
           selection={state.selection}
           viewport={viewport}
-          gridSnap={state.gridSnap}
           drawVertices={state.mode.name === 'draw' ? state.mode.vertices : null}
           drawCursor={state.mode.name === 'draw' ? drawCursor : null}
           marqueeRect={marqueeRect}
