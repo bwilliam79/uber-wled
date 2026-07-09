@@ -57,21 +57,6 @@
   background: var(--text-muted);
 }
 
-.home-tile-select {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 2;
-  width: 40px;   /* ≥40px touch target */
-  height: 40px;
-  accent-color: var(--accent);
-  opacity: 0;
-  transition: opacity 120ms;
-}
-.home-tile:hover .home-tile-select,
-.home-tile-select:focus-visible,
-.home-select-mode .home-tile-select { opacity: 1; }
-
 .home-tile-body {
   cursor: pointer;
   display: flex;
@@ -105,26 +90,6 @@
 .home-tile-live .ui-live-strip { width: 100%; }
 .home-tile-controls { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
 .home-tile-controls > :last-child { flex: 1; }
-
-.home-action-bar {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(76px + env(safe-area-inset-bottom)); /* clears the phone bottom nav */
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
-  z-index: 40;
-}
-@media (min-width: 900px) {
-  .home-action-bar { bottom: 24px; }
-}
-.home-action-count { color: var(--text); font-weight: 600; }
 
 .home-tile-edit { gap: 8px; }
 .home-tile-name-input { flex: 1; min-width: 0; }

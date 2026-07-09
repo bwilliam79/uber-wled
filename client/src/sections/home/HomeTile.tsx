@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { Toggle } from '../../components/ui/Toggle';
 import { Slider } from '../../components/ui/Slider';
 import { Chip } from '../../components/ui/Chip';
@@ -13,9 +12,6 @@ export interface HomeTileData {
   icon: string | null;
   members: TileTargetMember[];
 }
-
-const LONG_PRESS_MS = 450;
-const MOVE_CANCEL_PX = 10;
 
 const POWER_LABEL: Record<TileStatusV2['power'], string> = {
   on: 'On',
@@ -38,10 +34,6 @@ export function HomeTile({
   tile,
   status,
   liveSwatches,
-  selectMode,
-  selected,
-  onToggleSelect,
-  onLongPress,
   onOpenControl,
   onPower,
   onBrightness
@@ -49,94 +41,33 @@ export function HomeTile({
   tile: HomeTileData;
   status: TileStatusV2;
   liveSwatches: LiveOutputSwatch[];
-  selectMode: boolean;
-  selected: boolean;
-  onToggleSelect: (id: string) => void;
-  onLongPress: (id: string) => void;
   onOpenControl: (tile: HomeTileData) => void;
   onPower: (tile: HomeTileData, on: boolean) => void;
   onBrightness: (tile: HomeTileData, bri: number) => void;
 }) {
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressOrigin = useRef<{ x: number; y: number } | null>(null);
-  const longPressFired = useRef(false);
-
-  function clearPress() {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-    pressOrigin.current = null;
-  }
-
-  function handlePointerDown(e: React.PointerEvent) {
-    longPressFired.current = false;
-    pressOrigin.current = { x: e.clientX, y: e.clientY };
-    pressTimer.current = setTimeout(() => {
-      longPressFired.current = true;
-      onLongPress(tile.id);
-    }, LONG_PRESS_MS);
-  }
-
-  function handlePointerMove(e: React.PointerEvent) {
-    if (!pressOrigin.current) return;
-    if (
-      Math.abs(e.clientX - pressOrigin.current.x) > MOVE_CANCEL_PX ||
-      Math.abs(e.clientY - pressOrigin.current.y) > MOVE_CANCEL_PX
-    ) {
-      clearPress();
-    }
-  }
-
-  function handleBodyActivate() {
-    if (longPressFired.current) {
-      longPressFired.current = false;
-      return;
-    }
-    if (selectMode) onToggleSelect(tile.id);
-    else onOpenControl(tile);
-  }
-
-  const classes = [
-    'home-tile',
-    selected ? 'home-tile-selected' : '',
-    status.allOffline ? 'home-tile-offline' : ''
-  ].filter(Boolean).join(' ');
+  const classes = ['home-tile', status.allOffline ? 'home-tile-offline' : '']
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div
-      className={classes}
-      data-testid={`home-tile-${tile.id}`}
-    >
+    <div className={classes} data-testid={`home-tile-${tile.id}`}>
       <span
         className={`home-tile-status-dot ${statusDotClass(status)}`}
         aria-hidden="true"
         data-testid={`tile-status-dot-${tile.id}`}
-      />
-      <input
-        type="checkbox"
-        className="home-tile-select"
-        checked={selected}
-        aria-label={`select ${tile.title}`}
-        onChange={() => onToggleSelect(tile.id)}
       />
       <div
         role="button"
         tabIndex={0}
         className="home-tile-body"
         aria-label={`open controls for ${tile.title}`}
-        onClick={handleBodyActivate}
+        onClick={() => onOpenControl(tile)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            handleBodyActivate();
+            onOpenControl(tile);
           }
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={clearPress}
-        onPointerLeave={clearPress}
-        onPointerCancel={clearPress}
       >
         <div className="home-tile-top">
           {tile.icon && (
