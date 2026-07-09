@@ -629,6 +629,10 @@
   box-shadow: var(--shadow-lg);
 }
 
+.ui-modal-lg {
+  max-width: 760px;
+}
+
 .ui-modal-head {
   display: flex;
   align-items: center;
