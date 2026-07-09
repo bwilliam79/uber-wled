@@ -37,7 +37,6 @@ function makeProps(overrides: Partial<LayoutCanvasProps> = {}): LayoutCanvasProp
     live,
     selection: [],
     viewport: { scale: 1, tx: 0, ty: 0 },
-    gridSnap: false,
     drawVertices: null,
     drawCursor: null,
     marqueeRect: null,
@@ -115,10 +114,8 @@ describe('LayoutCanvas', () => {
     expect(m.getAttribute('width')).toBe('30');
   });
 
-  it('renders the grid only when gridSnap is on', () => {
-    const { rerender } = render(<LayoutCanvas {...makeProps()} />);
-    expect(screen.queryByTestId('layout-grid')).toBeNull();
-    rerender(<LayoutCanvas {...makeProps({ gridSnap: true })} />);
+  it('always renders the grid (snap is always on)', () => {
+    render(<LayoutCanvas {...makeProps()} />);
     expect(screen.getByTestId('layout-grid')).toBeDefined();
   });
 
@@ -126,7 +123,7 @@ describe('LayoutCanvas', () => {
     // Canvas is stubbed to 800x600 (see beforeAll above); at the default
     // viewport (scale:1) that's also the visible world-space rect, well past
     // where a hardcoded 0..100 box would have covered.
-    render(<LayoutCanvas {...makeProps({ gridSnap: true })} />);
+    render(<LayoutCanvas {...makeProps()} />);
     const grid = screen.getByTestId('layout-grid');
     const lines = Array.from(grid.querySelectorAll('line'));
     expect(lines.length).toBeGreaterThan(0);

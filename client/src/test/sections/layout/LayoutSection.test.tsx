@@ -227,14 +227,15 @@ describe('draw flow', () => {
     // the caller (applyDrawSnap) rather than re-applied inside the reducer.
     // (10,10) -> raw click (34,17): dx=24, dy=7, a 7-24-25 right triangle, so
     // distance is a clean 25; the angle (~16.3 deg) snaps to horizontal (0),
-    // giving an exact (35,10) instead of the raw unsnapped point.
+    // giving (35,10) — then the always-on grid snap rounds 35 to the nearest
+    // 2-unit grid point, 36.
     renderSection();
     await screen.findByTestId('strip-s1');
     fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
     const canvas = screen.getByTestId('layout-canvas');
     fireEvent.click(canvas, { clientX: 10, clientY: 10 });
     fireEvent.click(canvas, { clientX: 34, clientY: 17, shiftKey: true });
-    expect(screen.getByTestId('draw-line').getAttribute('points')).toBe('10,10 35,10');
+    expect(screen.getByTestId('draw-line').getAttribute('points')).toBe('10,10 36,10');
   });
 
   it('snaps to the coarsened grid step at a realistic canvas size, not the raw GRID_SIZE', async () => {
@@ -250,7 +251,6 @@ describe('draw flow', () => {
     mockCanvasRect(1552);
     renderSection();
     await screen.findByTestId('strip-s1');
-    fireEvent.click(screen.getByLabelText('Snap to grid'));
     fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
     const canvas = screen.getByTestId('layout-canvas');
     fireEvent.click(canvas, { clientX: 100, clientY: 105 });
@@ -264,7 +264,6 @@ describe('draw flow', () => {
     // "Snap to grid" entirely. GRID_SIZE is 2 world units.
     renderSection();
     await screen.findByTestId('strip-s1');
-    fireEvent.click(screen.getByLabelText('Snap to grid'));
     fireEvent.click(screen.getByRole('button', { name: 'Draw strip' }));
     const canvas = screen.getByTestId('layout-canvas');
     fireEvent.click(canvas, { clientX: 11, clientY: 13 });
@@ -346,8 +345,11 @@ describe('editing', () => {
     await waitFor(() => {
       const patch = fetchMock.mock.calls.find(([u, i]) => u === '/api/strips/s1' && (i as RequestInit)?.method === 'PATCH');
       expect(patch).toBeDefined();
+      // Snap is always on: the raw drag lands the anchor at (15,30), which
+      // snaps to the nearest 2-unit grid point (16,30); that +1,0 correction
+      // applies to every point without distorting the strip.
       expect(JSON.parse(String((patch![1] as RequestInit).body))).toEqual({
-        points: [{ x: 15, y: 30 }, { x: 45, y: 30 }]
+        points: [{ x: 16, y: 30 }, { x: 46, y: 30 }]
       });
     });
   });
@@ -360,7 +362,6 @@ describe('editing', () => {
     // applies that same correction to every point (GRID_SIZE is 2).
     renderSection();
     await screen.findByTestId('strip-s1');
-    fireEvent.click(screen.getByLabelText('Snap to grid'));
     await selectStripByPointer('s1', 20, 10);
     const canvas = screen.getByTestId('layout-canvas');
     fireEvent.pointerDown(screen.getByTestId('strip-hit-s1'), { clientX: 20, clientY: 10 });
