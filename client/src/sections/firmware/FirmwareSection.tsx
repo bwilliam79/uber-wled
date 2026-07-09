@@ -4,6 +4,7 @@ import type { Controller } from '../../api/client';
 import { pushFirmwareUpdate } from '../../api/client';
 import { useControllers, useFirmwareStatus, useFirmwareStatusMap } from '../../api/queries';
 import { useLiveStatus, type LiveStatusEntry } from '../../api/live';
+import { cachedDeviceName } from '../../lib/deviceNames';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
@@ -27,7 +28,7 @@ function FirmwareRow({
   const [updateError, setUpdateError] = useState<string | null>(null);
   // Prefer the live device-reported name over the frozen (often mDNS)
   // stored name — same reasoning as DeviceCard/DeviceDetail/Home/Control.
-  const displayName = live?.info?.name || controller.name;
+  const displayName = live?.info?.name || cachedDeviceName(controller.id) || controller.name;
 
   // Pinning is required before the server will push an update at all, so an
   // update-available-but-unpinned controller has no direct action here —
@@ -113,7 +114,7 @@ export function FirmwareSection({
     try {
       const results = await Promise.all(
         updatableControllers.map(async (c) => {
-          const name = live.get(c.id)?.info?.name || c.name;
+          const name = live.get(c.id)?.info?.name || cachedDeviceName(c.id) || c.name;
           try {
             const result = await pushFirmwareUpdate(c.id);
             return { name, ok: result.ok, error: result.error };
