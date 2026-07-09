@@ -29,8 +29,9 @@ bar on phones — with eight sections, opening on Home:
 2. **Layout** — an imageless canvas of the house. Draw each strip as a
    multi-point path (click to place vertices, then either click the
    "Finish line" button or press Enter/double-click to finish, Esc/Cancel
-   to abandon, Shift for 45° angles, optional grid snap with visible minor
-   and major grid lines), drag strips or individual vertices to arrange,
+   to abandon, Shift for 45° angles; an always-on grid with visible minor
+   and major lines that every placement, drag, and vertex-move snaps to),
+   drag strips or individual vertices to arrange,
    wheel/pinch zoom and pan, "fit all". Strips render in their real live
    color from the live stream. Click or marquee-select strips to open the
    Control surface for exactly those (controller, segment) targets. Room
@@ -234,7 +235,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 45 files / 348 tests
-cd client && npm test   # 77 files / 595 tests
+cd client && npm test   # 77 files / 594 tests
 ```
 
 ## Running the whole app locally via Docker
