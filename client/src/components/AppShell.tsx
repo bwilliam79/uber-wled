@@ -5,7 +5,6 @@ import { BottomNav } from './BottomNav';
 import { SECTIONS, SECTION_META, type SectionKey } from './nav';
 import { useControllers } from '../api/queries';
 import { useLiveStatus } from '../api/live';
-import { HomeSection } from '../sections/home/HomeSection';
 import { DevicesSection } from '../sections/devices/DevicesSection';
 import { ThemesSection } from '../sections/themes/ThemesSection';
 import { LayoutSection } from '../sections/layout/LayoutSection';
@@ -16,11 +15,17 @@ import { SettingsSection } from '../sections/settings/SettingsSection';
 import { useFirmwareUpdateAvailable, useAppUpdateStatus } from '../api/queries';
 import './appshell.css';
 
-const DEFAULT_SECTION: SectionKey = 'home';
+const DEFAULT_SECTION: SectionKey = 'devices';
 const KEYS = SECTIONS.map((s) => s.key);
 
-/** Pre-1.0 bookmarks keep working: Controllers became Devices; Groups folded into Home. */
-const LEGACY_ALIASES: Record<string, SectionKey> = { controllers: 'devices', groups: 'home' };
+/** Older bookmarks keep working: Controllers became Devices; Home was removed
+ *  and its rooms folded into Devices, so both it and the pre-1.0 Groups view
+ *  now land on Devices. */
+const LEGACY_ALIASES: Record<string, SectionKey> = {
+  controllers: 'devices',
+  groups: 'devices',
+  home: 'devices'
+};
 
 export function sectionFromHash(): SectionKey {
   const raw = window.location.hash.replace(/^#\/?/, '').split('/')[0];
@@ -66,7 +71,6 @@ export function AppShell() {
       <div className="app-content">
         <MasterBar title={meta.title} subtitle={meta.subtitle} controllers={controllers} live={live} />
         <main className="app-main">
-          {active === 'home' && <HomeSection />}
           {active === 'layout' && <LayoutSection />}
           {active === 'devices' && <DevicesSection />}
           {active === 'themes' && <ThemesSection />}

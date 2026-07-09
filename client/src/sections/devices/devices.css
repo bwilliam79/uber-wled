@@ -386,3 +386,17 @@
   border-top: 1px solid var(--w6);
 }
 .rooms-manager-create .input { flex: 1; }
+
+/* Room icon picker (shared component, styled here now that Home is gone). */
+.icon-picker { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.icon-picker-item {
+  cursor: pointer;
+  text-align: center;
+  font-size: 18px;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-control);
+}
+.icon-picker-item:hover,
+.icon-picker-selected { background: var(--accent-soft); }
