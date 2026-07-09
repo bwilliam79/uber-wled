@@ -15,10 +15,19 @@ export interface CalendarEvent {
    *  the same note on schedules/repository.ts's Schedule.groupId. */
   groupId: string | null;
   controllers: ScheduleControllerTarget[] | null;
-  triggerTime: { type: 'fixed'; time: string } | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
+  /** The ON trigger: when the event's action (usually applying a theme) fires. */
+  triggerTime: TriggerTime;
+  /** Optional OFF trigger: when set, the engine also powers the target off at
+   *  this time. Independent of triggerTime — e.g. on at sunset, off at a fixed
+   *  clock time, or off at sunrise. null/absent = no automatic off. */
+  offTrigger?: TriggerTime | null;
   actionType: 'power' | 'brightness' | 'preset' | 'theme' | null;
   actionPayload: unknown;
 }
+
+export type TriggerTime =
+  | { type: 'fixed'; time: string }
+  | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
 
 function fromRow(row: any): CalendarEvent {
   return {
@@ -31,6 +40,7 @@ function fromRow(row: any): CalendarEvent {
     groupId: row.group_id,
     controllers: row.target_controllers ? JSON.parse(row.target_controllers) : null,
     triggerTime: JSON.parse(row.trigger_time),
+    offTrigger: row.off_trigger ? JSON.parse(row.off_trigger) : null,
     actionType: row.action_type,
     actionPayload: row.action_payload ? JSON.parse(row.action_payload) : null
   };
@@ -53,16 +63,17 @@ export function createCalendarRepository(db: Database.Database) {
       const id = randomUUID();
       db.prepare(
         `INSERT INTO calendar_events
-          (id, name, category, date_rule, recurs_yearly, enabled, group_id, target_controllers, trigger_time, action_type, action_payload)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          (id, name, category, date_rule, recurs_yearly, enabled, group_id, target_controllers, trigger_time, off_trigger, action_type, action_payload)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         id, input.name, input.category, JSON.stringify(input.dateRule),
         input.recursYearly ? 1 : 0, input.enabled ? 1 : 0,
         input.groupId, input.controllers ? JSON.stringify(input.controllers) : null,
-        JSON.stringify(input.triggerTime), input.actionType,
+        JSON.stringify(input.triggerTime), input.offTrigger ? JSON.stringify(input.offTrigger) : null,
+        input.actionType,
         input.actionPayload !== null && input.actionPayload !== undefined ? JSON.stringify(input.actionPayload) : null
       );
-      return { id, ...input };
+      return { id, offTrigger: null, ...input };
     },
     update(id: string, patch: Partial<Omit<CalendarEvent, 'id'>>): CalendarEvent {
       const current = db.prepare('SELECT * FROM calendar_events WHERE id = ?').get(id);
@@ -72,12 +83,13 @@ export function createCalendarRepository(db: Database.Database) {
       db.prepare(
         `UPDATE calendar_events SET name = ?, category = ?, date_rule = ?, recurs_yearly = ?,
           enabled = ?, group_id = ?, target_controllers = ?,
-          trigger_time = ?, action_type = ?, action_payload = ?
+          trigger_time = ?, off_trigger = ?, action_type = ?, action_payload = ?
          WHERE id = ?`
       ).run(
         next.name, next.category, JSON.stringify(next.dateRule), next.recursYearly ? 1 : 0,
         next.enabled ? 1 : 0, next.groupId, next.controllers ? JSON.stringify(next.controllers) : null,
-        JSON.stringify(next.triggerTime), next.actionType,
+        JSON.stringify(next.triggerTime), next.offTrigger ? JSON.stringify(next.offTrigger) : null,
+        next.actionType,
         next.actionPayload !== null && next.actionPayload !== undefined ? JSON.stringify(next.actionPayload) : null,
         id
       );

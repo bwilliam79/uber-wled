@@ -96,10 +96,17 @@ export interface CalendarEvent {
    *  same note on Schedule.groupId above. */
   groupId: string | null;
   controllers: ScheduleControllerTarget[] | null;
-  triggerTime: { type: 'fixed'; time: string } | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
+  triggerTime: TriggerTime;
+  /** Optional OFF trigger — when set, the target is powered off at this time,
+   *  independent of triggerTime (e.g. on at sunset, off at a fixed time). */
+  offTrigger?: TriggerTime | null;
   actionType: 'power' | 'brightness' | 'preset' | 'theme' | null;
   actionPayload: unknown;
 }
+
+export type TriggerTime =
+  | { type: 'fixed'; time: string }
+  | { type: 'sunset' | 'sunrise'; offsetMinutes: number };
 
 export class ConflictError extends Error {
   conflict: { id: string; name: string; month: number; day: number };

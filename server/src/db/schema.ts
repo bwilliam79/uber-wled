@@ -77,6 +77,7 @@ export function runMigrations(db: Database.Database): void {
       enabled INTEGER NOT NULL DEFAULT 0,
       group_id TEXT REFERENCES groups(id),
       trigger_time TEXT NOT NULL,
+      off_trigger TEXT,
       action_type TEXT CHECK (action_type IN ('preset','theme','power','brightness')),
       action_payload TEXT
     );
@@ -201,6 +202,11 @@ export function runMigrations(db: Database.Database): void {
   if (!calendarCols.some((c) => c.name === 'target_controller_id')) {
     db.exec('ALTER TABLE calendar_events ADD COLUMN target_controller_id TEXT REFERENCES controllers(id)');
     db.exec('ALTER TABLE calendar_events ADD COLUMN target_wled_seg_id INTEGER');
+  }
+
+  // Idempotent column add for the optional OFF trigger (on at X, off at Y).
+  if (!calendarCols.some((c) => c.name === 'off_trigger')) {
+    db.exec('ALTER TABLE calendar_events ADD COLUMN off_trigger TEXT');
   }
 
   // schedules.group_id was NOT NULL — SQLite can't relax a column

@@ -1,7 +1,8 @@
 import type Database from 'better-sqlite3';
 import SunCalc from 'suncalc';
 import { createScheduleRepository, type Schedule, type ScheduleControllerTarget } from './repository.js';
-import { createCalendarRepository, type CalendarEvent } from '../calendar/repository.js';
+import { createCalendarRepository, type CalendarEvent, type TriggerTime } from '../calendar/repository.js';
+import { createSettingsRepository } from '../settings/repository.js';
 import { resolveDate } from '../calendar/dateRules.js';
 import { expandTargets, GroupNotFoundError, type ResolvedTarget, type Target } from '../control/applyV2.js';
 
@@ -99,20 +100,16 @@ function todayMatches(dateRule: CalendarEvent['dateRule'], now: Date): boolean {
   return !!resolved && resolved.month === now.getMonth() + 1 && resolved.day === now.getDate();
 }
 
-function triggerTimeDue(triggerTime: CalendarEvent['triggerTime'], now: Date): boolean {
+function triggerTimeDue(triggerTime: TriggerTime, now: Date, lat: number, lon: number): boolean {
   if (triggerTime.type === 'fixed') {
     const [hh, mm] = triggerTime.time.split(':').map(Number);
     return now.getHours() === hh && now.getMinutes() === mm;
   }
-  // NOTE: per the scheduling spec, CalendarEvent's sunset/sunrise triggerTime
-  // carries only `offsetMinutes` — no lat/lon of its own (unlike `Schedule`,
-  // which stores its own latitude/longitude per row). This mirrors the same
-  // `?? 0` fallback `nextTriggerDate` already uses for a `Schedule` with no
-  // configured location, and is a known pre-existing limitation of the
-  // approved spec's data model rather than something introduced here — see
-  // the Post-plan notes for the suggested follow-up (a single server-wide
-  // home location setting shared by both `Schedule` and `CalendarEvent`).
-  const times = SunCalc.getTimes(now, 0, 0);
+  // Sunrise/sunset is computed at the server-wide home location (Settings).
+  // Without a configured location this falls back to 0,0 — the sun times
+  // there are meaningless, so a sunrise/sunset calendar trigger only works
+  // once the home lat/lon is set, same as the Schedule sunrise/sunset path.
+  const times = SunCalc.getTimes(now, lat, lon);
   const base = triggerTime.type === 'sunrise' ? times.sunrise : times.sunset;
   const due = new Date(base.getTime() + triggerTime.offsetMinutes * 60_000);
   return sameMinute(due, now);
@@ -147,26 +144,40 @@ export class SchedulerEngine {
     const schedules = createScheduleRepository(this.db);
     const calendar = createCalendarRepository(this.db);
 
+    const settings = createSettingsRepository(this.db).get();
+    const lat = settings.homeLatitude ?? 0;
+    const lon = settings.homeLongitude ?? 0;
+
     const todaysEvents = calendar.list().filter((e) => e.enabled && todayMatches(e.dateRule, now));
 
-    // Fire each matching calendar event's own action, once per minute.
+    // Fire each matching calendar event's own action, once per minute. An
+    // event with an offTrigger also fires a power-off at that time — the two
+    // are deduped under separate keys so on and off never suppress each other.
     for (const event of todaysEvents) {
-      if (!event.actionType) continue;
-      if (!triggerTimeDue(event.triggerTime, now)) continue;
-
-      const key = `calendar:${event.id}`;
-      const alreadyFired = this.lastFired.get(key);
-      if (alreadyFired && sameMinute(alreadyFired, now)) continue;
-
       const members = resolveMembers(this.db, event);
       if (members.length === 0) continue;
 
-      // Claim this key for the current minute BEFORE awaiting applyFn, so a
-      // concurrent/overlapping invocation sees the up-to-date claim
-      // immediately instead of the stale pre-await value and does not fire
-      // the same event twice for the same minute.
-      this.lastFired.set(key, now);
-      await this.applyFn(members, { type: event.actionType, ...(event.actionPayload as object) });
+      // ON: the event's configured action (usually applying a theme).
+      if (event.actionType && triggerTimeDue(event.triggerTime, now, lat, lon)) {
+        const key = `calendar:${event.id}`;
+        const alreadyFired = this.lastFired.get(key);
+        if (!alreadyFired || !sameMinute(alreadyFired, now)) {
+          // Claim the key BEFORE awaiting applyFn so a concurrent/overlapping
+          // invocation sees the claim immediately and doesn't double-fire.
+          this.lastFired.set(key, now);
+          await this.applyFn(members, { type: event.actionType, ...(event.actionPayload as object) });
+        }
+      }
+
+      // OFF: optional power-off at an independent trigger time.
+      if (event.offTrigger && triggerTimeDue(event.offTrigger, now, lat, lon)) {
+        const key = `calendar:${event.id}:off`;
+        const alreadyFired = this.lastFired.get(key);
+        if (!alreadyFired || !sameMinute(alreadyFired, now)) {
+          this.lastFired.set(key, now);
+          await this.applyFn(members, { type: 'power', on: false });
+        }
+      }
     }
 
     // Suppression map: for every enabled today-resolved calendar event's

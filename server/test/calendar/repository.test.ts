@@ -28,6 +28,24 @@ describe('calendar repository', () => {
     expect(repo.isEmpty()).toBe(false);
   });
 
+  it('round-trips an optional off trigger (on at sunset, off at a fixed time)', () => {
+    const created = repo.add({
+      name: 'Christmas', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 12, day: 25 },
+      recursYearly: true, enabled: true, groupId: null, controllers: null,
+      triggerTime: { type: 'sunset', offsetMinutes: -15 },
+      offTrigger: { type: 'fixed', time: '23:30' },
+      actionType: 'theme', actionPayload: { themeId: 'xmas' }
+    });
+    expect(created.offTrigger).toEqual({ type: 'fixed', time: '23:30' });
+    expect(repo.list()[0].offTrigger).toEqual({ type: 'fixed', time: '23:30' });
+
+    // Clearing it back to null persists too.
+    const cleared = repo.update(created.id, { offTrigger: null });
+    expect(cleared.offTrigger).toBeNull();
+    expect(repo.get(created.id)!.offTrigger).toBeNull();
+  });
+
   it('updates a calendar event', () => {
     const created = repo.add({
       name: "Anniversary", category: 'custom',

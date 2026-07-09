@@ -3,8 +3,10 @@ import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createGroupRepository } from '../../src/groups/repository.js';
 import { createScheduleRepository } from '../../src/schedules/repository.js';
+import SunCalc from 'suncalc';
 import { SchedulerEngine, nextTriggerDate } from '../../src/schedules/engine.js';
 import { createCalendarRepository } from '../../src/calendar/repository.js';
+import { createSettingsRepository } from '../../src/settings/repository.js';
 
 describe('nextTriggerDate', () => {
   it('computes the next cron-triggered date', () => {
@@ -257,6 +259,68 @@ describe('SchedulerEngine calendar override-for-day', () => {
     expect(applyFn).toHaveBeenCalledWith(
       [{ controllerId: porchControllerId, wledSegId: 0 }],
       { type: 'theme', themeId: 'patriotic' }
+    );
+  });
+
+  it('applies the theme at the ON time and powers off at an independent OFF time', async () => {
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'Christmas', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 12, day: 25 },
+      recursYearly: true, enabled: true, groupId: sharedGroupId,
+      triggerTime: { type: 'fixed', time: '17:00' },
+      offTrigger: { type: 'fixed', time: '23:00' },
+      actionType: 'theme', actionPayload: { themeId: 'xmas' }
+    });
+    const engine = new SchedulerEngine(db, applyFn);
+
+    // At the ON time: only the theme applies, not a power-off.
+    await engine.checkAndFireDueSchedules(new Date('2026-12-25T17:00:00'));
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: 0 }],
+      { type: 'theme', themeId: 'xmas' }
+    );
+
+    applyFn.mockClear();
+    // At the OFF time: a power-off fires.
+    await engine.checkAndFireDueSchedules(new Date('2026-12-25T23:00:00'));
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: 0 }],
+      { type: 'power', on: false }
+    );
+
+    applyFn.mockClear();
+    // Same OFF minute again: deduped, doesn't re-fire.
+    await engine.checkAndFireDueSchedules(new Date('2026-12-25T23:00:00'));
+    expect(applyFn).not.toHaveBeenCalled();
+  });
+
+  it('computes an OFF sunset trigger at the configured home location', async () => {
+    const homeLat = 39.1;
+    const homeLon = -94.6;
+    createSettingsRepository(db).update({ homeLatitude: homeLat, homeLongitude: homeLon });
+
+    // Compute the actual sunset for a date at that location; drive the event
+    // date off the sunset instant's local calendar day so todayMatches is
+    // timezone-robust, and fire exactly at that minute.
+    const sunset = SunCalc.getTimes(new Date('2026-12-25T20:00:00'), homeLat, homeLon).sunset;
+    const calendar = createCalendarRepository(db);
+    calendar.add({
+      name: 'Christmas', category: 'holiday',
+      dateRule: { kind: 'fixed', month: sunset.getMonth() + 1, day: sunset.getDate() },
+      recursYearly: true, enabled: true, groupId: sharedGroupId,
+      triggerTime: { type: 'fixed', time: '17:00' },
+      offTrigger: { type: 'sunset', offsetMinutes: 0 },
+      actionType: 'theme', actionPayload: { themeId: 'xmas' }
+    });
+
+    const engine = new SchedulerEngine(db, applyFn);
+    await engine.checkAndFireDueSchedules(sunset);
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: porchControllerId, wledSegId: 0 }],
+      { type: 'power', on: false }
     );
   });
 

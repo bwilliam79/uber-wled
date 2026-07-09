@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   addCalendarEvent, updateCalendarEvent, ConflictError,
-  type CalendarEvent, type Controller, type CustomTheme, type Group
+  type CalendarEvent, type Controller, type CustomTheme, type Group, type TriggerTime
 } from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
 import { resolveDate } from '../../lib/dateRules';
@@ -12,6 +12,64 @@ import { TargetPicker, type TargetValue } from './TargetPicker';
 
 function themeIdOf(event: CalendarEvent): string {
   return (event.actionPayload as { themeId?: string } | null)?.themeId ?? '';
+}
+
+/** Picks a trigger time: a fixed clock time, or sunset/sunrise with a ±minute
+ *  offset. With allowNone, adds an "Off (none)" choice mapping to null. */
+function TriggerTimePicker({
+  idPrefix, label, value, onChange, allowNone
+}: {
+  idPrefix: string;
+  label: string;
+  value: TriggerTime | null;
+  onChange: (v: TriggerTime | null) => void;
+  allowNone?: boolean;
+}) {
+  const kind = value === null ? 'none' : value.type;
+
+  function setKind(next: string) {
+    if (next === 'none') onChange(null);
+    else if (next === 'fixed') onChange({ type: 'fixed', time: value?.type === 'fixed' ? value.time : '18:00' });
+    else {
+      const offsetMinutes = value && value.type !== 'fixed' ? value.offsetMinutes : 0;
+      onChange({ type: next as 'sunset' | 'sunrise', offsetMinutes });
+    }
+  }
+
+  const typeOptions = [
+    ...(allowNone ? [{ value: 'none', label: "Don't turn off" }] : []),
+    { value: 'fixed', label: 'Fixed time' },
+    { value: 'sunset', label: 'Sunset' },
+    { value: 'sunrise', label: 'Sunrise' }
+  ];
+
+  return (
+    <div className="trigger-picker">
+      <Field label={label} htmlFor={`${idPrefix}-kind`}>
+        <Select
+          id={`${idPrefix}-kind`} label={label} showLabel={false}
+          value={kind} onChange={setKind} options={typeOptions}
+        />
+      </Field>
+      {value?.type === 'fixed' && (
+        <Field label="Time" htmlFor={`${idPrefix}-time`}>
+          <input
+            id={`${idPrefix}-time`} aria-label={`${label} time`} className="input" type="time"
+            value={value.time} onChange={(e) => onChange({ type: 'fixed', time: e.target.value })}
+          />
+        </Field>
+      )}
+      {value !== null && value.type !== 'fixed' && (
+        <Field label="Offset (min)" htmlFor={`${idPrefix}-offset`}>
+          <input
+            id={`${idPrefix}-offset`} aria-label={`${label} offset minutes`} className="input" type="number"
+            value={value.offsetMinutes}
+            onChange={(e) => onChange({ type: value.type, offsetMinutes: Number(e.target.value) })}
+          />
+        </Field>
+      )}
+    </div>
+  );
 }
 
 export function CalendarEventForm({
@@ -41,9 +99,10 @@ export function CalendarEventForm({
   const [name, setName] = useState(initialEvent?.name ?? '');
   const [month, setMonth] = useState(fixedDate?.month ?? 1);
   const [day, setDay] = useState(fixedDate?.day ?? 1);
-  const [time, setTime] = useState(
-    initialEvent?.triggerTime.type === 'fixed' ? initialEvent.triggerTime.time : '18:00'
+  const [triggerTime, setTriggerTime] = useState<TriggerTime>(
+    initialEvent?.triggerTime ?? { type: 'fixed', time: '18:00' }
   );
+  const [offTrigger, setOffTrigger] = useState<TriggerTime | null>(initialEvent?.offTrigger ?? null);
   const [target, setTarget] = useState<TargetValue>(
     initialEvent
       ? { groupId: initialEvent.groupId, controllers: initialEvent.controllers }
@@ -60,7 +119,8 @@ export function CalendarEventForm({
           name,
           dateRule: fixedDate ? { kind: 'fixed', month, day } : initialEvent.dateRule,
           ...target,
-          triggerTime: { type: 'fixed', time },
+          triggerTime,
+          offTrigger,
           actionType: 'theme',
           actionPayload: { themeId }
         });
@@ -74,7 +134,8 @@ export function CalendarEventForm({
         recursYearly: true,
         enabled: true,
         ...target,
-        triggerTime: { type: 'fixed', time },
+        triggerTime,
+        offTrigger,
         actionType: 'theme',
         actionPayload: { themeId }
       });
@@ -126,12 +187,16 @@ export function CalendarEventForm({
             </p>
           </Field>
         )}
-        <Field label="Time" htmlFor="calendar-event-time">
-          <input
-            id="calendar-event-time" aria-label="event time" className="input" type="time"
-            value={time} onChange={(e) => setTime(e.target.value)}
-          />
-        </Field>
+      </div>
+      <div className="calendar-event-triggers">
+        <TriggerTimePicker
+          idPrefix="calendar-event-on" label="Turn on"
+          value={triggerTime} onChange={(v) => setTriggerTime(v ?? { type: 'fixed', time: '18:00' })}
+        />
+        <TriggerTimePicker
+          idPrefix="calendar-event-off" label="Turn off"
+          value={offTrigger} onChange={setOffTrigger} allowNone
+        />
       </div>
       <TargetPicker
         idPrefix="calendar-event"

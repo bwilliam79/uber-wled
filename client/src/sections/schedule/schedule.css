@@ -3,6 +3,9 @@
 .schedule-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
 .schedule-header h2 { margin: 0; }
 .schedule-header-actions { display: flex; align-items: center; gap: 8px; }
+.calendar-event-triggers { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+.trigger-picker { display: flex; gap: 8px; align-items: flex-end; }
+.trigger-picker .input[type="number"], .trigger-picker .input[type="time"] { max-width: 130px; }
 .schedule-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 900px) { .schedule-body { grid-template-columns: 1fr; } }
 
