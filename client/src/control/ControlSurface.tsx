@@ -12,7 +12,6 @@ import {
   targetControllerIds, targetsEqual, type ControlOverrides
 } from './controlState';
 import { throttleTrailing, type Throttled } from '../lib/throttle';
-import { Drawer } from '../components/ui/Drawer';
 import { Tabs } from '../components/ui/Tabs';
 import { Slider } from '../components/ui/Slider';
 import { Toggle } from '../components/ui/Toggle';
@@ -20,6 +19,11 @@ import { Chip } from '../components/ui/Chip';
 import { Button } from '../components/ui/Button';
 import { IconButton } from '../components/ui/IconButton';
 import { Select } from '../components/ui/Select';
+import { ColorWheel } from '../components/ui/ColorWheel';
+import { LedPreview } from '../components/ui/LedPreview';
+import { effectToPreview } from '../lib/effectPreview';
+import { paletteGradientCss } from '../lib/paletteCss';
+import { rgbToHex } from '../lib/color';
 import { ColorTab } from './ColorTab';
 import { EffectsTab, type EffectOptionKey, type EffectParamKey } from './EffectsTab';
 import { PalettesTab } from './PalettesTab';
@@ -177,7 +181,10 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   };
   const applyTheme = (theme: CustomTheme) => {
     override({ bri: theme.brightness });
-    doApply({ bri: theme.brightness, seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors } });
+    doApply({
+      bri: theme.brightness,
+      seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
+    });
   };
   const applyDevicePreset = (preset: DevicePreset) => {
     // Device preset ids are device-local, so the surface gates preset apply
@@ -203,28 +210,138 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const transitionUnits = typeof eff.transition === 'number' ? eff.transition : 7;
   const failureCount = failures?.length ?? 0;
 
+  // Close on Escape (the Drawer used to provide this).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  // ---- Derived values for the design's compact control view ----
+  const slotHex = (i: number): string => {
+    const c = eff.colors[i];
+    return Array.isArray(c) ? rgbToHex([c[0] ?? 0, c[1] ?? 0, c[2] ?? 0]) : '#000000';
+  };
+  const color0 = eff.colors[0];
+  const wheelColor = Array.isArray(color0)
+    ? { r: color0[0] ?? 0, g: color0[1] ?? 0, b: color0[2] ?? 0 }
+    : { r: 255, g: 255, b: 255 };
+  const centerHex = Array.isArray(color0) ? slotHex(0) : '—';
+  const briValue = typeof eff.bri === 'number' ? eff.bri : 128;
+  const briPct = Math.round((briValue / 255) * 100);
+  const slotHexes = [0, 1, 2].map(slotHex);
+  const previewColors =
+    slotHexes.filter((_, i) => {
+      const c = eff.colors[i];
+      return Array.isArray(c) && (c[0] || c[1] || c[2]);
+    }).join(',') || '#2ee6c0';
+  const previewEffect = effectToPreview(typeof eff.fxName === 'string' ? eff.fxName : undefined);
+
+  const singleController = singleControllerId ? controllers.find((c) => c.id === singleControllerId) : null;
+  const singleInfo = singleControllerId ? live.get(singleControllerId)?.info : undefined;
+  const singleName = singleControllerId
+    ? (singleInfo?.name || singleController?.name || 'Controller')
+    : null;
+  const singleCount = singleInfo?.leds.count;
+
+  if (!open) return null;
+
   return (
-    <Drawer open={open} onClose={onClose} title="Control">
+    <div className="ui-overlay" onClick={onClose}>
+      <div className="cs-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Control">
       <div className="control-surface">
-        <div className="cs-header">
-          <div className="cs-chips">
-            {localTargets.map((target, i) => (
-              <Chip key={`${targetLabel(target)}-${i}`} onRemove={() => removeTarget(i)}>
-                {targetLabel(target)}
-              </Chip>
-            ))}
-            {agg.anyUnreachable && <Chip variant="warning">Some targets offline</Chip>}
-          </div>
-          <div className="cs-row cs-row-power">
-            {/* mixed power renders the switch off (write-only); the chip flags it */}
-            <Toggle label="Power" checked={eff.power === 'on'} onChange={setPower} />
+        {/* Header: single-controller identity (or target chips) + power + close */}
+        <div className="cs-modal-head">
+          {singleName ? (
+            <div className="cs-identity">
+              <span className={`cs-status-dot${eff.power === 'on' ? ' on' : ''}`} aria-hidden="true" />
+              <div className="cs-identity-text">
+                <div className="cs-identity-name">{singleName}</div>
+                <div className="cs-identity-meta ui-mono">
+                  {singleController?.host}{singleCount !== undefined ? ` · ${singleCount} px` : ''}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="cs-chips">
+              {localTargets.map((target, i) => (
+                <Chip key={`${targetLabel(target)}-${i}`} onRemove={() => removeTarget(i)}>
+                  {targetLabel(target)}
+                </Chip>
+              ))}
+              {agg.anyUnreachable && <Chip variant="warning">Some offline</Chip>}
+            </div>
+          )}
+          <div className="cs-modal-head-actions">
+            <span className="cs-power-label">Power</span>
+            <Toggle label="Power" showLabel={false} checked={eff.power === 'on'} onChange={setPower} />
             {eff.power === 'mixed' && <Chip variant="warning">Mixed</Chip>}
-            {/* mixed brightness → deterministic 128 fallback until the user drags */}
-            <Slider label="Brightness" min={1} max={255}
-              value={typeof eff.bri === 'number' ? eff.bri : 128}
-              onChange={setBri} />
-            {eff.bri === 'mixed' && <Chip variant="warning">Mixed</Chip>}
+            <IconButton label="Close" onClick={onClose}>✕</IconButton>
           </div>
+        </div>
+
+        {/* Live preview of the current look. */}
+        <div className="cs-preview-well">
+          <LedPreview
+            effect={previewEffect}
+            colors={previewColors}
+            count={singleCount ?? 48}
+            speed={0.9}
+            className="cs-preview-canvas"
+            ariaLabel="Live preview"
+          />
+        </div>
+
+        {/* Two-column control: color wheel + palettes | effect chips + brightness. */}
+        <div className="cs-main">
+          <div className="cs-main-left">
+            <ColorWheel color={wheelColor} onChange={(c) => setSlotColor(0, [c.r, c.g, c.b])} />
+            <div className="cs-center-hex ui-mono">{centerHex}</div>
+            <div className="cs-palette-row" role="group" aria-label="Palettes">
+              {palettes.slice(0, 24).map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  className={`cs-palette-swatch${eff.palName === p.name ? ' active' : ''}`}
+                  style={{ background: paletteGradientCss(p.preview ?? undefined, slotHexes) }}
+                  aria-label={`palette ${p.name}`}
+                  title={p.name}
+                  onClick={() => selectPalette(p.name)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="cs-main-right">
+            <div className="cs-section-label">Effect</div>
+            <div className="cs-effect-chips" role="group" aria-label="Effects">
+              {effects.map((e) => (
+                <button
+                  key={e.name}
+                  type="button"
+                  className={`cs-effect-chip${eff.fxName === e.name ? ' active' : ''}`}
+                  onClick={() => selectEffect(e.name)}
+                >
+                  {e.name}
+                </button>
+              ))}
+            </div>
+            <div className="cs-bri">
+              <div className="cs-bri-head">
+                <span className="cs-section-label">Brightness</span>
+                <span className="ui-mono">{briPct}%</span>
+              </div>
+              <Slider label="Brightness" min={1} max={255} value={briValue} onChange={setBri} />
+              {eff.bri === 'mixed' && <Chip variant="warning">Mixed</Chip>}
+            </div>
+          </div>
+        </div>
+
+        {/* Advanced: everything the compact view doesn't surface — white channel,
+            CCT/kelvin, per-effect params, full palettes, themes/device presets,
+            nightlight, transition. Kept so nothing is lost. */}
+        <details className="cs-advanced">
+          <summary>Advanced controls</summary>
           <div className="cs-row transition-stepper">
             <span className="control-label">Transition</span>
             <IconButton label="decrease transition"
@@ -232,8 +349,6 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
             <span className="transition-value">{(transitionUnits / 10).toFixed(1)}s</span>
             <IconButton label="increase transition"
               onClick={() => setTransition(Math.min(650, transitionUnits + 1))}>+</IconButton>
-            {eff.fxName === 'mixed' && <Chip variant="warning">Mixed effects</Chip>}
-            {eff.palName === 'mixed' && <Chip variant="warning">Mixed palettes</Chip>}
           </div>
           <div className="cs-row">
             <Button variant="secondary" onClick={() => setNlOpen((v) => !v)}>Nightlight</Button>
@@ -255,27 +370,26 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
               </div>
             )}
           </div>
-        </div>
-
-        <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
-        <div className="cs-tab-body">
-          {activeTab === 'colors' && (
-            <ColorTab agg={eff} fxMeta={selectedFxMeta} anyRgbw={anyRgbw} cctSupported={cctSupported}
-              onColorChange={setSlotColor} onCctChange={setCct} />
-          )}
-          {activeTab === 'effects' && (
-            <EffectsTab effects={effects} agg={eff}
-              onSelectEffect={selectEffect} onParamChange={setParam} onOptionChange={setOption} />
-          )}
-          {activeTab === 'palettes' && (
-            <PalettesTab palettes={palettes} agg={eff} onSelectPalette={selectPalette} />
-          )}
-          {activeTab === 'presets' && (
-            <PresetsTab themes={themes}
-              devicePresets={singleControllerId !== null ? (devicePresets ?? []) : null}
-              onApplyTheme={applyTheme} onApplyDevicePreset={applyDevicePreset} />
-          )}
-        </div>
+          <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} />
+          <div className="cs-tab-body">
+            {activeTab === 'colors' && (
+              <ColorTab agg={eff} fxMeta={selectedFxMeta} anyRgbw={anyRgbw} cctSupported={cctSupported}
+                onColorChange={setSlotColor} onCctChange={setCct} />
+            )}
+            {activeTab === 'effects' && (
+              <EffectsTab effects={effects} agg={eff}
+                onSelectEffect={selectEffect} onParamChange={setParam} onOptionChange={setOption} />
+            )}
+            {activeTab === 'palettes' && (
+              <PalettesTab palettes={palettes} agg={eff} onSelectPalette={selectPalette} />
+            )}
+            {activeTab === 'presets' && (
+              <PresetsTab themes={themes}
+                devicePresets={singleControllerId !== null ? (devicePresets ?? []) : null}
+                onApplyTheme={applyTheme} onApplyDevicePreset={applyDevicePreset} />
+            )}
+          </div>
+        </details>
 
         {failures !== null && (
           <div className="cs-failure-notice" role="alert">
@@ -301,6 +415,7 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
           </div>
         )}
       </div>
-    </Drawer>
+      </div>
+    </div>
   );
 }
