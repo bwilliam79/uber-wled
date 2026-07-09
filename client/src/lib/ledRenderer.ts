@@ -11,11 +11,16 @@
 
 export type LedEffect =
   | 'rainbow' | 'gradient' | 'comet' | 'wave' | 'breathe'
-  | 'chase' | 'sparkle' | 'fire' | 'solid';
+  | 'chase' | 'sparkle' | 'fire' | 'solid' | 'bands';
 
 export const LED_EFFECTS: LedEffect[] = [
-  'rainbow', 'gradient', 'comet', 'wave', 'breathe', 'chase', 'sparkle', 'fire', 'solid'
+  'rainbow', 'gradient', 'comet', 'wave', 'breathe', 'chase', 'sparkle', 'fire', 'solid', 'bands'
 ];
+
+/** Effects with no time term — a preview of these should paint once, not animate. */
+export function isStaticEffect(fx: string): boolean {
+  return fx === 'solid' || fx === 'bands';
+}
 
 type RGB = [number, number, number];
 
@@ -80,6 +85,13 @@ export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[]
     }
     case 'solid':
       return { c: rgbs[0], b: 1 };
+    case 'bands': {
+      // Static discrete color blocks (e.g. Solid Pattern Tri = 3 solid bands),
+      // NOT an interpolated gradient — no time term.
+      const nb = rgbs.length;
+      const idx = Math.min(nb - 1, Math.floor((i / count) * nb));
+      return { c: rgbs[idx], b: 1 };
+    }
     default:
       return { c: rgbs[0] || [255, 255, 255], b: 1 };
   }
@@ -110,6 +122,36 @@ export function paintCanvas(canvas: HTMLCanvasElement, t: number): void {
   ctx.clearRect(0, 0, w, h);
 
   const fx = canvas.dataset.strip || 'solid';
+
+  // Segmented mode: one strip, each zone running its own effect. Zones come in
+  // as JSON on data-zones: [{ start, end, effect, colors, bri (0-100), on }].
+  if (fx === 'segmented') {
+    const total = parseInt(canvas.dataset.count || '1', 10);
+    let zones: Array<{ start: number; end: number; effect: string; colors: string; bri: number; on: boolean }> = [];
+    try {
+      zones = JSON.parse(canvas.dataset.zones || '[]');
+    } catch {
+      zones = [];
+    }
+    const gap = w / total;
+    const r = Math.min(gap * 0.36, h * 0.3);
+    const cy = h / 2;
+    for (let i = 0; i < total; i++) {
+      const z = zones.find((s) => i >= s.start && i < s.end);
+      let c: RGB = [46, 46, 54];
+      let b = 0.1;
+      if (z && z.on) {
+        const rgbs = (z.colors || '#2ee6c0').split(',').map((s) => hexToRgb(s));
+        const o = led(z.effect, i - z.start, Math.max(1, z.end - z.start), t, rgbs, 1);
+        c = o.c;
+        b = o.b * (z.bri / 100);
+      }
+      dot(ctx, gap * (i + 0.5), cy, r, c, Math.max(0, Math.min(1, b)));
+    }
+    ctx.shadowBlur = 0;
+    return;
+  }
+
   const count = parseInt(canvas.dataset.count || '48', 10);
   const sp = parseFloat(canvas.dataset.speed || '1') || 1;
   const rgbs = (canvas.dataset.colors || '#2ee6c0').split(',').map((s) => hexToRgb(s));

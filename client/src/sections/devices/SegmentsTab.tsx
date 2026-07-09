@@ -4,7 +4,9 @@ import {
   createControllerSegment, deleteControllerSegment, updateControllerSegment,
   type DeviceSegment, type SegmentUpdate
 } from '../../api/client';
-import { useDeviceSegments } from '../../api/queries';
+import { useDeviceSegments, useCapabilities } from '../../api/queries';
+import { effectToPreview } from '../../lib/effectPreview';
+import type { LedEffect } from '../../lib/ledRenderer';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Field } from '../../components/ui/Field';
@@ -108,6 +110,8 @@ export function SegmentRow({ segment, ledCount, busy, onApply, onDelete }: Segme
 
 export function SegmentsTab({ controllerId, ledCount, maxSeg }: SegmentsTabProps) {
   const segments = useDeviceSegments(controllerId);
+  const caps = useCapabilities(controllerId).data;
+  const effectFor = (seg: DeviceSegment): LedEffect => effectToPreview(caps?.effects[seg.fx]);
   const queryClient = useQueryClient();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -182,6 +186,7 @@ export function SegmentsTab({ controllerId, ledCount, maxSeg }: SegmentsTabProps
           onSplit={splitSeg}
           onMerge={mergeSeg}
           onBoundary={moveBoundary}
+          effectFor={effectFor}
         />
       )}
       {list.map((segment) => (
