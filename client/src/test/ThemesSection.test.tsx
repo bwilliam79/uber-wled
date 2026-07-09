@@ -44,7 +44,7 @@ const CONTROLLERS = [
   { id: 'c1', name: 'Cabinet Lights', host: '192.168.1.86', source: 'discovered', stale: false, pinnedAssetPattern: null }
 ];
 const THEMES = [
-  { id: 't1', name: 'Sunset Party', effect: 1, palette: 6, colors: [[255, 136, 0], [0, 0, 0], [0, 0, 0]], brightness: 200 }
+  { id: 't1', name: 'Sunset Party', effect: 1, palette: 6, colors: [[255, 136, 0], [0, 0, 0], [0, 0, 0]], brightness: 200, speed: 128, intensity: 128 }
 ];
 
 function stubFetch() {

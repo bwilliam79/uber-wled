@@ -4,7 +4,7 @@ import { PresetsTab } from '../../control/PresetsTab';
 import type { CustomTheme, DevicePreset } from '../../api/client';
 
 const THEMES: CustomTheme[] = [
-  { id: 't1', name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0], [80, 0, 120]], brightness: 180 }
+  { id: 't1', name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0], [80, 0, 120]], brightness: 180, speed: 128, intensity: 128 }
 ];
 const PRESETS: DevicePreset[] = [
   { id: 1, name: 'Night mode', isPlaylist: false, quicklook: { on: true, bri: 40 } },

@@ -40,6 +40,8 @@ export function ThemeForm({
     editing ? colorsFromTheme(editing) : DEFAULT_COLORS
   );
   const [brightness, setBrightness] = useState(editing?.brightness ?? 128);
+  const [speed, setSpeed] = useState(editing?.speed ?? 128);
+  const [intensity, setIntensity] = useState(editing?.intensity ?? 128);
   const queryClient = useQueryClient();
 
   const save = useMutation({
@@ -58,6 +60,8 @@ export function ThemeForm({
         setPaletteId(0);
         setColors(DEFAULT_COLORS);
         setBrightness(128);
+        setSpeed(128);
+        setIntensity(128);
       }
     }
   });
@@ -103,6 +107,14 @@ export function ThemeForm({
       <Field label={`Brightness (${brightness})`}>
         <Slider min={1} max={255} value={brightness} onChange={setBrightness} label="Brightness" />
       </Field>
+      <div className="theme-form-fx-params">
+        <Field label={`Speed (${speed})`}>
+          <Slider min={0} max={255} value={speed} onChange={setSpeed} label="Effect speed" />
+        </Field>
+        <Field label={`Intensity (${intensity})`}>
+          <Slider min={0} max={255} value={intensity} onChange={setIntensity} label="Effect intensity" />
+        </Field>
+      </div>
       {save.isError && (
         <div className="error-banner" role="alert">Failed to save theme.</div>
       )}
@@ -116,6 +128,8 @@ export function ThemeForm({
               effect: effectId,
               palette: paletteId,
               brightness,
+              speed,
+              intensity,
               colors: colors.map((c) => hexToRgb(c) ?? [0, 0, 0])
             })
           }

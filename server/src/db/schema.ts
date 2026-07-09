@@ -49,7 +49,9 @@ export function runMigrations(db: Database.Database): void {
       effect INTEGER NOT NULL,
       palette INTEGER NOT NULL,
       colors TEXT NOT NULL,
-      brightness INTEGER NOT NULL
+      brightness INTEGER NOT NULL,
+      speed INTEGER NOT NULL DEFAULT 128,
+      intensity INTEGER NOT NULL DEFAULT 128
     );
 
     CREATE TABLE IF NOT EXISTS schedules (
@@ -207,6 +209,16 @@ export function runMigrations(db: Database.Database): void {
   // Idempotent column add for the optional OFF trigger (on at X, off at Y).
   if (!calendarCols.some((c) => c.name === 'off_trigger')) {
     db.exec('ALTER TABLE calendar_events ADD COLUMN off_trigger TEXT');
+  }
+
+  // Themes gained WLED effect speed/intensity so previews (and applies) can be
+  // faithful. Default to WLED's mid value (128) for existing rows.
+  const themeCols = db.prepare('PRAGMA table_info(themes)').all() as { name: string }[];
+  if (!themeCols.some((c) => c.name === 'speed')) {
+    db.exec('ALTER TABLE themes ADD COLUMN speed INTEGER NOT NULL DEFAULT 128');
+  }
+  if (!themeCols.some((c) => c.name === 'intensity')) {
+    db.exec('ALTER TABLE themes ADD COLUMN intensity INTEGER NOT NULL DEFAULT 128');
   }
 
   // schedules.group_id was NOT NULL — SQLite can't relax a column

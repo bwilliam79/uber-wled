@@ -8,7 +8,7 @@ const controllers = [
   { id: 'c2', name: 'tv-lights', host: '192.168.1.161', source: 'discovered' as const, stale: false, pinnedAssetPattern: null }
 ];
 const live = new Map();
-const themes = [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128 }];
+const themes = [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128, speed: 128, intensity: 128 }];
 
 describe('WeeklyScheduleForm v2', () => {
   it('builds a draft from the selected days/time/target/theme on Preview', () => {

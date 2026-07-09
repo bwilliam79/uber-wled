@@ -5,6 +5,11 @@ import { createControllerRepository } from '../controllers/repository.js';
 import { getPresets, getPresetsRaw, getEffects, getPalettes } from '../wled/client.js';
 import { classifyPresetImport, type RawPreset } from './presetImport.js';
 
+/** WLED speed/intensity are 0–255; default to the mid value (128) when unset. */
+function clamp255(v: unknown): number {
+  return typeof v === 'number' && v >= 0 && v <= 255 ? Math.round(v) : 128;
+}
+
 export function createThemesRouter(db: Database.Database): Router {
   const router = Router();
   const repo = createThemeRepository(db);
@@ -13,14 +18,20 @@ export function createThemesRouter(db: Database.Database): Router {
   router.get('/', (_req, res) => res.json(repo.list()));
 
   router.post('/', (req, res) => {
-    const { name, effect, palette, colors, brightness } = req.body;
-    res.status(201).json(repo.add({ name, effect, palette, colors, brightness }));
+    const { name, effect, palette, colors, brightness, speed, intensity } = req.body;
+    res.status(201).json(repo.add({
+      name, effect, palette, colors, brightness,
+      speed: clamp255(speed), intensity: clamp255(intensity)
+    }));
   });
 
   router.put('/:id', (req, res) => {
-    const { name, effect, palette, colors, brightness } = req.body;
+    const { name, effect, palette, colors, brightness, speed, intensity } = req.body;
     try {
-      res.json(repo.update(req.params.id, { name, effect, palette, colors, brightness }));
+      res.json(repo.update(req.params.id, {
+        name, effect, palette, colors, brightness,
+        speed: clamp255(speed), intensity: clamp255(intensity)
+      }));
     } catch {
       res.status(404).json({ error: 'theme not found' });
     }
@@ -61,9 +72,9 @@ export function createThemesRouter(db: Database.Database): Router {
     let created = 0;
     let overwritten = 0;
     for (const item of imports) {
-      const { name, effect, palette, colors, brightness, overwriteThemeId } = item ?? {};
+      const { name, effect, palette, colors, brightness, speed, intensity, overwriteThemeId } = item ?? {};
       if (typeof name !== 'string' || typeof effect !== 'number') continue;
-      const theme = { name, effect, palette, colors, brightness };
+      const theme = { name, effect, palette, colors, brightness, speed: clamp255(speed), intensity: clamp255(intensity) };
       if (overwriteThemeId) {
         try {
           repo.update(overwriteThemeId, theme);

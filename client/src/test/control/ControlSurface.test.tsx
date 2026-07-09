@@ -42,7 +42,7 @@ function setupMocks(live: Map<string, LiveStatusEntry>) {
   vi.mocked(useControllers).mockReturnValue({ data: CONTROLLERS } as never);
   vi.mocked(useGroups).mockReturnValue({ data: [] } as never);
   vi.mocked(useThemes).mockReturnValue({
-    data: [{ id: 't1', name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180 }]
+    data: [{ id: 't1', name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180, speed: 128, intensity: 128 }]
   } as never);
   vi.mocked(useCapabilitiesMap).mockReturnValue(
     new Map<string, ControllerCapabilities>([['cA', CAPS_A], ['cB', CAPS_B]])

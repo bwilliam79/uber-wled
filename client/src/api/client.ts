@@ -45,6 +45,10 @@ export interface CustomTheme {
   palette: number;
   colors: number[][];
   brightness: number;
+  /** WLED effect speed (0–255). */
+  speed: number;
+  /** WLED effect intensity (0–255). */
+  intensity: number;
 }
 
 export interface WledPreset {
