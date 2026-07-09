@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { rememberDeviceName } from '../lib/deviceNames';
 
 export interface LiveNightlight { on: boolean; dur: number; mode: 0 | 1 | 2 | 3; tbri: number; rem: number }
 
@@ -54,6 +55,9 @@ export function useLiveStatus(controllerIds: string[]): Map<string, LiveStatusEn
       source.addEventListener('status', (ev) => {
         attempts = 0;
         const data = JSON.parse((ev as MessageEvent).data) as StatusEvent;
+        // Cache the friendly device name so name-showing pages render it
+        // immediately next time instead of flashing the stored mDNS name.
+        rememberDeviceName(data.controllerId, data.info?.name);
         setStatuses((prev) => {
           const next = new Map(prev);
           const existing = next.get(data.controllerId);
