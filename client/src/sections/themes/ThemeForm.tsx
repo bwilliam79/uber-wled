@@ -72,7 +72,6 @@ export function ThemeForm({
 
   return (
     <div className="theme-form">
-      {editing && <h3 className="theme-form-title">Editing “{editing.name}”</h3>}
       <Field label="Name" htmlFor="theme-name">
         <input
           id="theme-name"

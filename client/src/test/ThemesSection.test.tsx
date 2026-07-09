@@ -118,9 +118,9 @@ describe('ThemesSection', () => {
     renderWithQuery(<ThemesSection />);
 
     fireEvent.click(await screen.findByLabelText('Edit Sunset Party'));
-    // The form prefills with the theme being edited.
-    const nameInput = await screen.findByDisplayValue('Sunset Party');
-    expect(screen.getByText(/Editing/)).toBeTruthy();
+    // Editing opens in a modal, prefilled with the theme being edited.
+    const dialog = await screen.findByRole('dialog');
+    const nameInput = await within(dialog).findByDisplayValue('Sunset Party');
 
     fireEvent.change(nameInput, { target: { value: 'Sunset Party 2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
