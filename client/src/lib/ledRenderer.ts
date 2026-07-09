@@ -60,7 +60,12 @@ export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[]
     case 'rainbow':
       return { c: hsl(((((i / count) * 360 + t * sp * 70) % 360) + 360) % 360, 85, 56), b: 1 };
     case 'gradient':
-      return { c: pal(rgbs, i / count + t * sp * 0.12), b: 1 };
+      // Multi-color: flow the palette. Single color: pal() would return a flat
+      // color (looks static), so add a moving brightness shimmer instead.
+      if (rgbs.length === 1) {
+        return { c: rgbs[0], b: 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(i * 0.4 - t * sp * 2.4)) };
+      }
+      return { c: pal(rgbs, i / count + t * sp * 0.3), b: 1 };
     case 'comet': {
       let d = ((t * sp * 0.55 * (count + 22)) % (count + 22)) - i;
       if (d < 0) d += count + 22;
@@ -99,12 +104,21 @@ export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[]
   }
 }
 
-function dot(ctx: CanvasRenderingContext2D, x: number, cy: number, r: number, c: RGB, b: number): void {
-  ctx.beginPath();
-  ctx.arc(x, cy, r, 0, 6.2832);
+// Draw one LED pixel as a rounded-rectangle bar — matches the Devices page's
+// live strip (.ui-live-dot: rounded rect, ~72% height, small gap, soft glow)
+// so previews and the real live strips share one visual language.
+function dot(ctx: CanvasRenderingContext2D, xCenter: number, cy: number, cellW: number, h: number, c: RGB, b: number): void {
+  const w = Math.max(1.5, cellW - 1.5);
+  const barH = h * 0.72;
+  const x = xCenter - w / 2;
+  const y = cy - barH / 2;
+  const rad = Math.min(2.5, w / 2, barH / 2);
   ctx.fillStyle = `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0.05, b)})`;
-  ctx.shadowBlur = r * 2.4 * b;
+  ctx.shadowBlur = 4 * b;
   ctx.shadowColor = `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, barH, rad);
+  else ctx.rect(x, y, w, barH);
   ctx.fill();
 }
 
@@ -136,7 +150,6 @@ export function paintCanvas(canvas: HTMLCanvasElement, t: number): void {
       zones = [];
     }
     const gap = w / total;
-    const r = Math.min(gap * 0.36, h * 0.3);
     const cy = h / 2;
     for (let i = 0; i < total; i++) {
       const z = zones.find((s) => i >= s.start && i < s.end);
@@ -148,7 +161,7 @@ export function paintCanvas(canvas: HTMLCanvasElement, t: number): void {
         c = o.c;
         b = o.b * (z.bri / 100);
       }
-      dot(ctx, gap * (i + 0.5), cy, r, c, Math.max(0, Math.min(1, b)));
+      dot(ctx, gap * (i + 0.5), cy, gap, h, c, Math.max(0, Math.min(1, b)));
     }
     ctx.shadowBlur = 0;
     return;
@@ -159,11 +172,10 @@ export function paintCanvas(canvas: HTMLCanvasElement, t: number): void {
   const ix = parseFloat(canvas.dataset.intensity || '128') || 128;
   const rgbs = (canvas.dataset.colors || '#2ee6c0').split(',').map((s) => hexToRgb(s));
   const gap = w / count;
-  const r = Math.min(gap * 0.34, h * 0.36);
   const cy = h / 2;
   for (let i = 0; i < count; i++) {
     const o = led(fx, i, count, t, rgbs, sp, ix);
-    dot(ctx, gap * (i + 0.5), cy, r, o.c, Math.max(0, Math.min(1, o.b)));
+    dot(ctx, gap * (i + 0.5), cy, gap, h, o.c, Math.max(0, Math.min(1, o.b)));
   }
   ctx.shadowBlur = 0;
 }
