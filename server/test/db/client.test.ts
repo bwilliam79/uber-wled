@@ -10,6 +10,7 @@ describe('createDb', () => {
       .map((r: any) => r.name)
       .sort();
     expect(tables).toEqual([
+      'app_update_cache',
       'calendar_events',
       'controller_capabilities',
       'controller_status',

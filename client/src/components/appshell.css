@@ -87,6 +87,16 @@
   color: var(--text-muted);
 }
 
+a.sidebar-version-update {
+  color: var(--warning);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.sidebar-version-update:hover {
+  text-decoration: underline;
+}
+
 .sidebar.collapsed .sidebar-brand-text,
 .sidebar.collapsed .sidebar-version,
 .sidebar.collapsed .sidebar-link-label {

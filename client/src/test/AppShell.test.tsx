@@ -94,6 +94,49 @@ describe('AppShell v2', () => {
     await waitFor(() => expect(screen.getByText(/No custom themes yet/)).toBeTruthy());
   });
 
+  it('shows an "update available" link to the repo in the sidebar when a newer uber-wled release exists upstream', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url === '/api/app-update') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            currentVersion: '1.7.0',
+            latestVersion: '1.8.0',
+            updateAvailable: true,
+            repoUrl: 'https://github.com/bwilliam79/uber-wled'
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    const link = await within(sidebar).findByRole('link', { name: /update available/i });
+    expect(link.getAttribute('href')).toBe('https://github.com/bwilliam79/uber-wled');
+    expect(link.getAttribute('title')).toMatch(/1\.8\.0/);
+  });
+
+  it('shows the plain version with no update link when the app is up to date', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url === '/api/app-update') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            currentVersion: '1.7.0', latestVersion: '1.7.0', updateAvailable: false,
+            repoUrl: 'https://github.com/bwilliam79/uber-wled'
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderShell();
+    const sidebar = screen.getByRole('navigation', { name: 'Sections' });
+    await waitFor(() => expect(within(sidebar).getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy());
+    expect(within(sidebar).queryByRole('link', { name: /update available/i })).toBeNull();
+  });
+
   it('shows a firmware badge in both navs when any controller has an update available', async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (typeof url === 'string' && url === '/api/controllers') {
