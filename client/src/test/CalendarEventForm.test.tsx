@@ -88,7 +88,7 @@ describe('CalendarEventForm v2', () => {
       expect((screen.getByLabelText('event name') as HTMLInputElement).value).toBe('Family Reunion');
       expect((screen.getByLabelText('month') as HTMLInputElement).value).toBe('7');
       expect((screen.getByLabelText('day') as HTMLInputElement).value).toBe('4');
-      expect((screen.getByLabelText('event time') as HTMLInputElement).value).toBe('17:00');
+      expect((screen.getByLabelText('Turn on time') as HTMLInputElement).value).toBe('17:00');
 
       fireEvent.change(screen.getByLabelText('event name'), { target: { value: 'Family Reunion (updated)' } });
       fireEvent.click(screen.getByText('Save'));
@@ -100,6 +100,30 @@ describe('CalendarEventForm v2', () => {
       const body = JSON.parse((init as RequestInit).body as string);
       expect(body.name).toBe('Family Reunion (updated)');
       expect(body.dateRule).toEqual({ kind: 'fixed', month: 7, day: 4 });
+      // Unchanged ON trigger preserved; no OFF trigger by default.
+      expect(body.triggerTime).toEqual({ type: 'fixed', time: '17:00' });
+      expect(body.offTrigger).toBeNull();
+    });
+
+    it('lets the user set an ON=sunset trigger with an offset and an OFF=fixed time', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => fixedDateEvent });
+      vi.stubGlobal('fetch', fetchMock);
+      render(
+        <CalendarEventForm groups={groups} controllers={controllers} live={live} themes={themes} initialEvent={fixedDateEvent} onSaved={vi.fn()} />
+      );
+
+      // ON -> Sunset, offset -15.
+      fireEvent.change(screen.getByLabelText('Turn on'), { target: { value: 'sunset' } });
+      fireEvent.change(screen.getByLabelText('Turn on offset minutes'), { target: { value: '-15' } });
+      // OFF -> Fixed time 23:30.
+      fireEvent.change(screen.getByLabelText('Turn off'), { target: { value: 'fixed' } });
+      fireEvent.change(screen.getByLabelText('Turn off time'), { target: { value: '23:30' } });
+
+      fireEvent.click(screen.getByText('Save'));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+      expect(body.triggerTime).toEqual({ type: 'sunset', offsetMinutes: -15 });
+      expect(body.offTrigger).toEqual({ type: 'fixed', time: '23:30' });
     });
 
     it('shows a read-only computed date (not editable inputs) for a non-fixed dateRule, and preserves it on save', async () => {

@@ -78,8 +78,12 @@ bar on phones — opening on Home:
    schedules for that day. Every schedule and event shows what it's actually
    assigned to and can be edited in place (name, target, theme, time; the
    date too, unless it's a computed rule like "4th Thursday of November"), not just
-   toggled or removed. Editors preview a theme live against the real lights
-   and revert exactly on approve or discard.
+   toggled or removed. A calendar event's trigger can be a fixed clock time or
+   sunset/sunrise with a ± minute offset, and it can carry an independent OFF
+   trigger (also fixed/sunset/sunrise) that powers the target off — e.g. hang
+   holiday lights on at sunset and off at a set time, or off at sunrise.
+   Sunset/sunrise use the home location from Settings. Editors preview a theme
+   live against the real lights and revert exactly on approve or discard.
 5. **Sync** — user-managed sync groups: pick any set of controllers and
    activate WLED's own native real-time UDP sync across exactly them, no
    hand-editing each device's Sync Interfaces settings page. See "Sync
@@ -260,8 +264,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 47 files / 362 tests
-cd client && npm test   # 77 files / 600 tests
+cd server && npm test   # 47 files / 365 tests
+cd client && npm test   # 77 files / 601 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered
