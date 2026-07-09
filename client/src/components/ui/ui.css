@@ -46,11 +46,12 @@
 
 .ui-btn-primary {
   background: var(--accent);
-  color: #ffffff;
+  color: #06110C;
+  font-weight: 600;
 }
 
 .ui-btn-primary:hover:not(:disabled) {
-  background: #565B66;
+  background: var(--color-accent-hover, #0E9E70);
 }
 
 .ui-btn-secondary {
