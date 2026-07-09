@@ -329,3 +329,24 @@
 .segment-strip-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; min-height: 30px; }
 .segment-strip-sel { font-size: 11px; color: var(--m1); margin-right: 4px; }
 .segment-strip-hint { font-size: 12px; color: var(--m3); }
+
+/* ---------- Room grouping on the Devices page ---------- */
+.devices-rooms { display: flex; flex-direction: column; gap: var(--space-lg); }
+.room-group { display: flex; flex-direction: column; gap: 12px; }
+.room-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+}
+.room-group-chevron { width: 16px; height: 16px; color: var(--m2); flex-shrink: 0; transition: transform 180ms ease; }
+.room-group.open .room-group-chevron { transform: rotate(90deg); }
+.room-group-icon { font-size: 16px; }
+.room-group-name { font-size: 15px; font-weight: 600; }
+.room-group-count { font-size: 11px; color: var(--m2); background: var(--w6); padding: 1px 8px; border-radius: 999px; }
