@@ -67,7 +67,11 @@ bar on phones — opening on Home:
    effect search with 2D/audio badges, palette picker with real gradient
    previews, color slots, brightness. Existing themes can be edited in place
    (Edit on any row prefills the form and saves back over the same theme) or
-   removed, and the whole set can be exported/imported as JSON. Themes are
+   removed, the whole set can be exported/imported as JSON, and a
+   controller's own WLED device presets can be imported as themes — with
+   dedup: presets already imported (same name + settings) are flagged, and a
+   name that clashes with a different existing theme prompts to overwrite or
+   import under a new name. Themes are
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.
@@ -266,8 +270,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 47 files / 365 tests
-cd client && npm test   # 77 files / 602 tests
+cd server && npm test   # 48 files / 373 tests
+cd client && npm test   # 78 files / 604 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered

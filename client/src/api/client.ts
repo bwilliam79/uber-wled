@@ -175,6 +175,30 @@ export const updateTheme = (id: string, input: Omit<CustomTheme, 'id'>) =>
   sendJson<CustomTheme>(`/api/themes/${id}`, 'PUT', input);
 export const deleteTheme = (id: string) => fetch(`/api/themes/${id}`, { method: 'DELETE' });
 
+// --- Import themes from a controller's WLED device presets ---
+export interface PresetImportCandidate {
+  presetId: number;
+  theme: Omit<CustomTheme, 'id'>;
+  /** 'new' = no theme by this name; 'duplicate' = same name + same config
+   *  (already imported); 'conflict' = same name, different config. */
+  status: 'new' | 'duplicate' | 'conflict';
+  existingThemeId?: string;
+}
+export interface PresetImportPreview {
+  candidates: PresetImportCandidate[];
+  skipped: { presetId: number; name: string; reason: string }[];
+}
+/** Resolved import instruction: overwriteThemeId set = overwrite that theme;
+ *  otherwise create a new theme (rename via a changed name). */
+export interface PresetImportInstruction extends Omit<CustomTheme, 'id'> {
+  overwriteThemeId?: string | null;
+}
+
+export const getPresetImportPreview = (controllerId: string) =>
+  getJson<PresetImportPreview>(`/api/themes/preset-import/${controllerId}`);
+export const applyPresetImport = (imports: PresetImportInstruction[]) =>
+  sendJson<{ created: number; overwritten: number }>('/api/themes/preset-import', 'POST', { imports });
+
 // --- Backup / export / import ---
 // Downloads are plain GETs to these URLs (the server sets a Content-Disposition
 // filename); the UI hands them to triggerDownload(). Imports POST the parsed

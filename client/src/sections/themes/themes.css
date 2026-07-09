@@ -7,6 +7,14 @@
 .theme-form-title { margin: 0 0 4px; font-size: 1rem; }
 .theme-form-actions { display: flex; align-items: center; gap: 8px; }
 
+.preset-import { display: flex; flex-direction: column; gap: 12px; }
+.preset-import-group { display: flex; flex-direction: column; gap: 6px; }
+.preset-import-group .cs-subhead { margin: 8px 0 2px; }
+.preset-import-row { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.preset-import-name { font-weight: 600; min-width: 160px; }
+.preset-import-conflict { flex-wrap: wrap; }
+.preset-import-conflict .input { flex: 1; min-width: 160px; }
+
 .theme-list { list-style: none; margin: 0; padding: 0; }
 .theme-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
 .theme-row:last-child { border-bottom: none; }

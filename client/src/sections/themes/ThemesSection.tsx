@@ -16,6 +16,7 @@ import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import { paletteGradientCss, slotsGradientCss } from '../../lib/paletteCss';
 import { rgbToHex } from '../../lib/color';
 import { ThemeForm } from './ThemeForm';
+import { PresetImportModal } from './PresetImportModal';
 import './themes.css';
 
 function ThemeRow({
@@ -81,6 +82,7 @@ export function ThemesSection() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
+  const [presetImportOpen, setPresetImportOpen] = useState(false);
 
   const removeTheme = useMutation({
     mutationFn: deleteTheme,
@@ -118,6 +120,13 @@ export function ThemesSection() {
             Export
           </Button>
           <ImportButton label="Import" size="sm" onFile={handleImport} />
+          <Button
+            variant="secondary" size="sm"
+            disabled={(controllers.data ?? []).length === 0}
+            onClick={() => setPresetImportOpen(true)}
+          >
+            From device presets
+          </Button>
         </div>
       </div>
       <Card className="themes-list-card">
@@ -189,6 +198,25 @@ export function ThemesSection() {
           />
         )}
       </Modal>
+
+      <PresetImportModal
+        open={presetImportOpen}
+        controllers={controllers.data ?? []}
+        live={live}
+        onClose={() => setPresetImportOpen(false)}
+        onImported={async (result) => {
+          await queryClient.invalidateQueries({ queryKey: ['themes'] });
+          const parts = [
+            result.created > 0 ? `${result.created} added` : null,
+            result.overwritten > 0 ? `${result.overwritten} overwritten` : null
+          ].filter(Boolean);
+          toast.show({
+            title: parts.length ? `Imported ${parts.join(', ')}` : 'Nothing to import',
+            variant: 'success'
+          });
+          setPresetImportOpen(false);
+        }}
+      />
     </section>
   );
 }
