@@ -13,18 +13,18 @@
   /* Legacy variable names remapped onto the new tokens so untouched
      sections pick up the new palette without edits. */
   --color-primary: var(--surface-2);
-  --color-on-primary: #06110C;
-  --color-secondary: #26262B;
+  --color-on-primary: var(--on-accent);
+  --color-secondary: var(--w6);
   --color-accent: var(--accent);
-  --color-accent-hover: #0E9E70;
+  --color-accent-hover: var(--accent-hover);
   --color-background: var(--bg);
   --color-surface: var(--surface);
   --color-foreground: var(--text);
   --color-foreground-muted: var(--text-muted);
   --color-muted: var(--surface-2);
-  --color-border: rgba(255, 255, 255, 0.12);
+  --color-border: var(--w12);
   --color-destructive: var(--danger);
-  --color-destructive-hover: #DC2626;
+  --color-destructive-hover: var(--danger-hover);
   --color-ring: var(--accent);
 
   --radius-sm: 6px;
@@ -112,7 +112,7 @@ h2 {
 
 .btn-primary {
   background: var(--color-accent);
-  color: #052e16;
+  color: var(--on-accent);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -193,7 +193,7 @@ h2 {
 .input:focus {
   border-color: var(--color-accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .input::placeholder {
