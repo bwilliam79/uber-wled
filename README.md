@@ -100,7 +100,19 @@ bar on phones — with eight sections, opening on Home:
    User-Agent — the only outbound call this app makes besides checking for
    firmware updates). The browser's own on-device Geolocation API was
    deliberately left out: it requires HTTPS or localhost, which this
-   LAN-only, plain-HTTP app never is, so it would always fail.
+   LAN-only, plain-HTTP app never is, so it would always fail. Settings also
+   has **Backup & restore**: download a full-config snapshot
+   (`uber-wled-backup.json` — controllers, rooms, sync groups, themes,
+   schedules, calendar events, layout, and settings), or restore one after a
+   rebuild. The restore preserves every record's id so cross-references
+   survive (a rebuilt instance re-discovers controllers under new ids, so
+   the backup brings the original controller ids back too, keeping schedules
+   and rooms pointing at the right devices); it replaces everything and is
+   gated behind a confirm. Themes (Themes page) and schedules + calendar
+   events (Schedule page) also have their own lighter **Export**/**Import**
+   buttons for sharing or partial transfer — theme import appends under
+   fresh ids; schedule import appends and skips any row whose referenced
+   room/controller doesn't exist on the target instance.
 
 The sidebar also passively checks GitHub for a newer **uber-wled** release
 (the app itself, not device firmware) — the server reads `server/package.json`
@@ -237,8 +249,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 45 files / 347 tests
-cd client && npm test   # 77 files / 594 tests
+cd server && npm test   # 47 files / 360 tests
+cd client && npm test   # 77 files / 596 tests
 ```
 
 ## Running the whole app locally via Docker

@@ -15,10 +15,12 @@ import { createSettingsRouter } from './settings/routes.js';
 import { createLiveRouter } from './live/routes.js';
 import { createDevicesRouter } from './devices/routes.js';
 import { createAppUpdateRouter } from './appUpdate/routes.js';
+import { createBackupRouter } from './backup/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
-  app.use(express.json());
+  // 25mb (vs the 100kb default) so a full-config restore payload fits.
+  app.use(express.json({ limit: '25mb' }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
@@ -39,6 +41,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/settings', createSettingsRouter(db));
   app.use('/api/live', createLiveRouter(db));
   app.use('/api/app-update', createAppUpdateRouter(db));
+  app.use('/api/backup', createBackupRouter(db));
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {

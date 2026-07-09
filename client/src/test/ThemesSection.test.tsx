@@ -27,9 +27,16 @@ vi.mock('../components/ui/ColorWheel', () => ({
   )
 }));
 
+const { triggerDownloadSpy } = vi.hoisted(() => ({ triggerDownloadSpy: vi.fn() }));
+vi.mock('../lib/fileTransfer', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../lib/fileTransfer')>()),
+  triggerDownload: triggerDownloadSpy
+}));
+
 afterEach(() => {
   vi.unstubAllGlobals();
   liveMap.clear();
+  triggerDownloadSpy.mockClear();
 });
 
 const CONTROLLERS = [
@@ -94,5 +101,41 @@ describe('ThemesSection', () => {
       expect(fetchMock).toHaveBeenCalledWith('/api/themes/t1', expect.objectContaining({ method: 'DELETE' }))
     );
     await waitFor(() => expect(screen.queryByText('Sunset Party')).toBeNull());
+  });
+
+  it('exports themes by downloading the themes export endpoint', async () => {
+    stubFetch();
+    renderWithQuery(<ThemesSection />);
+    // Wait for themes to load so the Export button is enabled (it's disabled at 0 themes).
+    await screen.findByText('Sunset Party');
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    expect(triggerDownloadSpy).toHaveBeenCalledWith('/api/backup/themes');
+  });
+
+  it('imports a themes file, POSTs it, and reports how many were added', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (url === '/api/controllers' && method === 'GET') return Promise.resolve({ ok: true, json: async () => CONTROLLERS });
+      if (url === '/api/themes' && method === 'GET') return Promise.resolve({ ok: true, json: async () => THEMES });
+      if (url === '/api/controllers/c1/capabilities') return Promise.resolve({ ok: true, json: async () => CAPS });
+      if (url === '/api/backup/themes' && method === 'POST') return Promise.resolve({ ok: true, json: async () => ({ imported: 2 }) });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { container } = renderWithQuery(<ThemesSection />);
+    await screen.findByText('Sunset Party');
+
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(
+      [JSON.stringify({ kind: 'uber-wled-themes', version: 1, themes: [{ name: 'A' }, { name: 'B' }] })],
+      'themes.json',
+      { type: 'application/json' }
+    );
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith('/api/backup/themes', expect.objectContaining({ method: 'POST' }))
+    );
+    await waitFor(() => expect(screen.getByText(/Imported 2 themes/)).toBeTruthy());
   });
 });
