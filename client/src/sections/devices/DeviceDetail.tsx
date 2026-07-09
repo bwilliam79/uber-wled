@@ -1,5 +1,6 @@
 import type { Controller } from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
+import { cachedDeviceName } from '../../lib/deviceNames';
 import { Chip } from '../../components/ui/Chip';
 import { IconButton } from '../../components/ui/IconButton';
 import { Tabs } from '../../components/ui/Tabs';
@@ -33,7 +34,7 @@ export function DeviceDetail({ controller, live, tab, onTabChange, onBack }: Dev
   // Same reasoning as DeviceCard: controller.name is frozen at add/discovery
   // time (often a raw mDNS service name); prefer the live device-reported
   // name so this header stays consistent with the card the user just clicked.
-  const displayName = live?.info?.name || controller.name;
+  const displayName = live?.info?.name || cachedDeviceName(controller.id) || controller.name;
 
   return (
     <div className="device-detail">
