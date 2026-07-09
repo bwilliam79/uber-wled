@@ -1,9 +1,8 @@
 import type Database from 'better-sqlite3';
 import { createControllerRepository } from './repository.js';
-import { createGroupRepository } from '../groups/repository.js';
 import { createScheduleRepository, type Schedule } from '../schedules/repository.js';
 import { createSettingsRepository } from '../settings/repository.js';
-import { getConfig, getInfo, patchConfig, getPresets } from '../wled/client.js';
+import { getConfig, patchConfig, getPresets } from '../wled/client.js';
 
 /**
  * Real WLED devices (verified against 16.0.0 firmware) do NOT store
@@ -191,7 +190,6 @@ export async function importSchedules(
   opts: { disableOnDevice: boolean }
 ): Promise<{ imported: Schedule[]; skipped: { raw: unknown; reason: string }[] }> {
   const controllers = createControllerRepository(db);
-  const groups = createGroupRepository(db);
   const schedules = createScheduleRepository(db);
   const settings = createSettingsRepository(db);
 
@@ -204,15 +202,10 @@ export async function importSchedules(
 
   let timers: { ins: unknown[]; cntdwn: unknown };
   let presets: { id: number; name: string }[];
-  let liveName: string;
   try {
-    [timers, presets, liveName] = await Promise.all([
+    [timers, presets] = await Promise.all([
       fetchTimers(controller.host),
-      getPresets(controller.host),
-      // controller.name is frozen at add/mDNS-discovery time — the group
-      // this creates should use the live "Server Description" the user
-      // actually sees everywhere else in the app, not that stale name.
-      getInfo(controller.host).then((info) => info.name)
+      getPresets(controller.host)
     ]);
   } catch (err: any) {
     const unreachable = new Error(`controller ${controller.name} is unreachable: ${err.message}`);
@@ -237,12 +230,6 @@ export async function importSchedules(
     });
   }
 
-  // Distinct from the controller's own live name, on purpose — the Home
-  // page shows Rooms and controllers as separate tiles, and giving this
-  // group the exact same name as its one member reads as an unexplained
-  // duplicate.
-  const groupName = `${liveName} schedule`;
-  let group = groups.list().find((g) => g.name === groupName);
   const homeSettings = settings.get();
 
   for (let index = 0; index < timers.ins.length; index++) {
@@ -253,11 +240,12 @@ export async function importSchedules(
       continue;
     }
 
-    if (!group) {
-      group = groups.add({ name: groupName, members: [{ controllerId, wledSegId: 0 }] });
-    }
-
     const isAstronomical = result.parsed.triggerType !== 'weekly';
+    // Target the controller directly rather than auto-creating a
+    // "<name> schedule" Room group. Direct controller targeting is now
+    // fully supported by the schedule model, and the auto-group used to
+    // show up as a confusing extra tile on Home — a room whose name and
+    // single member looked like a duplicate of the controller itself.
     const schedule = schedules.add({
       name: `${presetName(result.parsed.macro)}${result.parsed.nameNote}`,
       triggerType: result.parsed.triggerType,
@@ -267,8 +255,8 @@ export async function importSchedules(
       offsetMinutes: result.parsed.offsetMinutes,
       latitude: isAstronomical ? homeSettings.homeLatitude : null,
       longitude: isAstronomical ? homeSettings.homeLongitude : null,
-      groupId: group.id,
-      controllers: null,
+      groupId: null,
+      controllers: [{ controllerId, wledSegId: null }],
       actionType: 'preset',
       actionPayload: { presetId: result.parsed.macro },
       enabled: true
