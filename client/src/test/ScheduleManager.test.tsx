@@ -26,7 +26,7 @@ function stub() {
     if (url === '/api/themes') {
       return Promise.resolve({
         ok: true,
-        json: async () => [{ id: 't1', name: 'Spooky', effect: 2, palette: 6, colors: [[255, 140, 0]], brightness: 128 }]
+        json: async () => [{ id: 't1', name: 'Spooky', effect: 2, palette: 6, colors: [[255, 140, 0]], brightness: 128, speed: 128, intensity: 128 }]
       });
     }
     if (url === '/api/controllers/c1/segments') {
@@ -67,7 +67,7 @@ describe('ScheduleManager v2', () => {
     const call = fetchMock.mock.calls.find(([u]) => u === '/api/control/apply')!;
     expect(JSON.parse((call[1] as RequestInit).body as string)).toEqual({
       targets: [{ kind: 'group', groupId: 'g1' }],
-      patch: { on: true, bri: 128, seg: { fxId: 2, palId: 6, col: [[255, 140, 0]] } }
+      patch: { on: true, bri: 128, seg: { fxId: 2, palId: 6, col: [[255, 140, 0]], sx: 128, ix: 128 } }
     });
   });
 
@@ -158,7 +158,7 @@ describe('ScheduleManager v2', () => {
         if (url === '/api/themes') {
           return Promise.resolve({
             ok: true,
-            json: async () => [{ id: 't1', name: 'Spooky', effect: 2, palette: 6, colors: [[255, 140, 0]], brightness: 128 }]
+            json: async () => [{ id: 't1', name: 'Spooky', effect: 2, palette: 6, colors: [[255, 140, 0]], brightness: 128, speed: 128, intensity: 128 }]
           });
         }
         if (url === '/api/schedules/s1' && method === 'PATCH') {
