@@ -1,34 +1,82 @@
 /* ============================================================
-   uber-wled design tokens — sleek smart-home direction.
-   Binding values from docs/superpowers/plans/
-   2026-07-04-control-plane-redesign/00-master.md — do not edit
-   the color/radius values without updating the master contract.
+   uber-wled v2 design tokens — teal dark-first system with light
+   mode, per design/README.md + the prototype's :root/[data-theme]
+   blocks (Uber-WLED Prototype.dc.html). The new vocabulary
+   (--bg, --rail, --panel, --text, --m1..3, --accent, --w3..28) is
+   the source of truth; legacy names (--surface, --text-muted,
+   --border, …) are
+   aliased to it so untouched sections theme correctly until they
+   migrate to the new recipes. Do not hardcode themeable colors in
+   section CSS — reference these variables.
    ============================================================ */
 
 :root {
-  /* Surfaces & text — neutral charcoal (Operator-inspired), no blue tint. */
-  --bg: #0A0A0C;
-  --surface: #141417;
-  --surface-2: #1D1D21;
-  --border: rgba(255,255,255,.09);
-  --text: #F4F4F6;
-  --text-muted: #9A9AA4;
+  color-scheme: dark;
 
-  /* Accent & status — emerald primary accent. */
-  --accent: #10B981;
-  --accent-soft: rgba(16,185,129,.15);
-  --success: #22C55E;
-  --danger: #EF4444;
-  --warning: #F59E0B;
+  /* ---- Core surfaces & text (dark) ---- */
+  --bg: #0e0e11;
+  --rail: #08080a;
+  --panel: #18181c;
+  --toast: #1c2b26;
+  --text: #f4f4f6;
+  --text2: #c9c9d0;
+  --m1: #9797a1;
+  --m2: #7a7a84;
+  --m3: #63636c;
+  --accent: #2ee6c0;
+  --accent-hover: #26c9a8;
 
-  /* Shape */
-  --radius-card: 16px;
-  --radius-control: 10px;
+  /* White-alpha scale — borders, tracks, chip fills, subtle surfaces. */
+  --w3: rgba(255,255,255,.03);
+  --w4: rgba(255,255,255,.04);
+  --w5: rgba(255,255,255,.05);
+  --w6: rgba(255,255,255,.06);
+  --w7: rgba(255,255,255,.07);
+  --w8: rgba(255,255,255,.08);
+  --w9: rgba(255,255,255,.09);
+  --w10: rgba(255,255,255,.1);
+  --w12: rgba(255,255,255,.12);
+  --w14: rgba(255,255,255,.14);
+  --w28: rgba(255,255,255,.28);
 
-  /* Type — self-hosted via @fontsource (imported in main.tsx) */
-  --font-sans: 'Plus Jakarta Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* ---- LED / effect output — literal hex, NOT themed (real light) ---- */
+  --led-teal: #2ee6c0;
+  --led-blue: #1f9bd6;
+  --led-purple: #a855f7;
+  --led-orange: #ff6b20;
+  --led-amber: #ffb020;
+  --led-pink: #ff2e93;
+  --led-violet: #7c3aed;
+  --led-royal: #3d7bff;
+  --led-housing: #0c0c0e;
 
-  /* Spacing scale (carried over — old sections depend on these names) */
+  /* ---- On-accent + status ---- */
+  --on-accent: #04140f;
+  --danger: #ff6b6b;
+  --danger-hover: #ff8585;
+  --warning: #ffb020;
+  --success: var(--accent);
+
+  /* ---- Type ---- */
+  --font-sans: 'Space Grotesk', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- Radius ---- */
+  --radius-chip: 8px;
+  --radius-control: 11px;
+  --radius-card: 15px;
+  --radius-modal: 20px;
+
+  /* ---- Shadow ---- */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.25);
+  --shadow-md: 0 12px 40px rgba(0,0,0,.16);
+  --shadow-lg: 0 24px 60px rgba(0,0,0,.5);
+
+  /* ---- Accent glow (LED/logo) ---- */
+  --glow-accent: 0 0 12px rgba(46,230,192,.5);
+  --glow-accent-strong: 0 0 16px rgba(46,230,192,.85);
+
+  /* ---- Spacing scale (carried — sections depend on these names) ---- */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
   --space-md: 1rem;
@@ -36,20 +84,60 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
 
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
-
-  /* Control heights — touch-target sized by default (phone bottom-nav
-     breakpoint is <900px); tightened for mouse input at ≥900px below. */
+  /* ---- Control heights ---- */
   --control-height: 44px;
   --control-height-sm: 36px;
+
+  /* ============================================================
+     Legacy alias bridge — old token names → new tokens so untouched
+     section CSS themes correctly. Removed in Phase 6 once every
+     section references the new vocabulary directly.
+     ============================================================ */
+  --surface: var(--panel);
+  --surface-2: #202026;
+  --border: var(--w8);
+  --text-muted: var(--m1);
+  --accent-soft: rgba(46,230,192,.12);
 }
 
-/* Desktop density: phone keeps full touch-target sizing (thumbs need the
-   room); mouse input at ≥900px doesn't, so cards/controls/gaps tighten up
-   here instead of reading as oversized on a large monitor. */
+/* Light theme: override only the values that differ; the bridge aliases
+   reference the tokens above, so they re-theme automatically. */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #ebe9e4;
+  --rail: #e3e1db;
+  --panel: #f5f4f1;
+  --toast: #dbeee8;
+  --text: #191a1c;
+  --text2: #44464c;
+  --m1: #63656d;
+  --m2: #7c7e88;
+  --m3: #9a9ca4;
+  --accent: #0c917a;
+  --accent-hover: #0a7d69;
+
+  --w3: rgba(0,0,0,.035);
+  --w4: rgba(0,0,0,.045);
+  --w5: rgba(0,0,0,.055);
+  --w6: rgba(0,0,0,.07);
+  --w7: rgba(0,0,0,.08);
+  --w8: rgba(0,0,0,.09);
+  --w9: rgba(0,0,0,.08);
+  --w10: rgba(0,0,0,.12);
+  --w12: rgba(0,0,0,.14);
+  --w14: rgba(0,0,0,.16);
+  --w28: rgba(0,0,0,.34);
+
+  --accent-soft: rgba(12,145,122,.12);
+  --surface-2: #eceae4;
+
+  --glow-accent: 0 0 10px rgba(12,145,122,.35);
+  --glow-accent-strong: 0 0 14px rgba(12,145,122,.55);
+}
+
+/* Desktop density: phone keeps full touch-target sizing; mouse input at
+   ≥900px tightens spacing/controls so they don't read oversized. */
 @media (min-width: 900px) {
   :root {
     --space-md: 0.875rem;

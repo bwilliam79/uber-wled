@@ -7,8 +7,13 @@
   box-sizing: border-box;
 }
 
-html {
-  color-scheme: dark;
+/* color-scheme is set per theme in tokens.css (:root / [data-theme="light"]). */
+
+/* Theme change fades bg/border/color across every element (0.35s), per the
+   prototype. Scoped to [data-theme] so it only runs once the ThemeProvider
+   has stamped the attribute — avoids a transition flash on first paint. */
+[data-theme] * {
+  transition: background-color 0.35s ease, border-color 0.35s ease, color 0.35s ease;
 }
 
 body {
@@ -61,7 +66,7 @@ button {
 /* Scrollbars: slim, surface-toned, invisible track */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--surface-2) transparent;
+  scrollbar-color: var(--w14) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -70,7 +75,7 @@ button {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--surface-2);
+  background: var(--w14);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
