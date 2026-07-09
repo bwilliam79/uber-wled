@@ -2,7 +2,8 @@ import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { createThemeRepository } from './repository.js';
 import { createControllerRepository } from '../controllers/repository.js';
-import { getPresets, getEffects, getPalettes } from '../wled/client.js';
+import { getPresets, getPresetsRaw, getEffects, getPalettes } from '../wled/client.js';
+import { classifyPresetImport, type RawPreset } from './presetImport.js';
 
 export function createThemesRouter(db: Database.Database): Router {
   const router = Router();
@@ -34,6 +35,50 @@ export function createThemesRouter(db: Database.Database): Router {
     const controller = controllers.list().find((c) => c.id === req.params.controllerId);
     if (!controller) return res.status(404).json({ error: 'controller not found' });
     res.json(await getPresets(controller.host));
+  });
+
+  // Preview importing a controller's device presets as themes: maps each
+  // preset to a theme and classifies it (new / already-imported / conflicts
+  // with an existing theme of the same name). The client resolves conflicts
+  // (rename or overwrite) and POSTs the chosen imports below.
+  router.get('/preset-import/:controllerId', async (req, res) => {
+    const controller = controllers.list().find((c) => c.id === req.params.controllerId);
+    if (!controller) return res.status(404).json({ error: 'controller not found' });
+    let raw: Record<string, RawPreset>;
+    try {
+      raw = (await getPresetsRaw(controller.host)) as Record<string, RawPreset>;
+    } catch (err: any) {
+      return res.status(503).json({ error: `controller ${controller.name} is unreachable: ${err.message}` });
+    }
+    res.json(classifyPresetImport(raw, repo.list()));
+  });
+
+  // Apply a resolved set of preset imports. Each entry either creates a new
+  // theme or overwrites an existing one (overwriteThemeId) — the client omits
+  // already-imported presets and applies the user's rename/overwrite choices.
+  router.post('/preset-import', (req, res) => {
+    const imports = Array.isArray(req.body?.imports) ? req.body.imports : [];
+    let created = 0;
+    let overwritten = 0;
+    for (const item of imports) {
+      const { name, effect, palette, colors, brightness, overwriteThemeId } = item ?? {};
+      if (typeof name !== 'string' || typeof effect !== 'number') continue;
+      const theme = { name, effect, palette, colors, brightness };
+      if (overwriteThemeId) {
+        try {
+          repo.update(overwriteThemeId, theme);
+          overwritten++;
+        } catch {
+          // Overwrite target vanished (deleted meanwhile) — fall back to create.
+          repo.add(theme);
+          created++;
+        }
+      } else {
+        repo.add(theme);
+        created++;
+      }
+    }
+    res.json({ created, overwritten });
   });
 
   // Themes aren't tied to any one controller, so effect/palette names are
