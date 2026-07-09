@@ -10,9 +10,11 @@
 .theme-list { list-style: none; margin: 0; padding: 0; }
 .theme-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
 .theme-row:last-child { border-bottom: none; }
-.theme-row-info { display: flex; flex-direction: column; min-width: 140px; }
-.theme-row-name { color: var(--text); font-weight: 600; }
-.theme-row-meta { color: var(--text-muted); font-size: 0.85rem; }
+/* Fixed-width name column so every preview bar starts at the same x and gets
+   the same remaining width — long names truncate instead of shoving the bar. */
+.theme-row-info { display: flex; flex-direction: column; flex: 0 0 180px; min-width: 0; }
+.theme-row-name { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.theme-row-meta { color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .theme-row-preview { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 .theme-row-swatches { display: flex; gap: 4px; }
 .theme-row-swatch { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--border); }
