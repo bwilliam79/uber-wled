@@ -9,17 +9,17 @@ afterEach(() => vi.unstubAllGlobals());
 const NO_UPDATE = { ...FIRMWARE_OK, updateAvailable: false };
 
 describe('DeviceCard', () => {
-  it('shows name, host, version chip and the live metrics', () => {
+  it('shows name, mono host·px, online status, fps, power switch and the live strip', () => {
     stubFetchRoutes({ 'GET /api/controllers/c1/firmware': NO_UPDATE });
     renderDevices(<DeviceCard controller={CONTROLLERS[0]} live={liveEntry()}
       onControl={vi.fn()} onOpen={vi.fn()} />);
     expect(screen.getByText('Cabinet Lights')).toBeTruthy();
-    expect(screen.getByText('192.168.1.86')).toBeTruthy();
-    expect(screen.getByText('v16.0.0')).toBeTruthy();
-    expect(screen.getByText('On')).toBeTruthy();
+    // Host and px count now share one mono metadata line ("192.168.1.86 · N px").
+    expect(screen.getByText(/192\.168\.1\.86/)).toBeTruthy();
+    expect(screen.getByText('Online')).toBeTruthy();
     expect(screen.getByText('42 FPS')).toBeTruthy();
-    expect(screen.getByText('Up 32d 7h')).toBeTruthy();
-    expect(screen.getByRole('img', { name: 'WiFi signal 4 of 4 bars' })).toBeTruthy();
+    const powerSwitch = screen.getByRole('switch', { name: 'Power for Cabinet Lights' });
+    expect(powerSwitch.getAttribute('aria-checked')).toBe('true');
     const strip = screen.getByRole('img', { name: 'Live output' });
     // fixtures.SEGMENTS has 2 segments, both on — no real WS server in this
     // test environment, so no live-pixel frame ever arrives and both show
@@ -29,11 +29,11 @@ describe('DeviceCard', () => {
     expect(strip.children).toHaveLength(2);
   });
 
-  it('shows the update badge from the firmware query', async () => {
+  it('shows the update chip from the firmware query', async () => {
     stubFetchRoutes({ 'GET /api/controllers/c1/firmware': FIRMWARE_OK });
     renderDevices(<DeviceCard controller={CONTROLLERS[0]} live={liveEntry()}
       onControl={vi.fn()} onOpen={vi.fn()} />);
-    expect(await screen.findByText('Update available')).toBeTruthy();
+    expect(await screen.findByText('Update')).toBeTruthy();
   });
 
   it('an unreachable live entry renders Offline and hides the power chip', () => {
