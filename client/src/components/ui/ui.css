@@ -771,6 +771,29 @@
   opacity: 0.5;
 }
 
+/* Per-pixel live readout: a row of discrete glowing dots (matches the design's
+   LED preview) instead of a smooth gradient. */
+.ui-live-swatch-pixels {
+  display: flex;
+  align-items: center;
+  gap: 1.5px;
+  padding: 0 1px;
+  background: transparent;
+  border-color: transparent;
+}
+
+.ui-live-dot {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 72%;
+  border-radius: 2px;
+}
+
+.ui-live-strip-sm .ui-live-dot {
+  height: 78%;
+  border-radius: 1.5px;
+}
+
 .ui-live-swatch-unreachable {
   background-image: repeating-linear-gradient(
     45deg,
