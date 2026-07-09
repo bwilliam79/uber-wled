@@ -10,9 +10,9 @@ const controllers = [
 
 const preview = {
   candidates: [
-    { presetId: 5, theme: { name: 'USA', effect: 76, palette: 5, colors: [[255, 0, 0]], brightness: 64 }, status: 'new' },
-    { presetId: 6, theme: { name: 'Candy Cane', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128 }, status: 'conflict', existingThemeId: 'x2' },
-    { presetId: 7, theme: { name: 'Christmas Chase', effect: 34, palette: 5, colors: [[255, 0, 0]], brightness: 255 }, status: 'duplicate', existingThemeId: 'x1' }
+    { presetId: 5, theme: { name: 'USA', effect: 76, palette: 5, colors: [[255, 0, 0]], brightness: 64, speed: 128, intensity: 128 }, status: 'new' },
+    { presetId: 6, theme: { name: 'Candy Cane', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128, speed: 128, intensity: 128 }, status: 'conflict', existingThemeId: 'x2' },
+    { presetId: 7, theme: { name: 'Christmas Chase', effect: 34, palette: 5, colors: [[255, 0, 0]], brightness: 255, speed: 128, intensity: 128 }, status: 'duplicate', existingThemeId: 'x1' }
   ],
   skipped: [{ presetId: 8, name: 'TV Architectural', reason: 'no effect on its first segment' }]
 };
@@ -62,8 +62,8 @@ describe('PresetImportModal', () => {
     );
     // USA imported as new; Candy Cane overwrites x2; the duplicate is omitted.
     expect(body.imports).toEqual([
-      { name: 'USA', effect: 76, palette: 5, colors: [[255, 0, 0]], brightness: 64, overwriteThemeId: null },
-      { name: 'Candy Cane', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128, overwriteThemeId: 'x2' }
+      { name: 'USA', effect: 76, palette: 5, colors: [[255, 0, 0]], brightness: 64, speed: 128, intensity: 128, overwriteThemeId: null },
+      { name: 'Candy Cane', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128, speed: 128, intensity: 128, overwriteThemeId: 'x2' }
     ]);
     await waitFor(() => expect(onImported).toHaveBeenCalledWith({ created: 1, overwritten: 1 }));
   });
@@ -88,7 +88,7 @@ describe('PresetImportModal', () => {
       (fetchMock.mock.calls.find(([u, i]) => u === '/api/themes/preset-import' && (i as RequestInit)?.method === 'POST')![1] as RequestInit).body as string
     );
     expect(body.imports).toEqual([
-      { name: 'Candy Cane (Porch)', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128, overwriteThemeId: null }
+      { name: 'Candy Cane (Porch)', effect: 34, palette: 0, colors: [[255, 0, 0]], brightness: 128, speed: 128, intensity: 128, overwriteThemeId: null }
     ]);
   });
 });

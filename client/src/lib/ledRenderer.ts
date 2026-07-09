@@ -54,8 +54,8 @@ function pal(rgbs: RGB[], p: number): RGB {
   return lerp(rgbs[i0], rgbs[i1], seg - Math.floor(seg));
 }
 
-/** Per-LED color + brightness for an effect (verbatim algorithms from the prototype). */
-export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[], sp: number): { c: RGB; b: number } {
+/** Per-LED color + brightness for an effect. `ix` is WLED intensity (0–255). */
+export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[], sp: number, ix = 128): { c: RGB; b: number } {
   switch (fx) {
     case 'rainbow':
       return { c: hsl(((((i / count) * 360 + t * sp * 70) % 360) + 360) % 360, 85, 56), b: 1 };
@@ -76,7 +76,9 @@ export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[]
     }
     case 'sparkle': {
       const r = rand(i, Math.floor(t * sp * 8));
-      return { c: rgbs[i % rgbs.length], b: r > 0.82 ? Math.min(1, 0.4 + (r - 0.82) * 3.3) : 0.05 };
+      // Intensity controls sparkle density: higher ix → lower threshold → more lit.
+      const thr = 0.9 - (ix / 255) * 0.4;
+      return { c: rgbs[i % rgbs.length], b: r > thr ? Math.min(1, 0.4 + (r - thr) * 3.3) : 0.05 };
     }
     case 'fire': {
       const fl = rand(i, Math.floor(t * sp * 11));
@@ -154,12 +156,13 @@ export function paintCanvas(canvas: HTMLCanvasElement, t: number): void {
 
   const count = parseInt(canvas.dataset.count || '48', 10);
   const sp = parseFloat(canvas.dataset.speed || '1') || 1;
+  const ix = parseFloat(canvas.dataset.intensity || '128') || 128;
   const rgbs = (canvas.dataset.colors || '#2ee6c0').split(',').map((s) => hexToRgb(s));
   const gap = w / count;
   const r = Math.min(gap * 0.34, h * 0.36);
   const cy = h / 2;
   for (let i = 0; i < count; i++) {
-    const o = led(fx, i, count, t, rgbs, sp);
+    const o = led(fx, i, count, t, rgbs, sp, ix);
     dot(ctx, gap * (i + 0.5), cy, r, o.c, Math.max(0, Math.min(1, o.b)));
   }
   ctx.shadowBlur = 0;

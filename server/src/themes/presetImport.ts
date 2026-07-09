@@ -18,6 +18,8 @@ export interface RawPresetSegment {
   fx?: number;
   pal?: number;
   col?: number[][];
+  sx?: number;
+  ix?: number;
 }
 
 export interface RawPreset {
@@ -62,15 +64,22 @@ export function presetToTheme(preset: RawPreset): ThemeShape | null {
     effect: seg0.fx,
     palette: typeof seg0.pal === 'number' ? seg0.pal : 0,
     colors,
-    brightness: typeof preset.bri === 'number' ? preset.bri : 128
+    brightness: typeof preset.bri === 'number' ? preset.bri : 128,
+    speed: typeof seg0.sx === 'number' ? seg0.sx : 128,
+    intensity: typeof seg0.ix === 'number' ? seg0.ix : 128
   };
 }
 
-function sameConfig(a: ThemeShape, b: Pick<CustomTheme, 'effect' | 'palette' | 'colors' | 'brightness'>): boolean {
+function sameConfig(
+  a: ThemeShape,
+  b: Pick<CustomTheme, 'effect' | 'palette' | 'colors' | 'brightness' | 'speed' | 'intensity'>
+): boolean {
   return (
     a.effect === b.effect &&
     a.palette === b.palette &&
     a.brightness === b.brightness &&
+    a.speed === b.speed &&
+    a.intensity === b.intensity &&
     JSON.stringify(a.colors) === JSON.stringify(b.colors)
   );
 }
