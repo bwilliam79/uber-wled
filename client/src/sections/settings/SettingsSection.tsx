@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { geocodeAddress, rescanNow, updateSettings, type GeocodeMatch, type Settings } from '../../api/client';
+import {
+  geocodeAddress, rescanNow, updateSettings, restoreBackupFile, BACKUP_URL,
+  type GeocodeMatch, type Settings
+} from '../../api/client';
 import { useSettings } from '../../api/queries';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Field } from '../../components/ui/Field';
 import { Toggle } from '../../components/ui/Toggle';
+import { Modal } from '../../components/ui/Modal';
+import { ImportButton } from '../../components/ImportButton';
+import { useToast } from '../../components/ui/Toast';
+import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import './settings.css';
 
 function clampLivePoll(value: number): number {
@@ -22,6 +29,7 @@ function coordDisplayPrecision(value: number): number {
 export function SettingsSection() {
   const settings = useSettings();
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [draft, setDraft] = useState<Settings | null>(null);
   const [rescanMessage, setRescanMessage] = useState<string | null>(null);
   const [rescanError, setRescanError] = useState<string | null>(null);
@@ -30,6 +38,29 @@ export function SettingsSection() {
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
   const [addressCandidates, setAddressCandidates] = useState<GeocodeMatch[] | null>(null);
+
+  // Restore replaces the entire config, so it's gated behind a confirm.
+  const [restoreFile, setRestoreFile] = useState<File | null>(null);
+  const [restoring, setRestoring] = useState(false);
+
+  async function performRestore() {
+    if (!restoreFile) return;
+    setRestoring(true);
+    try {
+      const data = await readJsonFile(restoreFile);
+      const result = await restoreBackupFile(data);
+      // Everything changed underneath us — refetch all app data.
+      await queryClient.invalidateQueries();
+      setDraft(null); // re-seed the settings draft from the restored values
+      const total = Object.values(result.restored).reduce((a, b) => a + b, 0);
+      toast.show({ title: `Configuration restored (${total} records)`, variant: 'success' });
+    } catch (err) {
+      toast.show({ title: 'Restore failed', description: (err as Error).message, variant: 'error' });
+    } finally {
+      setRestoring(false);
+      setRestoreFile(null);
+    }
+  }
 
   useEffect(() => {
     if (settings.data && draft === null) setDraft(settings.data);
@@ -255,6 +286,23 @@ export function SettingsSection() {
             <span>Default "disable on device" when importing WLED schedules</span>
           </div>
         </Card>
+
+        <Card className="settings-group">
+          <h3 className="settings-group-title">Backup &amp; restore</h3>
+          <p className="settings-group-hint">
+            Download a full snapshot of your uber-wled configuration (controllers, rooms, sync groups,
+            themes, schedules, calendar events, layout, and settings), or restore one after a rebuild.
+          </p>
+          <div className="settings-backup-actions">
+            <Button variant="secondary" onClick={() => triggerDownload(BACKUP_URL)}>
+              Back up configuration
+            </Button>
+            <ImportButton label="Restore from backup…" onFile={setRestoreFile} disabled={restoring} />
+          </div>
+          <p className="settings-group-hint">
+            Restoring <strong>replaces everything</strong> currently in this instance with the backup's contents.
+          </p>
+        </Card>
       </div>
 
       <div className="settings-actions">
@@ -274,6 +322,26 @@ export function SettingsSection() {
         {rescanMessage && <p className="settings-note">{rescanMessage}</p>}
         {rescanError && <div className="error-banner" role="alert">{rescanError}</div>}
       </div>
+
+      <Modal
+        open={restoreFile !== null}
+        onClose={() => setRestoreFile(null)}
+        title="Restore configuration?"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRestoreFile(null)} disabled={restoring}>Cancel</Button>
+            <Button variant="danger" onClick={performRestore} disabled={restoring}>
+              {restoring ? 'Restoring…' : 'Replace everything'}
+            </Button>
+          </>
+        }
+      >
+        <p>
+          This will <strong>replace all</strong> controllers, rooms, sync groups, themes, schedules,
+          calendar events, layout, and settings in this instance with the contents of
+          “{restoreFile?.name}”. This can't be undone.
+        </p>
+      </Modal>
     </section>
   );
 }

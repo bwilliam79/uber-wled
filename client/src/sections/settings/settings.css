@@ -14,6 +14,7 @@
 .settings-field-pair { display: flex; gap: 10px; }
 .settings-field-pair > * { flex: 1; min-width: 0; }
 .settings-toggle-row { display: flex; align-items: center; gap: 10px; min-height: 40px; color: var(--text); }
+.settings-backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .settings-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: var(--space-md); }
 .settings-note { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
 

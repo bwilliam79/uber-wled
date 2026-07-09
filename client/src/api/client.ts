@@ -165,6 +165,40 @@ export const listThemes = () => getJson<CustomTheme[]>('/api/themes');
 export const addTheme = (input: Omit<CustomTheme, 'id'>) =>
   sendJson<CustomTheme>('/api/themes', 'POST', input);
 export const deleteTheme = (id: string) => fetch(`/api/themes/${id}`, { method: 'DELETE' });
+
+// --- Backup / export / import ---
+// Downloads are plain GETs to these URLs (the server sets a Content-Disposition
+// filename); the UI hands them to triggerDownload(). Imports POST the parsed
+// file back and surface the server's validation message on failure.
+export const BACKUP_URL = '/api/backup';
+export const THEMES_EXPORT_URL = '/api/backup/themes';
+export const SCHEDULES_EXPORT_URL = '/api/backup/schedules';
+
+async function postImport<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`;
+    try {
+      const parsed = await res.json();
+      if (parsed?.error) message = parsed.error;
+    } catch {
+      // non-JSON error body — keep the status-based message
+    }
+    throw new Error(message);
+  }
+  return res.json();
+}
+
+export const restoreBackupFile = (data: unknown) =>
+  postImport<{ restored: Record<string, number> }>(BACKUP_URL + '/restore', data);
+export const importThemesFile = (data: unknown) =>
+  postImport<{ imported: number }>(THEMES_EXPORT_URL, data);
+export const importSchedulesFile = (data: unknown) =>
+  postImport<{ schedules: number; calendarEvents: number; skipped: number }>(SCHEDULES_EXPORT_URL, data);
 export const listPresets = (controllerId: string) =>
   getJson<WledPreset[]>(`/api/themes/presets/${controllerId}`);
 
