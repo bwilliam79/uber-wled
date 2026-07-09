@@ -182,7 +182,7 @@ describe('importSchedules', () => {
     });
   });
 
-  it('imports timers from cfg.json timers.ins[] into schedules under an auto-created group, skipping disabled/malformed entries and the countdown timer', async () => {
+  it('imports timers from cfg.json timers.ins[] into schedules that target the controller directly, skipping disabled/malformed entries and the countdown timer', async () => {
     // Trimmed/adapted from a real captured /json/cfg.
     const cfg = {
       timers: {
@@ -210,31 +210,15 @@ describe('importSchedules', () => {
     expect(result.skipped.some((s) => /disabled/i.test(s.reason))).toBe(true);
     expect(result.skipped.some((s) => /unrecognized/i.test(s.reason))).toBe(true);
 
-    const groups = createGroupRepository(db).list();
-    expect(groups).toHaveLength(1);
-    expect(groups[0].name).toBe('Porch schedule');
-    expect(groups[0].members).toEqual([{ controllerId, wledSegId: 0 }]);
+    // No auto-created group any more — schedules target the controller
+    // directly, so nothing extra shows up as a Home tile.
+    expect(createGroupRepository(db).list()).toHaveLength(0);
 
     const schedules = createScheduleRepository(db).list();
     expect(schedules).toHaveLength(1);
-    expect(schedules[0].groupId).toBe(groups[0].id);
+    expect(schedules[0].groupId).toBeNull();
+    expect(schedules[0].controllers).toEqual([{ controllerId, wledSegId: null }]);
     expect(schedules[0].actionType).toBe('preset');
-  });
-
-  it('names the auto-created group from the live device-reported name, not the stored mDNS-derived controller name', async () => {
-    // Regression: the group name used to be built from controller.name,
-    // which is frozen at add/discovery time (often the raw mDNS hostname,
-    // e.g. "fp-shelves-left") and can be stale — the device's actual
-    // "Server Description" (what the rest of the app shows everywhere else)
-    // could be something completely different, e.g. "Fireplace Shelves Left".
-    stubDeviceFetch(
-      { timers: { ins: [{ en: 1, hour: 18, min: 30, macro: 1, dow: 127, ...YEAR_ROUND }] } },
-      { '1': { n: 'Porch warm' } },
-      'Fireplace Shelves Left'
-    );
-    await importSchedules(db, controllerId, { disableOnDevice: false });
-    const groups = createGroupRepository(db).list();
-    expect(groups[0].name).toBe('Fireplace Shelves Left schedule');
   });
 
   it('imports a sunrise timer using the configured home latitude/longitude', async () => {
@@ -263,14 +247,21 @@ describe('importSchedules', () => {
     expect(result.imported[0].name).toBe('Preset 9');
   });
 
-  it('reuses the same auto-created group on a second import for the same controller', async () => {
+  it('never creates a group, even across repeated imports for the same controller', async () => {
     const cfg = { timers: { ins: [{ en: 1, hour: 18, min: 30, macro: 1, dow: 0b0111110, ...YEAR_ROUND }] } };
     stubDeviceFetch(cfg);
 
     await importSchedules(db, controllerId, { disableOnDevice: false });
     await importSchedules(db, controllerId, { disableOnDevice: false });
 
-    expect(createGroupRepository(db).list()).toHaveLength(1);
+    expect(createGroupRepository(db).list()).toHaveLength(0);
+    // Each import adds its own schedule targeting the controller directly.
+    const schedules = createScheduleRepository(db).list();
+    expect(schedules).toHaveLength(2);
+    for (const s of schedules) {
+      expect(s.groupId).toBeNull();
+      expect(s.controllers).toEqual([{ controllerId, wledSegId: null }]);
+    }
   });
 
   it('clears only the imported timer indexes on the device by index, not by preset id, when disableOnDevice is true', async () => {
