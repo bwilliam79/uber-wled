@@ -17,6 +17,7 @@ function renderStrip(overrides: Partial<Parameters<typeof SegmentStrip>[0]> = {}
   const props = {
     segments: SEGMENTS, ledCount: 48, busy: false, selectedId: null as number | null,
     onSelect: vi.fn(), onSplit: vi.fn(), onMerge: vi.fn(), onBoundary: vi.fn(),
+    effectFor: () => 'solid' as const,
     ...overrides
   };
   render(<SegmentStrip {...props} />);
