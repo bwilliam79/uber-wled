@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 
 // NOTE: shipped Phase C kit uses `label`, not `ariaLabel`, for Toggle/Slider
 // (see components/ui/Toggle.tsx, components/ui/Slider.tsx). Mocks below match
@@ -47,10 +47,6 @@ function renderTile(overrides: Record<string, unknown> = {}) {
     tile: TILE,
     status: STATUS_ON,
     liveSwatches: [{ key: 'c1:0', state: 'on', color: 'rgb(255, 0, 0)' }],
-    selectMode: false,
-    selected: false,
-    onToggleSelect: vi.fn(),
-    onLongPress: vi.fn(),
     onOpenControl: vi.fn(),
     onPower: vi.fn(),
     onBrightness: vi.fn(),
@@ -60,7 +56,6 @@ function renderTile(overrides: Record<string, unknown> = {}) {
   return props;
 }
 
-afterEach(() => vi.useRealTimers());
 
 describe('HomeTile', () => {
   it('shows name, icon, power label and brightness percent', () => {
@@ -86,47 +81,10 @@ describe('HomeTile', () => {
     expect(screen.getByTestId('tile-status-dot-g1').className).toContain('home-tile-status-dot-mixed');
   });
 
-  it('opens controls when the body is tapped outside select mode', () => {
+  it('opens controls when the body is tapped', () => {
     const p = renderTile();
     fireEvent.click(screen.getByRole('button', { name: 'open controls for Kitchen' }));
     expect(p.onOpenControl).toHaveBeenCalledWith(TILE);
-  });
-
-  it('toggles selection instead of opening controls in select mode', () => {
-    const p = renderTile({ selectMode: true });
-    fireEvent.click(screen.getByRole('button', { name: 'open controls for Kitchen' }));
-    expect(p.onToggleSelect).toHaveBeenCalledWith('g1');
-    expect(p.onOpenControl).not.toHaveBeenCalled();
-  });
-
-  it('fires onLongPress after 450ms of pointer hold', () => {
-    vi.useFakeTimers();
-    const p = renderTile();
-    const body = screen.getByRole('button', { name: 'open controls for Kitchen' });
-    fireEvent.pointerDown(body, { clientX: 10, clientY: 10 });
-    act(() => { vi.advanceTimersByTime(450); });
-    expect(p.onLongPress).toHaveBeenCalledWith('g1');
-  });
-
-  it('cancels the long press when the pointer moves more than 10px', () => {
-    vi.useFakeTimers();
-    const p = renderTile();
-    const body = screen.getByRole('button', { name: 'open controls for Kitchen' });
-    fireEvent.pointerDown(body, { clientX: 10, clientY: 10 });
-    fireEvent.pointerMove(body, { clientX: 40, clientY: 10 });
-    act(() => { vi.advanceTimersByTime(600); });
-    expect(p.onLongPress).not.toHaveBeenCalled();
-  });
-
-  it('does not treat the click after a long press as a body tap', () => {
-    vi.useFakeTimers();
-    const p = renderTile();
-    const body = screen.getByRole('button', { name: 'open controls for Kitchen' });
-    fireEvent.pointerDown(body, { clientX: 10, clientY: 10 });
-    act(() => { vi.advanceTimersByTime(450); });
-    fireEvent.pointerUp(body);
-    fireEvent.click(body);
-    expect(p.onOpenControl).not.toHaveBeenCalled();
   });
 
   it('routes power toggle and brightness slider changes to callbacks', () => {
