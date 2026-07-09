@@ -19,17 +19,17 @@ function segColorSlot(seg: DeviceSegment): number[] | null {
   return c && (c[0] || c[1] || c[2]) ? c : null;
 }
 
+/** The segment's actual color (for the small swatch dot); accent if unset. */
 function segColor(seg: DeviceSegment): string {
   const c = segColorSlot(seg);
   return c ? `rgb(${c[0]}, ${c[1]}, ${c[2]})` : 'var(--accent)';
 }
 
-/** Dark label on a light zone, white on a dark one (accent counts as light). */
-function labelColor(seg: DeviceSegment): string {
+/** A translucent tint of the color for the zone fill — keeps a bright/white
+ *  segment from rendering as a blinding solid block over the dark housing. */
+function zoneFill(seg: DeviceSegment): string {
   const c = segColorSlot(seg);
-  if (!c) return '#04140f';
-  const lum = (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255;
-  return lum > 0.6 ? '#04140f' : '#ffffff';
+  return c ? `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.22)` : 'rgba(46, 230, 192, 0.16)';
 }
 
 export function SegmentStrip({
@@ -65,11 +65,12 @@ export function SegmentStrip({
               key={seg.id}
               type="button"
               className={`segment-zone${selectedId === seg.id ? ' selected' : ''}${seg.on ? '' : ' off'}`}
-              style={{ left: pct(start), width: pct(stop - start), background: segColor(seg), color: labelColor(seg) }}
+              style={{ left: pct(start), width: pct(stop - start), background: zoneFill(seg) }}
               onClick={() => onSelect(seg.id)}
               aria-label={`Segment ${seg.id}, LEDs ${start} to ${stop}`}
               aria-pressed={selectedId === seg.id}
             >
+              <span className="segment-zone-swatch" style={{ background: segColor(seg) }} aria-hidden="true" />
               <span className="segment-zone-label">{seg.n || `Seg ${seg.id}`}</span>
             </button>
           );

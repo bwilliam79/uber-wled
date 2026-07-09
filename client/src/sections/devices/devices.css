@@ -10,9 +10,12 @@
 
 .devices-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
-  max-width: 1000px;
+}
+
+@media (max-width: 1160px) {
+  .devices-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 720px) {
@@ -268,13 +271,14 @@
 .diff-risk-ack { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 40px; }
 
 /* ---------- Segment strip (visual split/merge editor) ---------- */
-.segment-strip { display: flex; flex-direction: column; gap: 10px; margin-bottom: var(--space-md); }
+.segment-strip { display: flex; flex-direction: column; gap: 10px; margin: var(--space-md) 0 var(--space-lg); }
 
 .segment-strip-track {
   position: relative;
-  height: 46px;
+  height: 42px;
   border-radius: 10px;
   background: var(--led-housing);
+  border: 1px solid var(--w8);
   overflow: hidden;
 }
 
@@ -284,25 +288,33 @@
   bottom: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 4px;
+  gap: 6px;
+  padding: 0 8px;
   border: none;
-  border-right: 2px solid var(--led-housing);
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
   cursor: pointer;
-  color: #ffffff;
+  color: var(--text);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
   overflow: hidden;
 }
 
-.segment-zone.off { opacity: 0.35; }
-.segment-zone.selected { outline: 2px solid #ffffff; outline-offset: -2px; z-index: 2; }
+.segment-zone:last-child { border-right: none; }
+.segment-zone.off { opacity: 0.4; }
+.segment-zone.selected { outline: 2px solid var(--accent); outline-offset: -2px; z-index: 2; }
+
+.segment-zone-swatch {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
 
 .segment-zone-label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .segment-handle {
