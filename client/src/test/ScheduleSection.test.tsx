@@ -39,10 +39,16 @@ function stub(events: unknown[] = [halloween]) {
   return fetchMock;
 }
 
+// The Schedule page defaults to the Weekly tab; calendar tests switch to it.
+function openCalendarTab() {
+  fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
+}
+
 describe('ScheduleSection v2', () => {
   it('opens a day overlay with the override badge when a day that has an enabled event is clicked', async () => {
     stub();
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    openCalendarTab();
     // Wait for the event chip to render so the click sees the loaded events.
     await screen.findByText('Halloween');
     fireEvent.click(screen.getByTestId('day-31'));
@@ -53,6 +59,7 @@ describe('ScheduleSection v2', () => {
   it('clicking an empty day opens the create form prefilled with that date', async () => {
     stub([]); // no events → every day is empty
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    openCalendarTab();
     await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
     fireEvent.click(screen.getByTestId('day-12'));
     // The create form opens with the clicked day's date prefilled.
@@ -64,6 +71,7 @@ describe('ScheduleSection v2', () => {
   it('toggling an event PATCHes enabled', async () => {
     const fetchMock = stub();
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    openCalendarTab();
     await screen.findByText('Halloween');
     fireEvent.click(screen.getByTestId('day-31'));
     fireEvent.click(await screen.findByLabelText('Halloween enabled'));
@@ -72,16 +80,15 @@ describe('ScheduleSection v2', () => {
     );
   });
 
-  it('shows the calendar by default and the weekly schedules under the Weekly tab', async () => {
+  it('defaults to the Weekly tab and shows the calendar under the Calendar tab', async () => {
     stub([]);
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
-    // Weekly schedules aren't shown on the Calendar tab.
-    expect(screen.queryByText('Weekly schedules')).toBeNull();
-    fireEvent.click(screen.getByRole('tab', { name: 'Weekly' }));
+    // Weekly is the default view.
     await waitFor(() => expect(screen.getByText('Weekly schedules')).toBeTruthy());
-    // Switching to Weekly hides the calendar.
     expect(screen.queryByTestId('calendar-grid')).toBeNull();
+    openCalendarTab();
+    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    expect(screen.queryByText('Weekly schedules')).toBeNull();
   });
 
   it('marks a configured holiday (theme + enabled) distinctly from an unconfigured one', async () => {
@@ -93,8 +100,10 @@ describe('ScheduleSection v2', () => {
     };
     stub([configured, placeholder]);
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    const configuredChip = await screen.findByText('Halloween');
-    const placeholderChip = await screen.findByText('Thanksgiving');
+    openCalendarTab();
+    // findByText returns the inner label span; the status class is on the chip.
+    const configuredChip = (await screen.findByText('Halloween')).closest('.event-chip')!;
+    const placeholderChip = (await screen.findByText('Thanksgiving')).closest('.event-chip')!;
     expect(configuredChip.className).toContain('configured');
     expect(placeholderChip.className).toContain('unconfigured');
   });
@@ -106,6 +115,7 @@ describe('ScheduleSection v2', () => {
     // theme for a holiday entry" gap.
     const fetchMock = stub();
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    openCalendarTab();
     await screen.findByText('Halloween');
     fireEvent.click(screen.getByTestId('day-31'));
     fireEvent.click(await screen.findByText('Edit'));

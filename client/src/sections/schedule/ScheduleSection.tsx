@@ -35,7 +35,7 @@ export function ScheduleSection({
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [createDate, setCreateDate] = useState<{ month: number; day: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const [tab, setTab] = useState<'calendar' | 'weekly'>('calendar');
+  const [tab, setTab] = useState<'calendar' | 'weekly'>('weekly');
   const events = useCalendarEvents();
   const groups = useGroups();
   const controllers = useControllers();
@@ -138,8 +138,8 @@ export function ScheduleSection({
         active={tab}
         onChange={(id) => setTab(id as 'calendar' | 'weekly')}
         tabs={[
-          { id: 'calendar', label: 'Calendar' },
-          { id: 'weekly', label: 'Weekly' }
+          { id: 'weekly', label: 'Weekly' },
+          { id: 'calendar', label: 'Calendar' }
         ]}
       />
       {tab === 'calendar' && (
