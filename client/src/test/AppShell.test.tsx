@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell, sectionFromHash } from '../components/AppShell';
 import { ToastProvider } from '../components/ui/Toast';
+import { ThemeProvider } from '../theme/ThemeProvider';
 
 const SECTION_NAMES = ['Home', 'Devices', 'Themes', 'Schedule', 'Sync', 'Firmware', 'Settings'];
 
@@ -10,9 +11,11 @@ function renderShell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <ToastProvider>
-        <AppShell />
-      </ToastProvider>
+      <ThemeProvider>
+        <ToastProvider>
+          <AppShell />
+        </ToastProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

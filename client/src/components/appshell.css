@@ -1,4 +1,6 @@
-/* ===== App shell v2: sidebar ≥900px, bottom nav <900px ===== */
+/* ===== App shell v2 reskin: 82px labeled nav rail ≥900px, bottom nav <900px,
+   global master bar across the top. Values from design/README.md + the
+   prototype (Uber-WLED Prototype.dc.html). ===== */
 
 .app-shell {
   display: flex;
@@ -6,157 +8,106 @@
   min-height: 100svh;
 }
 
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+}
+
 .app-main {
   flex: 1;
   min-width: 0;
+  overflow: auto;
   padding: var(--space-xl) var(--space-lg);
-  /* No max-width: was a flat 1200px regardless of screen size, leaving a
-     large unused strip on any monitor wider than ~1400px. Content now uses
-     whatever width the window actually gives it. This is safe because every
-     page either scales itself (Home tiles, Devices cards use auto-fit grids;
-     Layout is a canvas) or sets its own sensible cap where full width would
-     look wrong (.settings-form: 560px, .theme-form-source: 320px). */
+  /* No max-width: content uses whatever width the window gives it; pages
+     either scale themselves (auto-fit grids, canvas) or cap their own width. */
 }
 
-/* ---------- Sidebar (desktop) ---------- */
+/* ---------- Nav rail (desktop) ---------- */
 
 .sidebar {
   position: sticky;
   top: 0;
   align-self: flex-start;
   height: 100svh;
-  width: 210px;
+  width: 82px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
-  padding: var(--space-md) var(--space-sm);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  align-items: center;
+  gap: 3px;
+  padding: 20px 0 14px;
+  background: var(--rail);
+  border-right: 1px solid var(--w6);
 }
 
-.sidebar.collapsed {
-  width: 56px;
-  /* The sidebar's 1px right border lives inside its border-box width, so
-     symmetric L/R padding actually leaves 1px more space on the right. With
-     the rail collapsed to a centered icon column that 1px reads as off-center
-     — add it back on the left so the column is optically centered. */
-  padding-left: calc(var(--space-sm) + 1px);
-}
-
-/* Rows stretch to fill the column's cross-axis (no align-items override
-   above), so with the label hidden, a lone left-aligned icon (flex's
-   default justify-content: flex-start) reads as off-center — all the
-   leftover row width piles up on its right. Center it explicitly, and
-   drop the wider label-accommodating padding/gap now that there's no
-   label to make room for. */
-.sidebar.collapsed .sidebar-link {
-  justify-content: center;
-  padding: 0.5rem;
-}
-
-.sidebar.collapsed .sidebar-brand {
-  justify-content: center;
-  padding: 0;
-  gap: 0;
-}
-
-/* The toggle is normally left-aligned to sit under the expanded nav's text
-   column; collapsed, that leaves it hugging the left edge with dead space to
-   its right. Center it so it lines up with the centered icon column. */
-.sidebar.collapsed .sidebar-collapse-toggle {
-  align-self: center;
-}
-
-.sidebar-brand {
+.sidebar-logo {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: 0 var(--space-xs);
-  margin-bottom: var(--space-md);
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 18px;
+  color: var(--m2);
+  transition: color 0.5s ease, filter 0.5s ease;
 }
 
-.logo-mark {
-  width: 30px;
-  height: 30px;
+/* Illuminated when ≥1 controller is on; unlit gray when all off. */
+.sidebar-logo.lit {
   color: var(--accent);
-  flex-shrink: 0;
+  filter: drop-shadow(var(--glow-accent));
 }
 
-.sidebar-brand-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.sidebar-brand-text {
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
-.sidebar-version {
-  font-size: 0.6875rem;
-  color: var(--text-muted);
-}
-
-a.sidebar-version-update {
-  color: var(--warning);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-a.sidebar-version-update:hover {
-  text-decoration: underline;
-}
-
-.sidebar.collapsed .sidebar-brand-text,
-.sidebar.collapsed .sidebar-version,
-.sidebar.collapsed .sidebar-link-label {
-  display: none;
+.sidebar-logo .logo-mark {
+  width: 27px;
+  height: 27px;
 }
 
 .sidebar-nav {
   list-style: none;
   margin: 0;
   padding: 0;
+  width: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
-  flex: 1;
+  align-items: center;
+  gap: 3px;
 }
 
 .sidebar-link {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-sm);
-  width: 100%;
-  padding: 0.5rem 0.625rem;
-  min-height: var(--control-height);
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
+  gap: 5px;
+  width: 64px;
+  padding: 11px 0;
+  border: none;
+  border-radius: 12px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--m2);
   cursor: pointer;
-  font-weight: 600;
-  font-size: 0.9375rem;
   transition: background-color 180ms ease, color 180ms ease;
 }
 
 .sidebar-link:hover {
-  color: var(--text);
-  background: var(--surface-2);
+  color: var(--text2);
 }
 
 .sidebar-link.active {
   color: var(--accent);
-  background: var(--accent-soft);
-  border-color: rgba(107, 114, 128, 0.35);
+  background: rgba(46, 230, 192, 0.12);
+}
+
+[data-theme="light"] .sidebar-link.active {
+  background: rgba(12, 145, 122, 0.12);
 }
 
 .sidebar-link-icon-wrap {
   position: relative;
   display: inline-flex;
-  flex-shrink: 0;
 }
 
 .sidebar-link-icon {
@@ -164,34 +115,200 @@ a.sidebar-version-update:hover {
   height: 20px;
 }
 
+.sidebar-link-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
 .sidebar-link-badge {
   position: absolute;
-  top: -2px;
-  right: -3px;
+  top: -3px;
+  right: -4px;
   width: 8px;
   height: 8px;
   border-radius: 999px;
   background: var(--warning);
-  box-shadow: 0 0 0 2px var(--surface);
+  box-shadow: 0 0 0 2px var(--rail);
 }
 
-.sidebar-collapse-toggle {
-  align-self: flex-start;
+.sidebar-footer {
+  margin-top: 6px;
+  text-align: center;
+}
+
+.sidebar-version {
+  font-family: var(--font-mono);
+  font-size: 0.5625rem;
+  color: var(--m3);
+}
+
+a.sidebar-version-update {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 74px;
+  color: var(--warning);
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.25;
+}
+
+/* Notification dot so an available update reads as a status, not just text. */
+a.sidebar-version-update::before {
+  content: '';
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warning);
+  box-shadow: 0 0 6px var(--warning);
+}
+
+a.sidebar-version-update:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Master bar ---------- */
+
+.master-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: 15px 24px;
+  border-bottom: 1px solid var(--w6);
+  flex: none;
+}
+
+.master-bar-titles {
+  min-width: 0;
+}
+
+.master-bar-title {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.master-bar-sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--m2);
+}
+
+.master-bar-spacer {
+  flex: 1;
+}
+
+.master-bar-brightness {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 300px;
+}
+
+.master-bar-brightness .master-bar-sun {
+  width: 17px;
+  height: 17px;
+  color: var(--m1);
+  flex-shrink: 0;
+}
+
+.master-bar-brightness .ui-slider {
+  flex: 1;
+  height: 24px;
+}
+
+.master-bar-pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text2);
+  width: 38px;
+  text-align: right;
+}
+
+.master-bar-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 10px;
+  background: rgba(46, 230, 192, 0.1);
+  border: 1px solid rgba(46, 230, 192, 0.25);
+  white-space: nowrap;
+}
+
+[data-theme="light"] .master-bar-status {
+  background: rgba(12, 145, 122, 0.1);
+  border-color: rgba(12, 145, 122, 0.25);
+}
+
+.master-bar-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.master-bar-status-dot.pulse {
+  animation: master-pulse 2s ease infinite;
+}
+
+@keyframes master-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.master-bar-status-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* Sun/moon theme toggle */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--w6);
+}
+
+.theme-toggle-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 26px;
+  border: none;
+  border-radius: 8px;
   background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-control);
-  color: var(--text-muted);
+  color: var(--m2);
   cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
-.sidebar-collapse-toggle svg {
-  width: 16px;
-  height: 16px;
+.theme-toggle-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.theme-toggle-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+@media (max-width: 720px) {
+  .master-bar-brightness {
+    display: none;
+  }
+
+  .master-bar {
+    gap: var(--space-md);
+    padding: 12px 16px;
+  }
 }
 
 /* ---------- Bottom navigation (phone) ---------- */
@@ -221,9 +338,9 @@ a.sidebar-version-update:hover {
     justify-content: space-around;
     height: calc(64px + env(safe-area-inset-bottom, 0px));
     padding: 0 var(--space-xs) env(safe-area-inset-bottom, 0px);
-    background: rgba(19, 26, 42, 0.92);
+    background: var(--rail);
     backdrop-filter: blur(12px);
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--w6);
   }
 
   .bottom-nav-item {
@@ -236,7 +353,7 @@ a.sidebar-version-update:hover {
     min-width: 40px; /* touch target */
     border: none;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--m2);
     cursor: pointer;
     padding: 0;
   }

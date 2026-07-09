@@ -12,7 +12,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:3000'
+      // Defaults to the local dev server; set VITE_API_PROXY to point the dev
+      // UI at another backend (e.g. a live instance) for data-rich previews.
+      '/api': process.env.VITE_API_PROXY || 'http://localhost:3000'
     }
   }
 })
