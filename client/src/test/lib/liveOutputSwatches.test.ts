@@ -70,7 +70,7 @@ describe('swatchesForEntry', () => {
   });
 });
 
-describe('swatchesForEntry — live-pixel gradients', () => {
+describe('swatchesForEntry — live-pixel dots', () => {
   const source: LiveSwatchSource = {
     reachable: true,
     state: {
@@ -86,34 +86,34 @@ describe('swatchesForEntry — live-pixel gradients', () => {
     70, 80, 90, 100, 110, 120 // segment 1's two LEDs
   ]);
 
-  it('computes a gradient sliced from the segment\'s own start/len range', () => {
+  it('samples per-pixel dots from the segment\'s own start/len range', () => {
     const swatches = swatchesForEntry(source, pixels);
-    expect(swatches[0].gradient).toBe('linear-gradient(to right, rgb(10, 20, 30), rgb(40, 50, 60))');
+    expect(swatches[0].pixels).toEqual(['rgb(10, 20, 30)', 'rgb(40, 50, 60)']);
   });
 
-  it('does not compute a gradient for a segment that is off', () => {
+  it('does not compute dots for a segment that is off', () => {
     const swatches = swatchesForEntry(source, pixels);
-    expect(swatches[1].gradient).toBeUndefined();
+    expect(swatches[1].pixels).toBeUndefined();
   });
 
-  it('omits the gradient when no live-pixel frame is available', () => {
+  it('omits the dots when no live-pixel frame is available', () => {
     const swatches = swatchesForEntry(source);
-    expect(swatches[0].gradient).toBeUndefined();
+    expect(swatches[0].pixels).toBeUndefined();
   });
 
-  it('omits the gradient when the pixel buffer is too short to cover the segment', () => {
+  it('omits the dots when the pixel buffer is too short to cover the segment', () => {
     const shortPixels = new Uint8Array([10, 20, 30]); // only one LED's worth
     const swatches = swatchesForEntry(source, shortPixels);
-    expect(swatches[0].gradient).toBeUndefined();
+    expect(swatches[0].pixels).toBeUndefined();
   });
 
-  it('uses the loading placeholder (not the configured color) while there is no gradient yet', () => {
+  it('uses the loading placeholder (not the configured color) while there are no dots yet', () => {
     const shortPixels = new Uint8Array([10, 20, 30]);
     expect(swatchesForEntry(source)[0].color).toBe(SWATCH_LIVE_LOADING_COLOR);
     expect(swatchesForEntry(source, shortPixels)[0].color).toBe(SWATCH_LIVE_LOADING_COLOR);
   });
 
-  it('falls back to the configured color once a real gradient is available', () => {
+  it('falls back to the configured color once real dots are available', () => {
     const swatches = swatchesForEntry(source, pixels);
     expect(swatches[0].color).toBe('rgb(255, 0, 0)');
   });
@@ -184,6 +184,6 @@ describe('swatchesForMembers', () => {
     const swatches = swatchesForMembers(
       [{ controllerId: 'c1', wledSegId: 0 }], live, livePixelsByController
     );
-    expect(swatches[0].gradient).toContain('rgb(1, 2, 3)');
+    expect(swatches[0].pixels).toContain('rgb(1, 2, 3)');
   });
 });

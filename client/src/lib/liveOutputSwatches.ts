@@ -22,12 +22,13 @@ export interface LiveOutputSwatch {
    *  run and a 9-LED trim run don't draw as identically-sized dots. Placeholder
    *  (pending/unreachable) swatches use 1 since there's no real size to show yet. */
   len: number;
-  /** CSS gradient sampling the segment's actual current per-pixel colors (via
-   *  the live-view WebSocket, see api/liveWsPixels.ts), when available. Falls
-   *  back to the flat `color` — derived only from the configured color slot —
-   *  when no live pixel frame has arrived yet, e.g. for effects (Rainbow,
-   *  Colorloop, chases...) whose real output doesn't match col[0] at all. */
-  gradient?: string;
+  /** The segment's actual current per-pixel colors (via the live-view
+   *  WebSocket, see api/liveWsPixels.ts), downsampled to a row of discrete
+   *  dots — the design's per-pixel LED readout. Falls back to the flat `color`
+   *  — derived only from the configured color slot — when no live pixel frame
+   *  has arrived yet, e.g. for effects (Rainbow, Colorloop, chases...) whose
+   *  real output doesn't match col[0] at all. */
+  pixels?: string[];
 }
 
 /** Muted grey for a target that isn't reachable at all. */
@@ -59,22 +60,25 @@ export interface LiveSwatchSegment {
   start: number;
 }
 
-const GRADIENT_STOPS = 10;
+const MAX_DOTS = 28;
 
 /** Samples a segment's real LEDs out of the device-wide live-pixel buffer
- *  (RGB triplets in physical LED order) into a CSS linear-gradient. Returns
- *  undefined if the buffer doesn't actually cover this segment's range (e.g.
- *  a stale frame from before a re-segmentation). */
-function pixelsToGradient(pixels: Uint8Array, start: number, len: number): string | undefined {
+ *  (RGB triplets in physical LED order) into a row of discrete dot colors —
+ *  the design's per-pixel readout. Downsampled to at most MAX_DOTS so long
+ *  strips stay a handful of DOM nodes. Returns undefined if the buffer doesn't
+ *  actually cover this segment's range (e.g. a stale frame from before a
+ *  re-segmentation). */
+function pixelsToDots(pixels: Uint8Array, start: number, len: number): string[] | undefined {
   if (len <= 0 || (start + len) * 3 > pixels.length) return undefined;
-  const n = Math.min(GRADIENT_STOPS, len);
-  const stops: string[] = [];
+  const n = Math.min(MAX_DOTS, len);
+  const dots: string[] = [];
   for (let i = 0; i < n; i++) {
-    const ledIndex = start + Math.floor((i / Math.max(1, n - 1)) * (len - 1));
+    // Sample the center of each of the n even buckets across the segment.
+    const ledIndex = start + Math.floor(((i + 0.5) / n) * len);
     const o = ledIndex * 3;
-    stops.push(`rgb(${pixels[o]}, ${pixels[o + 1]}, ${pixels[o + 2]})`);
+    dots.push(`rgb(${pixels[o]}, ${pixels[o + 1]}, ${pixels[o + 2]})`);
   }
-  return `linear-gradient(to right, ${stops.join(', ')})`;
+  return dots;
 }
 
 export interface LiveSwatchSource {
@@ -118,13 +122,13 @@ function swatchesForSource(
   return segs.map((seg) => {
     const on = masterOn && seg.on;
     const len = Math.max(1, seg.len ?? 1);
-    const gradient = on && livePixels ? pixelsToGradient(livePixels, seg.start, len) : undefined;
+    const pixels = on && livePixels ? pixelsToDots(livePixels, seg.start, len) : undefined;
     return {
       key: `${keyPrefix}:${seg.id}`,
       state: on ? 'on' : 'off',
-      color: on && !gradient ? SWATCH_LIVE_LOADING_COLOR : segmentToCssColor({ on, bri: seg.bri, col: seg.col }),
+      color: on && !pixels ? SWATCH_LIVE_LOADING_COLOR : segmentToCssColor({ on, bri: seg.bri, col: seg.col }),
       len,
-      gradient
+      pixels
     };
   });
 }
