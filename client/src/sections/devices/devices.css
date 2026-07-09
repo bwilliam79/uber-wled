@@ -266,3 +266,71 @@
 }
 
 .diff-risk-ack { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-height: 40px; }
+
+/* ---------- Segment strip (visual split/merge editor) ---------- */
+.segment-strip { display: flex; flex-direction: column; gap: 10px; margin-bottom: var(--space-md); }
+
+.segment-strip-track {
+  position: relative;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--led-housing);
+  overflow: hidden;
+}
+
+.segment-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: none;
+  border-right: 2px solid var(--led-housing);
+  cursor: pointer;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.segment-zone.off { opacity: 0.35; }
+.segment-zone.selected { outline: 2px solid #ffffff; outline-offset: -2px; z-index: 2; }
+
+.segment-zone-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.segment-handle {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 3;
+}
+
+.segment-handle::before {
+  content: '';
+  width: 4px;
+  height: 100%;
+  border-radius: 3px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
+
+.segment-handle:focus-visible { outline: none; }
+.segment-handle:focus-visible::before { box-shadow: 0 0 0 2px var(--accent); }
+
+.segment-strip-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: 30px; }
+.segment-strip-sel { font-size: 11px; color: var(--m1); margin-right: 4px; }
+.segment-strip-hint { font-size: 12px; color: var(--m3); }
