@@ -19,7 +19,11 @@
 .theme-row-swatches { display: flex; gap: 4px; }
 .theme-row-swatch { width: 18px; height: 18px; border-radius: 6px; border: 1px solid var(--border); }
 
-.palette-bar { display: inline-block; flex: 1; min-width: 60px; height: 14px; border-radius: 7px; border: 1px solid var(--border); position: relative; overflow: hidden; }
+/* background-clip: padding-box keeps the gradient inside the border. Without
+   it (default border-box), the gradient — sized to the padding box — is
+   repeated to fill the 1px border strip, so the left edge shows a sliver of
+   the gradient's END color wrapping around (e.g. white before red). */
+.palette-bar { display: inline-block; flex: 1; min-width: 60px; height: 14px; border-radius: 7px; border: 1px solid var(--border); background-clip: padding-box; position: relative; overflow: hidden; }
 .palette-random-badge { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: rgba(0, 0, 0, 0.35); }
 
 .theme-form { display: flex; flex-direction: column; gap: 14px; }
