@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { addController } from '../../api/client';
 import { useLiveStatus } from '../../api/live';
 import { useControllers } from '../../api/queries';
 import { ControlSurface } from '../../control/ControlSurface';
 import { Button } from '../../components/ui/Button';
-import { Field } from '../../components/ui/Field';
-import { Modal } from '../../components/ui/Modal';
 import { Skeleton } from '../../components/ui/Skeleton';
-import { useToast } from '../../components/ui/Toast';
 import { DeviceCard } from './DeviceCard';
 import { DeviceDetail } from './DeviceDetail';
 import { deviceHash, parseDevicesHash, type DeviceTab } from './route';
@@ -17,13 +12,7 @@ import './devices.css';
 export function DevicesSection() {
   const [route, setRoute] = useState(() => parseDevicesHash(window.location.hash));
   const controllers = useControllers();
-  const queryClient = useQueryClient();
-  const toast = useToast();
   const [controlId, setControlId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newHost, setNewHost] = useState('');
-  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     const onHash = () => setRoute(parseDevicesHash(window.location.hash));
@@ -46,26 +35,6 @@ export function DevicesSection() {
   function backToList() {
     window.location.hash = '#/devices';
     setRoute({ controllerId: null, tab: 'info' });
-  }
-
-  async function handleAdd() {
-    if (!newName.trim() || !newHost.trim()) return;
-    setAdding(true);
-    try {
-      await addController(newName.trim(), newHost.trim());
-      await queryClient.invalidateQueries({ queryKey: ['controllers'] });
-      setAddOpen(false);
-      setNewName('');
-      setNewHost('');
-    } catch (e) {
-      toast.show({
-        title: 'Could not add controller',
-        description: e instanceof Error ? e.message : undefined,
-        variant: 'error'
-      });
-    } finally {
-      setAdding(false);
-    }
   }
 
   if (route.controllerId) {
@@ -97,7 +66,6 @@ export function DevicesSection() {
     <section className="section devices-section">
       <header className="devices-header">
         <h2>Devices</h2>
-        <Button variant="primary" onClick={() => setAddOpen(true)}>Add controller</Button>
       </header>
       {controllers.isLoading && (
         <div className="devices-grid">
@@ -122,27 +90,6 @@ export function DevicesSection() {
         open={controlId !== null}
         onClose={() => setControlId(null)}
       />
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Add controller"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setAddOpen(false)} disabled={adding}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleAdd}
-              disabled={adding || !newName.trim() || !newHost.trim()}>
-              {adding ? 'Adding…' : 'Add'}
-            </Button>
-          </>
-        }>
-        <Field label="Name" htmlFor="add-controller-name">
-          <input id="add-controller-name" className="input" value={newName}
-            onChange={(e) => setNewName(e.target.value)} placeholder="Front Porch" />
-        </Field>
-        <Field label="Host / IP" htmlFor="add-controller-host">
-          <input id="add-controller-host" className="input" value={newHost}
-            onChange={(e) => setNewHost(e.target.value)} placeholder="10.0.0.50" />
-        </Field>
-      </Modal>
     </section>
   );
 }
