@@ -13,6 +13,7 @@ import { Modal } from '../../components/ui/Modal';
 import { ImportButton } from '../../components/ImportButton';
 import { useToast } from '../../components/ui/Toast';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
+import { AddControllerCard } from './AddControllerCard';
 import './settings.css';
 
 function clampLivePoll(value: number): number {
@@ -147,6 +148,7 @@ export function SettingsSection() {
       )}
 
       <div className="settings-grid">
+        <AddControllerCard />
         <Card className="settings-group">
           <h3 className="settings-group-title">Home location</h3>
           <p className="settings-group-hint">Used for sunrise/sunset schedule triggers.</p>
