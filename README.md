@@ -11,6 +11,21 @@ fights an existing UDP sync group.
 Full design rationale lives in [docs/superpowers/specs/](docs/superpowers/specs/);
 implementation plans live in [docs/superpowers/plans/](docs/superpowers/plans/).
 
+## Screenshots
+
+A dark-first interface (teal accent, Space Grotesk for UI + IBM Plex Mono for
+metrics) with a one-click light theme — the theme, master brightness, and last
+view persist across reloads. LED/effect previews sit on a dark housing in both
+themes so the glow reads like real light.
+
+| Home — rooms & controllers | Devices — 2-col cards |
+|---|---|
+| ![Home](docs/screenshots/home.png) | ![Devices](docs/screenshots/devices.png) |
+
+| Themes — effects, palettes & presets | Segment editor — visual split / merge |
+|---|---|
+| ![Themes](docs/screenshots/themes.png) | ![Segments](docs/screenshots/segments.png) |
+
 ## Quick start
 
 Runs as a single Docker container.
@@ -35,8 +50,11 @@ run `docker compose up -d --build` there; pick a free `PORT` in a local
 
 ## The sections
 
-The app is a responsive shell — left sidebar on desktop, bottom navigation
-bar on phones — opening on Home:
+The app is a responsive shell — an icon nav rail on desktop, bottom navigation
+bar on phones, and a master bar across the top of every view (view title,
+fleet-wide master brightness, an on/sync status pill, and the sun/moon theme
+toggle). The lightbulb logo lights up when any controller is on. Opening on
+Home:
 
 1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
    controller. Any *active* sync group also gets its own tile pinned to the
@@ -59,8 +77,10 @@ bar on phones — opening on Home:
    strip shown automatically, identity, network, uptime, heap, filesystem,
    LED counts, usermods, an opt-in "Open native live view" embed of the
    device's own `/liveview` page, reboot with confirm, open-native-UI),
-   **Segments** (full editor: bounds validated against the LED count,
-   grouping, spacing, offset, reverse, mirror, name, per-segment
+   **Segments** (a visual strip editor — tap a zone to **split** it in half or
+   **merge** it with its neighbor, drag a boundary handle to resize adjacent
+   zones, all backed by the full numeric editor: bounds validated against the
+   LED count, grouping, spacing, offset, reverse, mirror, name, per-segment
    on/brightness, create/delete — applies live), **Presets** (device presets
    and playlists: apply, delete with confirm, save-current-state with
    include-brightness and save-bounds options), **Config** (below), and
