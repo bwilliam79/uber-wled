@@ -93,9 +93,9 @@ describe('SettingsSection v2', () => {
       fireEvent.click(screen.getByText('Find'));
 
       await waitFor(() =>
-        expect((screen.getByLabelText('Home latitude') as HTMLInputElement).value).toBe('40.1234')
+        expect((screen.getByLabelText('Latitude') as HTMLInputElement).value).toBe('40.1234')
       );
-      expect((screen.getByLabelText('Home longitude') as HTMLInputElement).value).toBe('-75.5678');
+      expect((screen.getByLabelText('Longitude') as HTMLInputElement).value).toBe('-75.5678');
     });
 
     it('lets the user pick among multiple ambiguous matches before applying', async () => {
@@ -110,13 +110,13 @@ describe('SettingsSection v2', () => {
 
       const candidate = await screen.findByText('1 Main St, Springfield, MA, USA');
       // Not applied yet — user has to choose.
-      expect((screen.getByLabelText('Home latitude') as HTMLInputElement).value).toBe('');
+      expect((screen.getByLabelText('Latitude') as HTMLInputElement).value).toBe('');
 
       fireEvent.click(candidate);
       await waitFor(() =>
-        expect((screen.getByLabelText('Home latitude') as HTMLInputElement).value).toBe('42.1')
+        expect((screen.getByLabelText('Latitude') as HTMLInputElement).value).toBe('42.1')
       );
-      expect((screen.getByLabelText('Home longitude') as HTMLInputElement).value).toBe('-72.5');
+      expect((screen.getByLabelText('Longitude') as HTMLInputElement).value).toBe('-72.5');
       expect(screen.queryByText('1 Main St, Springfield, IL, USA')).toBeNull();
     });
 

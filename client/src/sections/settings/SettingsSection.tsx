@@ -111,157 +111,169 @@ export function SettingsSection() {
   return (
     <section className="section settings-section">
       <h2>Settings</h2>
-      <Card className="settings-form">
-        {save.isError && (
-          <div className="error-banner" role="alert">Failed to save settings.</div>
-        )}
+      {save.isError && (
+        <div className="error-banner" role="alert">Failed to save settings.</div>
+      )}
 
-        <div className="settings-toggle-row">
-          <Toggle
-            checked={draft.includePrereleaseFirmware}
-            onChange={(c) => patch('includePrereleaseFirmware', c)}
-            label="Include pre-release firmware builds"
-            showLabel={false}
-          />
-          <span>Include pre-release firmware builds</span>
-        </div>
+      <div className="settings-grid">
+        <Card className="settings-group">
+          <h3 className="settings-group-title">Home location</h3>
+          <p className="settings-group-hint">Used for sunrise/sunset schedule triggers.</p>
 
-        <Field label="Home latitude" htmlFor="settings-lat">
-          <input
-            id="settings-lat" className="input" type="number" step="any"
-            value={draft.homeLatitude ?? ''}
-            onChange={(e) =>
-              patch('homeLatitude', e.target.value === '' ? null : Number(e.target.value))
-            }
-          />
-        </Field>
-
-        <Field label="Home longitude" htmlFor="settings-lon">
-          <input
-            id="settings-lon" className="input" type="number" step="any"
-            value={draft.homeLongitude ?? ''}
-            onChange={(e) =>
-              patch('homeLongitude', e.target.value === '' ? null : Number(e.target.value))
-            }
-          />
-        </Field>
-
-        <div className="settings-location-helpers">
-          <div className="settings-location-helper">
-            <Field
-              label="Look up an address"
-              htmlFor="settings-address-lookup"
-              hint="Sends this query to OpenStreetMap's Nominatim geocoding service over the internet — the only outbound call this app makes besides checking for firmware updates."
-            >
-              <div className="settings-address-row">
-                <input
-                  id="settings-address-lookup"
-                  className="input"
-                  type="text"
-                  placeholder="123 Main St, Anytown, USA"
-                  value={addressQuery}
-                  onChange={(e) => setAddressQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleFindAddress();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={addressLoading || addressQuery.trim() === ''}
-                  onClick={handleFindAddress}
-                >
-                  {addressLoading ? 'Finding…' : 'Find'}
-                </Button>
-              </div>
+          <div className="settings-field-pair">
+            <Field label="Latitude" htmlFor="settings-lat">
+              <input
+                id="settings-lat" className="input" type="number" step="any"
+                value={draft.homeLatitude ?? ''}
+                onChange={(e) =>
+                  patch('homeLatitude', e.target.value === '' ? null : Number(e.target.value))
+                }
+              />
             </Field>
-            {addressError && <div className="error-banner" role="alert">{addressError}</div>}
-            {addressCandidates && addressCandidates.length > 1 && (
-              <ul className="settings-address-candidates">
-                {addressCandidates.map((match, i) => (
-                  <li key={`${match.latitude},${match.longitude},${i}`}>
-                    <button
-                      type="button"
-                      className="settings-address-candidate"
-                      onClick={() => applyAddressCandidate(match)}
-                    >
-                      {match.displayName}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <Field label="Longitude" htmlFor="settings-lon">
+              <input
+                id="settings-lon" className="input" type="number" step="any"
+                value={draft.homeLongitude ?? ''}
+                onChange={(e) =>
+                  patch('homeLongitude', e.target.value === '' ? null : Number(e.target.value))
+                }
+              />
+            </Field>
           </div>
-        </div>
 
-        <Field label="Discovery re-scan interval (minutes)" htmlFor="settings-interval">
-          <input
-            id="settings-interval" aria-label="Discovery re-scan interval (minutes)"
-            className="input" type="number" min={1}
-            value={draft.discoveryRescanIntervalMinutes}
-            onChange={(e) => patch('discoveryRescanIntervalMinutes', Number(e.target.value))}
-          />
-        </Field>
-
-        <div className="settings-toggle-row">
-          <Toggle
-            checked={draft.scheduleImportDisableOnDeviceDefault}
-            onChange={(c) => patch('scheduleImportDisableOnDeviceDefault', c)}
-            label="Default disable on device for schedule import"
-            showLabel={false}
-          />
-          <span>Default "disable on device" when importing WLED schedules</span>
-        </div>
-
-        <Field
-          label="Controller status poll interval (minutes)"
-          htmlFor="settings-status-poll-interval"
-          hint="How often each controller's current state (power, brightness, effect, segments) is read and cached"
-        >
-          <input
-            id="settings-status-poll-interval"
-            aria-label="Controller status poll interval (minutes)"
-            className="input" type="number" min={1}
-            value={draft.controllerStatusPollIntervalMinutes}
-            onChange={(e) => patch('controllerStatusPollIntervalMinutes', Number(e.target.value))}
-          />
-        </Field>
-
-        <Field
-          label="Live poll interval (seconds)"
-          htmlFor="settings-live-poll"
-          hint="How often watched controllers are polled while Home, Layout, or a Control panel is open (1–30 s)"
-        >
-          <input
-            id="settings-live-poll" aria-label="Live poll interval (seconds)"
-            className="input" type="number" min={1} max={30}
-            value={draft.livePollIntervalSeconds}
-            onChange={(e) => patch('livePollIntervalSeconds', Number(e.target.value))}
-          />
-        </Field>
-
-        <div className="settings-actions">
-          <Button
-            variant="primary"
-            disabled={save.isPending}
-            onClick={() =>
-              save.mutate({
-                ...draft,
-                livePollIntervalSeconds: clampLivePoll(draft.livePollIntervalSeconds)
-              })
-            }
+          <Field
+            label="Look up an address"
+            htmlFor="settings-address-lookup"
+            hint="Sends this query to OpenStreetMap's Nominatim geocoding service over the internet — the only outbound call this app makes besides checking for firmware updates."
           >
-            {save.isPending ? 'Saving…' : 'Save settings'}
-          </Button>
-          <Button variant="secondary" onClick={handleRescan}>Re-scan now</Button>
-        </div>
+            <div className="settings-address-row">
+              <input
+                id="settings-address-lookup"
+                className="input"
+                type="text"
+                placeholder="123 Main St, Anytown, USA"
+                value={addressQuery}
+                onChange={(e) => setAddressQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleFindAddress();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={addressLoading || addressQuery.trim() === ''}
+                onClick={handleFindAddress}
+              >
+                {addressLoading ? 'Finding…' : 'Find'}
+              </Button>
+            </div>
+          </Field>
+          {addressError && <div className="error-banner" role="alert">{addressError}</div>}
+          {addressCandidates && addressCandidates.length > 1 && (
+            <ul className="settings-address-candidates">
+              {addressCandidates.map((match, i) => (
+                <li key={`${match.latitude},${match.longitude},${i}`}>
+                  <button
+                    type="button"
+                    className="settings-address-candidate"
+                    onClick={() => applyAddressCandidate(match)}
+                  >
+                    {match.displayName}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="settings-group">
+          <h3 className="settings-group-title">Polling &amp; discovery</h3>
+          <p className="settings-group-hint">How often the server reads from your controllers.</p>
+
+          <Field label="Discovery re-scan interval (minutes)" htmlFor="settings-interval">
+            <input
+              id="settings-interval" aria-label="Discovery re-scan interval (minutes)"
+              className="input" type="number" min={1}
+              value={draft.discoveryRescanIntervalMinutes}
+              onChange={(e) => patch('discoveryRescanIntervalMinutes', Number(e.target.value))}
+            />
+          </Field>
+
+          <Field
+            label="Controller status poll interval (minutes)"
+            htmlFor="settings-status-poll-interval"
+            hint="How often each controller's current state (power, brightness, effect, segments) is read and cached"
+          >
+            <input
+              id="settings-status-poll-interval"
+              aria-label="Controller status poll interval (minutes)"
+              className="input" type="number" min={1}
+              value={draft.controllerStatusPollIntervalMinutes}
+              onChange={(e) => patch('controllerStatusPollIntervalMinutes', Number(e.target.value))}
+            />
+          </Field>
+
+          <Field
+            label="Live poll interval (seconds)"
+            htmlFor="settings-live-poll"
+            hint="How often watched controllers are polled while Home, Layout, or a Control panel is open (1–30 s)"
+          >
+            <input
+              id="settings-live-poll" aria-label="Live poll interval (seconds)"
+              className="input" type="number" min={1} max={30}
+              value={draft.livePollIntervalSeconds}
+              onChange={(e) => patch('livePollIntervalSeconds', Number(e.target.value))}
+            />
+          </Field>
+        </Card>
+
+        <Card className="settings-group">
+          <h3 className="settings-group-title">Firmware &amp; schedules</h3>
+          <p className="settings-group-hint">Defaults for firmware updates and WLED schedule import.</p>
+
+          <div className="settings-toggle-row">
+            <Toggle
+              checked={draft.includePrereleaseFirmware}
+              onChange={(c) => patch('includePrereleaseFirmware', c)}
+              label="Include pre-release firmware builds"
+              showLabel={false}
+            />
+            <span>Include pre-release firmware builds</span>
+          </div>
+
+          <div className="settings-toggle-row">
+            <Toggle
+              checked={draft.scheduleImportDisableOnDeviceDefault}
+              onChange={(c) => patch('scheduleImportDisableOnDeviceDefault', c)}
+              label="Default disable on device for schedule import"
+              showLabel={false}
+            />
+            <span>Default "disable on device" when importing WLED schedules</span>
+          </div>
+        </Card>
+      </div>
+
+      <div className="settings-actions">
+        <Button
+          variant="primary"
+          disabled={save.isPending}
+          onClick={() =>
+            save.mutate({
+              ...draft,
+              livePollIntervalSeconds: clampLivePoll(draft.livePollIntervalSeconds)
+            })
+          }
+        >
+          {save.isPending ? 'Saving…' : 'Save settings'}
+        </Button>
+        <Button variant="secondary" onClick={handleRescan}>Re-scan now</Button>
         {rescanMessage && <p className="settings-note">{rescanMessage}</p>}
         {rescanError && <div className="error-banner" role="alert">{rescanError}</div>}
-      </Card>
+      </div>
     </section>
   );
 }
