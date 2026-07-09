@@ -14,6 +14,7 @@ import { createCalendarRouter } from './calendar/routes.js';
 import { createSettingsRouter } from './settings/routes.js';
 import { createLiveRouter } from './live/routes.js';
 import { createDevicesRouter } from './devices/routes.js';
+import { createAppUpdateRouter } from './appUpdate/routes.js';
 
 export function createApp(db: Database.Database) {
   const app = express();
@@ -37,6 +38,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/calendar-events', createCalendarRouter(db));
   app.use('/api/settings', createSettingsRouter(db));
   app.use('/api/live', createLiveRouter(db));
+  app.use('/api/app-update', createAppUpdateRouter(db));
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {

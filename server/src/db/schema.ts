@@ -89,6 +89,14 @@ export function runMigrations(db: Database.Database): void {
       fetched_at TEXT NOT NULL
     );
 
+    -- Single-row cache (like settings) for the "is a newer uber-wled version
+    -- available upstream" check — avoids hitting GitHub on every page load.
+    CREATE TABLE IF NOT EXISTS app_update_cache (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      latest_version TEXT,
+      fetched_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       include_prerelease_firmware INTEGER NOT NULL DEFAULT 0,

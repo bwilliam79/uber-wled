@@ -5,10 +5,11 @@ import {
   listControllers, listGroups, listThemes, listSchedules, listCalendarEvents,
   getControllerStatus, getFirmwareStatus, getSettings,
   getCapabilities, listDevicePresets, getControllerConfig, getControllerSegments,
-  listStrips, listRoomLabels, listSyncGroups,
+  listStrips, listRoomLabels, listSyncGroups, getAppUpdateStatus,
   type Controller, type Group, type CustomTheme, type ControllerStatus,
   type Schedule, type CalendarEvent, type Settings, type FirmwareStatus,
-  type ControllerCapabilities, type DevicePreset, type Strip, type RoomLabel, type SyncGroup
+  type ControllerCapabilities, type DevicePreset, type Strip, type RoomLabel, type SyncGroup,
+  type AppUpdateStatus
 } from './client';
 
 export function useControllers(): UseQueryResult<Controller[]> {
@@ -148,6 +149,21 @@ export function useFirmwareUpdateAvailable(): boolean {
     refetchInterval: FIRMWARE_CHECK_INTERVAL_MS
   });
   return query.data ?? false;
+}
+
+/**
+ * Passive check for a newer uber-wled release upstream (the app itself, not
+ * device firmware). The server caches its GitHub check for hours, so a
+ * modest client refetch interval just picks up a server-side cache refresh
+ * without hammering anything.
+ */
+export function useAppUpdateStatus(): UseQueryResult<AppUpdateStatus> {
+  return useQuery({
+    queryKey: ['app-update'],
+    queryFn: getAppUpdateStatus,
+    refetchInterval: 6 * 60 * 60_000,
+    staleTime: 60 * 60_000
+  });
 }
 
 export function useStrips(): UseQueryResult<Strip[]> {

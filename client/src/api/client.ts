@@ -253,6 +253,19 @@ export const pushFirmwareUpdate = (controllerId: string) =>
     `/api/controllers/${controllerId}/firmware/update`, 'POST'
   );
 
+/** Passive check for a newer uber-wled release upstream — the app itself,
+ *  not device firmware. There's no in-place update; the user pulls and
+ *  rebuilds. `latestVersion` is null when the upstream check has never
+ *  succeeded (e.g. offline install). */
+export interface AppUpdateStatus {
+  currentVersion: string;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  repoUrl: string;
+}
+
+export const getAppUpdateStatus = () => getJson<AppUpdateStatus>('/api/app-update');
+
 export const getSegmentsSnapshot = (controllerId: string) =>
   getJson<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][] }[]>(
     `/api/controllers/${controllerId}/segments`
