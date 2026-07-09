@@ -13,7 +13,8 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { Slider } from '../../components/ui/Slider';
 import { Toggle } from '../../components/ui/Toggle';
 import { useToast } from '../../components/ui/Toast';
-import { nextFreeSegmentId, validateSegmentBounds } from './segmentLogic';
+import { nextFreeSegmentId, validateSegmentBounds, splitSegmentAt, mergeSegments } from './segmentLogic';
+import { SegmentStrip } from './SegmentStrip';
 import './devices.css';
 
 export interface SegmentsTabProps {
@@ -111,6 +112,7 @@ export function SegmentsTab({ controllerId, ledCount, maxSeg }: SegmentsTabProps
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [newStart, setNewStart] = useState('0');
   const [newStop, setNewStop] = useState('');
 
@@ -127,6 +129,40 @@ export function SegmentsTab({ controllerId, ledCount, maxSeg }: SegmentsTabProps
   }
 
   const list = segments.data ?? [];
+
+  // Split: shrink the segment to its left half, create the right half.
+  function splitSeg(segId: number, boundary: number) {
+    const seg = list.find((s) => s.id === segId);
+    if (!seg) return;
+    const parts = splitSegmentAt(seg, boundary);
+    if (!parts) return;
+    run(async () => {
+      await updateControllerSegment(controllerId, segId, { start: parts.left.start, stop: parts.left.stop });
+      return createControllerSegment(controllerId, { start: parts.right.start, stop: parts.right.stop });
+    }, 'Segment split failed');
+  }
+
+  // Merge: grow the surviving segment to span both, delete the other.
+  function mergeSeg(aId: number, bId: number) {
+    const a = list.find((s) => s.id === aId);
+    const b = list.find((s) => s.id === bId);
+    if (!a || !b) return;
+    const m = mergeSegments(a, b);
+    setSelectedId(m.keepId);
+    run(async () => {
+      await updateControllerSegment(controllerId, m.keepId, { start: m.start, stop: m.stop });
+      return deleteControllerSegment(controllerId, m.deleteId);
+    }, 'Segment merge failed');
+  }
+
+  // Drag a shared boundary: left.stop and right.start both move to it.
+  function moveBoundary(leftId: number, rightId: number, boundary: number) {
+    run(async () => {
+      await updateControllerSegment(controllerId, leftId, { stop: boundary });
+      return updateControllerSegment(controllerId, rightId, { start: boundary });
+    }, 'Segment resize failed');
+  }
+
   const nextId = nextFreeSegmentId(list, maxSeg);
   const limit = ledCount > 0 ? ledCount : Number.MAX_SAFE_INTEGER;
   const createError = newStop === '' ? null : validateSegmentBounds(Number(newStart), Number(newStop), limit);
@@ -136,6 +172,18 @@ export function SegmentsTab({ controllerId, ledCount, maxSeg }: SegmentsTabProps
 
   return (
     <div className="segments-tab">
+      {ledCount > 0 && list.length > 0 && (
+        <SegmentStrip
+          segments={list}
+          ledCount={ledCount}
+          busy={busy}
+          selectedId={selectedId}
+          onSelect={setSelectedId}
+          onSplit={splitSeg}
+          onMerge={mergeSeg}
+          onBoundary={moveBoundary}
+        />
+      )}
       {list.map((segment) => (
         <SegmentRow key={segment.id} segment={segment} ledCount={ledCount} busy={busy}
           onApply={(segId, patch) =>
