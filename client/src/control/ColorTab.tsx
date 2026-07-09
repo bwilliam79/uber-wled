@@ -9,6 +9,13 @@ import { getRecentColors, pushRecentColor } from '../lib/recentColors';
 
 const KELVIN_PRESETS = [2700, 3500, 5000, 6500] as const;
 const DEFAULT_SLOT_LABELS = ['Fx', 'Bg', 'Cs'] as const;
+
+/** Readable label color over a swatch: dark on light colors, light on dark. */
+function labelOn(rgb: unknown): string | undefined {
+  if (!Array.isArray(rgb)) return undefined; // transparent/mixed → inherit
+  const lum = (0.299 * (rgb[0] ?? 0) + 0.587 * (rgb[1] ?? 0) + 0.114 * (rgb[2] ?? 0)) / 255;
+  return lum > 0.6 ? '#0a0a0c' : '#ffffff';
+}
 const CHANNELS = [
   { label: 'Red', index: 0 },
   { label: 'Green', index: 1 },
@@ -80,7 +87,7 @@ export function ColorTab({ agg, fxMeta, anyRgbw, cctSupported, onColorChange, on
             return (
               <button key={i} type="button"
                 className={i === slot ? 'slot-swatch active' : 'slot-swatch'}
-                style={{ background: swatch }}
+                style={{ background: swatch, color: labelOn(slotValue) }}
                 onClick={() => setActiveSlot(i)}>
                 {labels[i]}
               </button>
