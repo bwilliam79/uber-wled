@@ -4,9 +4,9 @@ import { ColorTab } from '../../control/ColorTab';
 import { FX_BLINK } from '../fixtures/capabilities';
 import type { AggregatedControlState } from '../../control/controlState';
 
-vi.mock('../../components/ui/ColorWheel', () => ({
-  ColorWheel: ({ color }: { color: { r: number; g: number; b: number } }) => (
-    <div data-testid="color-wheel-mock" data-color={`${color.r},${color.g},${color.b}`} />
+vi.mock('../../components/ui/ConicColorWheel', () => ({
+  ConicColorWheel: ({ colorHex }: { colorHex: string }) => (
+    <div data-testid="color-wheel-mock" data-color={colorHex} />
   )
 }));
 
@@ -43,7 +43,7 @@ describe('ColorTab', () => {
     render(<ColorTab agg={makeAgg({ colors: ['mixed', null, null] })} fxMeta={FX_BLINK}
       anyRgbw={false} cctSupported={false} onColorChange={vi.fn()} onCctChange={vi.fn()} />);
     expect(screen.getByText('Mixed')).toBeTruthy();
-    expect(screen.getByTestId('color-wheel-mock').getAttribute('data-color')).toBe('255,255,255');
+    expect(screen.getByTestId('color-wheel-mock').getAttribute('data-color')).toBe('#ffffff');
   });
 
   it('applies a committed hex value to the active slot, preserving the white channel, and records a recent color', () => {
