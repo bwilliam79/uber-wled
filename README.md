@@ -98,6 +98,14 @@ bar on phones — with eight sections, opening on Home:
    deliberately left out: it requires HTTPS or localhost, which this
    LAN-only, plain-HTTP app never is, so it would always fail.
 
+The sidebar also passively checks GitHub for a newer **uber-wled** release
+(the app itself, not device firmware) — the server reads `server/package.json`
+off the tip of `main` via GitHub's raw-content CDN, caches it for six hours,
+and compares it to the running version. When a newer version exists, the
+version label under the logo turns into an "update available" link to the
+repo. There is no in-place self-update: updating means `git pull` +
+`docker compose up -d --build` on the host, as with any deploy.
+
 ## The Control surface
 
 One shared component, three entry points (Home tiles, Layout selection,
@@ -226,7 +234,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 45 files / 348 tests
-cd client && npm test   # 77 files / 593 tests
+cd client && npm test   # 77 files / 595 tests
 ```
 
 ## Running the whole app locally via Docker
