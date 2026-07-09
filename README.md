@@ -39,7 +39,10 @@ The app is a responsive shell — left sidebar on desktop, bottom navigation
 bar on phones — opening on Home:
 
 1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
-   controller. Tiles show live power/brightness with a small status dot
+   controller. Any *active* sync group also gets its own tile pinned to the
+   front of the grid (tagged "Sync"), so you can power/dim the whole synced
+   set from Home; its member controllers still appear as their own tiles.
+   Tiles show live power/brightness with a small status dot
    (green on, red off, amber mixed, grey offline/unknown) plus a small
    live-output strip with one swatch per segment for an at-a-glance read of
    exactly what's showing. Quick power toggle and
