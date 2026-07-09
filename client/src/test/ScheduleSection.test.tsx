@@ -40,19 +40,31 @@ function stub(events: unknown[] = [halloween]) {
 }
 
 describe('ScheduleSection v2', () => {
-  it('shows the day panel with the override badge when an enabled event day is selected', async () => {
+  it('opens a day overlay with the override badge when a day that has an enabled event is clicked', async () => {
     stub();
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    // Wait for the event chip to render so the click sees the loaded events.
+    await screen.findByText('Halloween');
     fireEvent.click(screen.getByTestId('day-31'));
     await waitFor(() => expect(screen.getByText(/Overrides the weekly schedule/i)).toBeTruthy());
     expect(screen.getByText(/theme · Spooky/)).toBeTruthy();
   });
 
+  it('clicking an empty day opens the create form prefilled with that date', async () => {
+    stub([]); // no events → every day is empty
+    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('day-12'));
+    // The create form opens with the clicked day's date prefilled.
+    expect((await screen.findByLabelText('month') as HTMLInputElement).value).toBe('10');
+    expect((screen.getByLabelText('day') as HTMLInputElement).value).toBe('12');
+    expect(screen.getByText('New calendar event')).toBeTruthy();
+  });
+
   it('toggling an event PATCHes enabled', async () => {
     const fetchMock = stub();
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    await screen.findByText('Halloween');
     fireEvent.click(screen.getByTestId('day-31'));
     fireEvent.click(await screen.findByLabelText('Halloween enabled'));
     await waitFor(() =>
@@ -73,7 +85,7 @@ describe('ScheduleSection v2', () => {
     // theme for a holiday entry" gap.
     const fetchMock = stub();
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    await screen.findByText('Halloween');
     fireEvent.click(screen.getByTestId('day-31'));
     fireEvent.click(await screen.findByText('Edit'));
     expect((await screen.findByLabelText('event name') as HTMLInputElement).value).toBe('Halloween');

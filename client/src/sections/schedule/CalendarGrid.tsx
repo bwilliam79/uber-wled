@@ -55,25 +55,35 @@ export function CalendarGrid({
           day === null ? (
             <div key={`pad-${idx}`} className="calendar-cell empty" />
           ) : (
-            <button
-              key={day}
-              type="button"
-              data-testid={`day-${day}`}
-              className={`calendar-cell${selectedDay === day ? ' selected' : ''}`}
-              onClick={() => onSelectDay(day)}
-            >
-              <span className="calendar-day-num">{day}</span>
-              <span className="calendar-chips">
-                {eventsForDay(events, year, month, day).map((e) => (
-                  <span
-                    key={e.id}
-                    className={`event-chip ${e.enabled ? 'enabled' : 'disabled'} ${e.category}`}
-                  >
-                    {e.name}
-                  </span>
-                ))}
-              </span>
-            </button>
+            (() => {
+              const dayEvents = eventsForDay(events, year, month, day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  data-testid={`day-${day}`}
+                  className={`calendar-cell${selectedDay === day ? ' selected' : ''}${dayEvents.length === 0 ? ' empty-day' : ''}`}
+                  aria-label={dayEvents.length === 0 ? `Add event on ${MONTHS[month - 1]} ${day}` : `${MONTHS[month - 1]} ${day}`}
+                  onClick={() => onSelectDay(day)}
+                >
+                  <span className="calendar-day-num">{day}</span>
+                  {dayEvents.length === 0 ? (
+                    <span className="calendar-add" aria-hidden="true">+</span>
+                  ) : (
+                    <span className="calendar-chips">
+                      {dayEvents.map((e) => (
+                        <span
+                          key={e.id}
+                          className={`event-chip ${e.enabled ? 'enabled' : 'disabled'} ${e.category}`}
+                        >
+                          {e.name}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </button>
+              );
+            })()
           )
         )}
       </div>

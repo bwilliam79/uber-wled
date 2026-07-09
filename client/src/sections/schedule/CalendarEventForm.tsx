@@ -78,6 +78,7 @@ export function CalendarEventForm({
   live,
   themes,
   initialEvent,
+  defaultDate,
   onCreated,
   onSaved
 }: {
@@ -92,13 +93,16 @@ export function CalendarEventForm({
    *  (holidays defined by a computed rule like "4th Thursday of November"
    *  keep that rule as-is — this form has no UI for editing those rules). */
   initialEvent?: CalendarEvent;
+  /** Prefills the month/day when creating a new event (e.g. from a clicked
+   *  calendar day). Ignored in edit mode. */
+  defaultDate?: { month: number; day: number };
   onCreated?: (event: CalendarEvent) => void;
   onSaved?: (event: CalendarEvent) => void;
 }) {
   const fixedDate = initialEvent?.dateRule.kind === 'fixed' ? initialEvent.dateRule : null;
   const [name, setName] = useState(initialEvent?.name ?? '');
-  const [month, setMonth] = useState(fixedDate?.month ?? 1);
-  const [day, setDay] = useState(fixedDate?.day ?? 1);
+  const [month, setMonth] = useState(fixedDate?.month ?? defaultDate?.month ?? 1);
+  const [day, setDay] = useState(fixedDate?.day ?? defaultDate?.day ?? 1);
   const [triggerTime, setTriggerTime] = useState<TriggerTime>(
     initialEvent?.triggerTime ?? { type: 'fixed', time: '18:00' }
   );

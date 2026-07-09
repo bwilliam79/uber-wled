@@ -71,10 +71,12 @@ bar on phones — opening on Home:
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.
-4. **Schedule** — a real month calendar. Holidays and custom events sit as
-   chips on their dates; a side panel shows the selected day plus weekly and
-   cron recurring schedules, each targeting either a Room group or a set of
-   specific controllers directly. An enabled calendar event overrides overlapping
+4. **Schedule** — a real, full-width month calendar. Holidays and custom
+   events sit as chips on their dates; clicking a day opens an overlay to
+   view/edit that day's events, and clicking an empty day (marked with a +)
+   opens the same dialog to create a custom entry prefilled with that date.
+   Below the calendar, weekly and cron recurring schedules each target either
+   a Room group or a set of specific controllers directly. An enabled calendar event overrides overlapping
    schedules for that day. Every schedule and event shows what it's actually
    assigned to and can be edited in place (name, target, theme, time; the
    date too, unless it's a computed rule like "4th Thursday of November"), not just
@@ -265,7 +267,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 47 files / 365 tests
-cd client && npm test   # 77 files / 601 tests
+cd client && npm test   # 77 files / 602 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered

@@ -29,8 +29,10 @@ export function ScheduleSection({
   const now = new Date();
   const [year, setYear] = useState(initialYear ?? now.getFullYear());
   const [month, setMonth] = useState(initialMonth ?? now.getMonth() + 1);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [eventFormOpen, setEventFormOpen] = useState(false);
+  // The day whose events overlay is open (a day that has events), and the
+  // date the create form is prefilled for (from clicking an empty day).
+  const [openDay, setOpenDay] = useState<number | null>(null);
+  const [createDate, setCreateDate] = useState<{ month: number; day: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const events = useCalendarEvents();
   const groups = useGroups();
@@ -57,17 +59,23 @@ export function ScheduleSection({
   }
 
   function prev() {
-    setSelectedDay(null);
+    setOpenDay(null);
     if (month === 1) { setMonth(12); setYear((y) => y - 1); } else { setMonth((m) => m - 1); }
   }
   function next() {
-    setSelectedDay(null);
+    setOpenDay(null);
     if (month === 12) { setMonth(1); setYear((y) => y + 1); } else { setMonth((m) => m + 1); }
   }
   function today() {
     setYear(now.getFullYear());
     setMonth(now.getMonth() + 1);
-    setSelectedDay(now.getDate());
+  }
+
+  // Clicking a day: if it has events, open the day overlay; if it's empty,
+  // jump straight into creating a custom event prefilled with that date.
+  function handleSelectDay(day: number) {
+    if (eventsForDay(eventList, year, month, day).length > 0) setOpenDay(day);
+    else setCreateDate({ month, day });
   }
 
   async function toggleEnabled(id: string, enabled: boolean) {
@@ -84,7 +92,11 @@ export function ScheduleSection({
   }
 
   const eventList = events.data ?? [];
-  const dayEvents = selectedDay === null ? [] : eventsForDay(eventList, year, month, selectedDay);
+  const dayEvents = openDay === null ? [] : eventsForDay(eventList, year, month, openDay);
+  const MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
   function targetLabel(e: CalendarEvent): string {
     if (e.controllers && e.controllers.length > 0) {
       const names = e.controllers.map((c) => {
@@ -122,63 +134,80 @@ export function ScheduleSection({
       <div className="schedule-body">
         <Card className="schedule-calendar">
           <CalendarGrid
-            events={eventList} year={year} month={month} selectedDay={selectedDay}
-            onSelectDay={setSelectedDay} onPrev={prev} onNext={next} onToday={today}
+            events={eventList} year={year} month={month} selectedDay={openDay}
+            onSelectDay={handleSelectDay} onPrev={prev} onNext={next} onToday={today}
           />
-          <Button variant="primary" onClick={() => setEventFormOpen(true)}>+ Event</Button>
-        </Card>
-        <Card className="schedule-detail">
-          <h3>{selectedDay === null ? 'Select a day' : `Day ${selectedDay}`}</h3>
-          {selectedDay === null && (
-            <p className="empty-state">Click a date on the calendar to view or add events for that day.</p>
-          )}
-          {selectedDay !== null && dayEvents.length === 0 && (
-            <p className="empty-state">No events on this day.</p>
-          )}
-          {dayEvents.map((e) => (
-            <div key={e.id} className="schedule-detail-event">
-              <div className="schedule-detail-event-head">
-                <Toggle
-                  checked={e.enabled}
-                  onChange={(checked) => toggleEnabled(e.id, checked)}
-                  label={`${e.name} enabled`}
-                  showLabel={false}
-                />
-                <span className="schedule-detail-event-name">{e.name}</span>
-                <Chip variant={e.category === 'holiday' ? 'accent' : 'default'}>{e.category}</Chip>
-              </div>
-              <span className="schedule-detail-meta">
-                {e.actionType ?? 'action'} · {themeName(e.actionPayload)}
-              </span>
-              <span className="schedule-detail-meta">
-                Trigger {triggerLabel(e)} · {targetLabel(e)}
-              </span>
-              {e.enabled && <Chip variant="warning">Overrides the weekly schedule this day</Chip>}
-              <div className="schedule-detail-event-actions">
-                <Button variant="secondary" onClick={() => setEditingEvent(e)}>Edit</Button>
-                <Button variant="danger" onClick={() => remove(e.id)}>Remove</Button>
-              </div>
-            </div>
-          ))}
+          <p className="schedule-hint">Click a day to edit its events, or an empty day (+) to add one.</p>
         </Card>
       </div>
-      <Modal open={eventFormOpen} title="New calendar event" onClose={() => setEventFormOpen(false)}>
-        <CalendarEventForm
-          groups={groups.data ?? []}
-          controllers={controllers.data ?? []}
-          live={live}
-          themes={themes.data ?? []}
-          onCreated={(e) => {
-            queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prevData) => [
-              ...(prevData ?? []),
-              e
-            ]);
-            setEventFormOpen(false);
-          }}
-        />
+
+      {/* Day overlay: the events on a clicked day, with add/edit/remove. */}
+      <Modal
+        open={openDay !== null}
+        size="lg"
+        title={openDay === null ? '' : `${MONTH_NAMES[month - 1]} ${openDay}, ${year}`}
+        onClose={() => setOpenDay(null)}
+        footer={
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (openDay !== null) setCreateDate({ month, day: openDay });
+              setOpenDay(null);
+            }}
+          >
+            + Add event this day
+          </Button>
+        }
+      >
+        {dayEvents.length === 0 && <p className="empty-state">No events on this day.</p>}
+        {dayEvents.map((e) => (
+          <div key={e.id} className="schedule-detail-event">
+            <div className="schedule-detail-event-head">
+              <Toggle
+                checked={e.enabled}
+                onChange={(checked) => toggleEnabled(e.id, checked)}
+                label={`${e.name} enabled`}
+                showLabel={false}
+              />
+              <span className="schedule-detail-event-name">{e.name}</span>
+              <Chip variant={e.category === 'holiday' ? 'accent' : 'default'}>{e.category}</Chip>
+            </div>
+            <span className="schedule-detail-meta">
+              {e.actionType ?? 'action'} · {themeName(e.actionPayload)}
+            </span>
+            <span className="schedule-detail-meta">
+              Trigger {triggerLabel(e)} · {targetLabel(e)}
+            </span>
+            {e.enabled && <Chip variant="warning">Overrides the weekly schedule this day</Chip>}
+            <div className="schedule-detail-event-actions">
+              <Button variant="secondary" onClick={() => { setEditingEvent(e); setOpenDay(null); }}>Edit</Button>
+              <Button variant="danger" onClick={() => remove(e.id)}>Remove</Button>
+            </div>
+          </div>
+        ))}
+      </Modal>
+
+      <Modal open={createDate !== null} size="lg" title="New calendar event" onClose={() => setCreateDate(null)}>
+        {createDate && (
+          <CalendarEventForm
+            groups={groups.data ?? []}
+            controllers={controllers.data ?? []}
+            live={live}
+            themes={themes.data ?? []}
+            defaultDate={createDate}
+            onCreated={(e) => {
+              queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prevData) => [
+                ...(prevData ?? []),
+                e
+              ]);
+              setCreateDate(null);
+            }}
+          />
+        )}
       </Modal>
       <Modal
         open={editingEvent !== null}
+        size="lg"
         title={editingEvent?.category === 'holiday' ? 'Edit holiday' : 'Edit calendar event'}
         onClose={() => setEditingEvent(null)}
       >

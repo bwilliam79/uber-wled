@@ -6,8 +6,10 @@
 .calendar-event-triggers { display: flex; gap: var(--space-md); flex-wrap: wrap; }
 .trigger-picker { display: flex; gap: 8px; align-items: flex-end; }
 .trigger-picker .input[type="number"], .trigger-picker .input[type="time"] { max-width: 130px; }
-.schedule-body { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 900px) { .schedule-body { grid-template-columns: 1fr; } }
+/* Full-width calendar — the per-day details/edit now live in an overlay
+   opened by clicking a day, rather than a right side panel. */
+.schedule-body { display: block; }
+.schedule-hint { color: var(--text-muted); font-size: 0.85rem; margin: 8px 0 0; }
 
 .calendar { display: flex; flex-direction: column; gap: 10px; }
 .calendar-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -15,7 +17,9 @@
 .calendar-header-actions { display: flex; gap: 6px; }
 .calendar-weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .calendar-weekday { text-align: center; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 4px 0; }
-.calendar-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 56px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text); cursor: pointer; font: inherit; text-align: left; }
+.calendar-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 76px; padding: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text); cursor: pointer; font: inherit; text-align: left; }
+.calendar-add { align-self: center; margin: auto; font-size: 1.3rem; line-height: 1; color: var(--text-muted); opacity: 0.25; }
+.calendar-cell.empty-day:hover .calendar-add { opacity: 0.9; color: var(--accent); }
 .calendar-cell:hover { background: var(--surface-2); }
 .calendar-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .calendar-cell.empty { background: none; border: none; cursor: default; }
