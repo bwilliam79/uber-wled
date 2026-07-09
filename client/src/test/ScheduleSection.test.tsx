@@ -72,10 +72,31 @@ describe('ScheduleSection v2', () => {
     );
   });
 
-  it('renders the weekly schedules region', async () => {
+  it('shows the calendar by default and the weekly schedules under the Weekly tab', async () => {
     stub([]);
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
+    // Weekly schedules aren't shown on the Calendar tab.
+    expect(screen.queryByText('Weekly schedules')).toBeNull();
+    fireEvent.click(screen.getByRole('tab', { name: 'Weekly' }));
     await waitFor(() => expect(screen.getByText('Weekly schedules')).toBeTruthy());
+    // Switching to Weekly hides the calendar.
+    expect(screen.queryByTestId('calendar-grid')).toBeNull();
+  });
+
+  it('marks a configured holiday (theme + enabled) distinctly from an unconfigured one', async () => {
+    const configured = { ...halloween, id: 'c1', name: 'Halloween', enabled: true, actionType: 'theme' };
+    const placeholder = {
+      id: 'p1', name: 'Thanksgiving', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 10, day: 15 }, recursYearly: true, enabled: true,
+      groupId: null, triggerTime: { type: 'fixed', time: '18:00' }, actionType: null, actionPayload: null
+    };
+    stub([configured, placeholder]);
+    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
+    const configuredChip = await screen.findByText('Halloween');
+    const placeholderChip = await screen.findByText('Thanksgiving');
+    expect(configuredChip.className).toContain('configured');
+    expect(placeholderChip.className).toContain('unconfigured');
   });
 
   it('Edit opens a pre-filled form and PATCHes the event on save, including for a holiday', async () => {

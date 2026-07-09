@@ -11,6 +11,7 @@ import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import { Modal } from '../../components/ui/Modal';
 import { Toggle } from '../../components/ui/Toggle';
+import { Tabs } from '../../components/ui/Tabs';
 import { ImportButton } from '../../components/ImportButton';
 import { useToast } from '../../components/ui/Toast';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
@@ -34,6 +35,7 @@ export function ScheduleSection({
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [createDate, setCreateDate] = useState<{ month: number; day: number } | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [tab, setTab] = useState<'calendar' | 'weekly'>('calendar');
   const events = useCalendarEvents();
   const groups = useGroups();
   const controllers = useControllers();
@@ -131,15 +133,26 @@ export function ScheduleSection({
           <ImportButton label="Import" size="sm" onFile={handleImport} />
         </div>
       </div>
-      <div className="schedule-body">
-        <Card className="schedule-calendar">
-          <CalendarGrid
-            events={eventList} year={year} month={month} selectedDay={openDay}
-            onSelectDay={handleSelectDay} onPrev={prev} onNext={next} onToday={today}
-          />
-          <p className="schedule-hint">Click a day to edit its events, or an empty day (+) to add one.</p>
-        </Card>
-      </div>
+      <Tabs
+        label="Schedule views"
+        active={tab}
+        onChange={(id) => setTab(id as 'calendar' | 'weekly')}
+        tabs={[
+          { id: 'calendar', label: 'Calendar' },
+          { id: 'weekly', label: 'Weekly' }
+        ]}
+      />
+      {tab === 'calendar' && (
+        <div className="schedule-body">
+          <Card className="schedule-calendar">
+            <CalendarGrid
+              events={eventList} year={year} month={month} selectedDay={openDay}
+              onSelectDay={handleSelectDay} onPrev={prev} onNext={next} onToday={today}
+            />
+            <p className="schedule-hint">Click a day to edit its events, or an empty day (+) to add one.</p>
+          </Card>
+        </div>
+      )}
 
       {/* Day overlay: the events on a clicked day, with add/edit/remove. */}
       <Modal
@@ -227,7 +240,7 @@ export function ScheduleSection({
           />
         )}
       </Modal>
-      <ScheduleManager />
+      {tab === 'weekly' && <ScheduleManager />}
     </section>
   );
 }
