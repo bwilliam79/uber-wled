@@ -350,3 +350,39 @@
 .room-group-icon { font-size: 16px; }
 .room-group-name { font-size: 15px; font-weight: 600; }
 .room-group-count { font-size: 11px; color: var(--m2); background: var(--w6); padding: 1px 8px; border-radius: 999px; }
+
+/* ---------- Manage-rooms modal ---------- */
+.rooms-manager { display: flex; flex-direction: column; gap: 18px; }
+.rooms-manager-room {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--w8);
+  border-radius: 12px;
+  background: var(--w3);
+}
+.rooms-manager-room-head { display: flex; align-items: center; gap: 10px; }
+.rooms-manager-room-head .input { flex: 1; }
+.rooms-manager-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding-top: 4px;
+}
+.rooms-manager-member {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+}
+.rooms-manager-create {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--w6);
+}
+.rooms-manager-create .input { flex: 1; }
