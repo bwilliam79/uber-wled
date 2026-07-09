@@ -26,7 +26,10 @@ bar on phones — with eight sections, opening on Home:
    hover-checkbox (desktop) multi-selects tiles into one Control session.
    Edit mode creates/renames/deletes rooms, assigns controller+segment
    members inline, and drag-reorders tiles.
-2. **Layout** — an imageless canvas of the house. Draw each strip as a
+2. **Layout** — _currently hidden from the nav_ (the section and its code
+   are kept intact; re-adding its entry to `SECTIONS` in
+   `client/src/components/nav.ts` brings it back). An imageless canvas of
+   the house. Draw each strip as a
    multi-point path (click to place vertices, then either click the
    "Finish line" button or press Enter/double-click to finish, Esc/Cancel
    to abandon, Shift for 45° angles; an always-on grid with visible minor

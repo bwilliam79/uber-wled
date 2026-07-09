@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AppShell, sectionFromHash } from '../components/AppShell';
 import { ToastProvider } from '../components/ui/Toast';
 
-const EIGHT = ['Home', 'Layout', 'Devices', 'Themes', 'Schedule', 'Sync', 'Firmware', 'Settings'];
+const SECTION_NAMES = ['Home', 'Devices', 'Themes', 'Schedule', 'Sync', 'Firmware', 'Settings'];
 
 function renderShell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
@@ -25,28 +25,31 @@ afterEach(() => vi.unstubAllGlobals());
 beforeEach(() => { window.location.hash = ''; });
 
 describe('AppShell v2', () => {
-  it('opens on Home and lists exactly the eight sections in the sidebar (no Groups)', async () => {
+  it('opens on Home and lists the sections in the sidebar (no Groups, no Layout)', async () => {
     stubFetchEmpty();
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Sections' });
     await waitFor(() =>
       expect(within(sidebar).getByRole('button', { name: /Home/ }).className).toContain('active')
     );
-    for (const name of EIGHT) {
+    for (const name of SECTION_NAMES) {
       expect(within(sidebar).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
     expect(within(sidebar).queryByRole('button', { name: /Groups/ })).toBeNull();
     expect(within(sidebar).queryByRole('button', { name: /Controllers/ })).toBeNull();
+    // Layout is hidden from the nav for now (component/route kept in code).
+    expect(within(sidebar).queryByRole('button', { name: /Layout/ })).toBeNull();
     expect(within(sidebar).getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy();
   });
 
-  it('renders a bottom navigation with the same eight sections', () => {
+  it('renders a bottom navigation with the same sections (no Layout)', () => {
     stubFetchEmpty();
     renderShell();
     const bottom = screen.getByRole('navigation', { name: 'Bottom navigation' });
-    for (const name of EIGHT) {
+    for (const name of SECTION_NAMES) {
       expect(within(bottom).getByRole('button', { name: new RegExp(name) })).toBeTruthy();
     }
+    expect(within(bottom).queryByRole('button', { name: /Layout/ })).toBeNull();
   });
 
   it('renders the Sync section', async () => {
@@ -164,7 +167,7 @@ describe('AppShell v2', () => {
       expect(within(sidebar).getByRole('button', { name: /Firmware/ }).querySelector('.sidebar-link-badge')).toBeTruthy()
     );
     expect(within(bottom).getByRole('button', { name: /Firmware/ }).querySelector('.sidebar-link-badge')).toBeTruthy();
-    expect(within(sidebar).getByRole('button', { name: /Layout/ }).querySelector('.sidebar-link-badge')).toBeNull();
+    expect(within(sidebar).getByRole('button', { name: /Themes/ }).querySelector('.sidebar-link-badge')).toBeNull();
   });
 });
 
