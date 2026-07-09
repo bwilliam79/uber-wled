@@ -178,6 +178,7 @@ export function ThemesSection() {
         open={editingTheme !== null && capabilities.data !== undefined}
         onClose={() => setEditingTheme(null)}
         title={editingTheme ? `Edit “${editingTheme.name}”` : 'Edit theme'}
+        size="lg"
       >
         {editingTheme && capabilities.data && (
           <ThemeForm
