@@ -18,9 +18,9 @@ metrics) with a one-click light theme — the theme, master brightness, and last
 view persist across reloads. LED/effect previews sit on a dark housing in both
 themes so the glow reads like real light.
 
-| Home — rooms & controllers | Devices — 2-col cards |
+| Devices — one card per controller | Control surface — deep control |
 |---|---|
-| ![Home](docs/screenshots/home.png) | ![Devices](docs/screenshots/devices.png) |
+| ![Devices](docs/screenshots/devices.png) | ![Control](docs/screenshots/control.png) |
 
 | Themes — effects, palettes & presets | Segment editor — visual split / merge |
 |---|---|
@@ -54,25 +54,18 @@ The app is a responsive shell — an icon nav rail on desktop, bottom navigation
 bar on phones, and a master bar across the top of every view (view title,
 fleet-wide master brightness, an on/sync status pill, and the sun/moon theme
 toggle). The lightbulb logo lights up when any controller is on. Opening on
-Home:
+Devices:
 
-1. **Home** — one tile per room (a room *is* a group) plus one per ungrouped
-   controller. Any *active* sync group also gets its own tile pinned to the
-   front of the grid (tagged "Sync"), so you can power/dim the whole synced
-   set from Home; its member controllers still appear as their own tiles.
-   Tiles show live power/brightness with a small status dot
-   (green on, red off, amber mixed, grey offline/unknown) plus a small
-   live-output strip with one swatch per segment for an at-a-glance read of
-   exactly what's showing. Quick power toggle and
-   brightness slider on the tile; tapping a tile opens the Control surface
-   for it. To control several controllers together, use a **sync group** (it
-   appears as its own Home tile). Edit mode creates/renames/deletes rooms,
-   assigns controller+segment members inline, and drag-reorders tiles.
-2. **Devices** — one card per controller: name, host, firmware chip, live
+1. **Devices** — one card per controller: name, host, firmware chip, live
    WiFi signal, FPS, power, uptime, stale/offline and update-available
    badges, plus a live-output strip (one swatch per segment, driven by the
    live stream) so a card shows what its lights are actually doing without
-   opening it. The detail page has five tabs: **Info** (the live-output
+   opening it. Cards are bucketed into collapsible **room** sections (icon +
+   name + count), with an *Ungrouped* section for the rest — a flat grid until
+   you make a room. **Manage rooms** (top of the page) creates/renames/deletes
+   rooms, picks an icon, and assigns whole controllers to them; discovered
+   controllers show up automatically, and adding one manually lives in
+   Settings. The detail page has five tabs: **Info** (the live-output
    strip shown automatically, identity, network, uptime, heap, filesystem,
    LED counts, usermods, an opt-in "Open native live view" embed of the
    device's own `/liveview` page, reboot with confirm, open-native-UI),
@@ -84,7 +77,7 @@ Home:
    and playlists: apply, delete with confirm, save-current-state with
    include-brightness and save-bounds options), **Config** (below), and
    **Update** (the per-controller firmware pin/OTA flow).
-3. **Themes** — custom effect/palette/color/brightness/**speed/intensity** combos
+2. **Themes** — custom effect/palette/color/brightness/**speed/intensity** combos
    independent of any device's presets. Each theme row shows a **live animated
    LED preview** of its effect (rendered as a row of glowing dots on a dark
    housing — static effects stay static). The form reads the per-controller
@@ -100,7 +93,7 @@ Home:
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.
-4. **Schedule** — two tabs. **Calendar** is a full-width month grid for
+3. **Schedule** — two tabs. **Calendar** is a full-width month grid for
    one-offs (holidays, birthdays, special events): events sit as chips on
    their dates; clicking a day opens an overlay to view/edit that day's
    events, and clicking an empty day (marked with a +) opens the same dialog
@@ -119,11 +112,11 @@ Home:
    holiday lights on at sunset and off at a set time, or off at sunrise.
    Sunset/sunrise use the home location from Settings. Editors preview a theme
    live against the real lights and revert exactly on approve or discard.
-5. **Sync** — user-managed sync groups: pick any set of controllers and
+4. **Sync** — user-managed sync groups: pick any set of controllers and
    activate WLED's own native real-time UDP sync across exactly them, no
    hand-editing each device's Sync Interfaces settings page. See "Sync
    groups" below for how this actually works on the wire.
-6. **Firmware** — fleet view of installed vs. latest stable version
+5. **Firmware** — fleet view of installed vs. latest stable version
    (pre-releases opt-in via Settings) per controller, with a one-click
    Update button (and an "Update All" button fleet-wide) once a device is
    pinned and a newer release exists, plus a gear icon into that device's
@@ -140,7 +133,7 @@ Home:
    variants) is never guessed at. Later updates reuse the pin with no
    re-prompting. OTA push via WLED's own endpoint, with post-update version
    polling.
-7. **Settings** — pre-release firmware toggle, home latitude/longitude for
+6. **Settings** — pre-release firmware toggle, home latitude/longitude for
    sunrise/sunset schedules, discovery re-scan interval + "Re-scan now",
    background status poll interval, live poll interval (seconds) for the
    streaming sessions, and the WLED schedule-import default. Home
@@ -174,8 +167,8 @@ repo. There is no in-place self-update: updating means `git pull` +
 
 ## The Control surface
 
-One shared component, two entry points (Home tiles and the Devices
-"Control" button). It's a centered modal: a header (status dot, name, mono
+One shared component, reached from the Devices "Control" button (per card) and
+from schedule/theme previews. It's a centered modal: a header (status dot, name, mono
 `ip · px`, power, close), a live per-pixel preview strip, then a two-column
 control — conic color wheel + hex + palette swatches on the left, effect chips
 + brightness on the right. An **Advanced controls** disclosure holds the rest
@@ -206,14 +199,14 @@ themes/device-preset lists, nightlight, transition) so nothing is lost.
 
 ## Live streaming
 
-While Home or the Control surface is open, the client subscribes to
+While the Devices section or the Control surface is open, the client subscribes to
 `GET /api/live?controllers=...` (Server-Sent Events). The server keeps one
 refcounted fast-poll session per watched controller (default every 2s,
 configurable in Settings) and stops it when the last subscriber disconnects.
 The separate background status poller (default every 5 minutes) still
 provides glanceable data when nobody is watching.
 
-The per-segment live-output swatches (Home tiles, Devices cards, Device Info
+The per-segment live-output swatches (Devices cards, Device Info
 tab) additionally connect straight from the browser to each lit controller's
 own `ws://<host>/ws` — WLED's native live-view protocol (the same channel the
 official WLED app's "Peek" feature and the device's own `/liveview` page use).
@@ -226,7 +219,7 @@ this firmware — that's not what either live view relies on.)
 
 ## Sync groups
 
-Distinct from a Home room (an organizational grouping with no bearing on
+Distinct from a room (an organizational grouping on Devices with no bearing on
 real-time playback): a sync group is a set of controllers wired
 together via WLED's own native UDP sync (broadcast on LAN port 21324) so
 their effects and colors play in lockstep, managed entirely through this
@@ -322,12 +315,12 @@ in **Quick start** at the top.)
    in Settings), or add one manually by name + IP/hostname from **Settings →
    Add a controller**. A stale badge means a discovered controller stopped
    responding; it's kept, not deleted.
-2. **Make rooms** — on Home, hit Edit, create a room, pick its
-   controller + segment members, drag tiles into the order you want.
-3. **Control** — tap a tile and the Control surface
+2. **Make rooms** — on Devices, hit **Manage rooms**, create a room, pick its
+   icon, and check off the controllers that belong to it; cards then group
+   under collapsible room headers.
+3. **Control** — hit **Control** on any device card and the Control surface
    opens: power, brightness, colors, effects with their real per-effect
-   controls, palettes with previews, themes. Same surface from the Devices
-   list.
+   controls, palettes with previews, themes.
 4. **Save Themes** — build effect/palette/color/brightness combos; edit or
    export them; apply them anywhere, schedule them, or hang them on holidays.
 5. **Schedule** — weekly/cron schedules and calendar events (pre-seeded US
