@@ -33,7 +33,10 @@ export function FirmwareStatus({ controllerId }: { controllerId: string }) {
   }
 
   useEffect(() => {
+    // Re-check only when the target controller changes; `refresh` is recreated
+    // every render, so including it would refetch on each render.
     refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [controllerId]);
 
   async function handlePick(assetName: string) {
