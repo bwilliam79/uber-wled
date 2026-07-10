@@ -27,6 +27,12 @@ export function effectToPreview(effectName: string | undefined): LedEffect {
     return 'wave';
   if (n.includes('breathe') || n.includes('fade') || n.includes('pulse') || n.includes('blink') || n.includes('strobe'))
     return 'breathe';
+  // WLED's "PS ..." (particle system) family is a whole set the keyword map
+  // doesn't model. The ones already caught above win first (PS Fire→fire,
+  // PS Sparkler→sparkle, PS Chase→chase, PS Fuzzy Noise→wave); the rest get a
+  // generic sparkle so they read as clearly animated instead of collapsing to
+  // the near-solid single-color 'gradient' fallback.
+  if (n.startsWith('ps ') || n.includes('particle')) return 'sparkle';
   return 'gradient';
 }
 
