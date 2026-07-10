@@ -23,8 +23,6 @@ export { Select } from './Select';
 export type { SelectProps, SelectOption } from './Select';
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
-export { Drawer } from './Drawer';
-export type { DrawerProps } from './Drawer';
 export { ToastProvider, useToast } from './Toast';
 export type { ToastOptions } from './Toast';
 export { LiveOutputStrip } from './LiveOutputStrip';
