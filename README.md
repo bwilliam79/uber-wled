@@ -56,8 +56,10 @@ run `docker compose up -d --build` there; pick a free `PORT` in a local
 
 The app is a responsive shell — an icon nav rail on desktop, bottom navigation
 bar on phones, and a master bar across the top of every view (view title,
-fleet-wide master brightness, an on/sync status pill, and the sun/moon theme
-toggle). The lightbulb logo lights up when any controller is on. Opening on
+fleet-wide master brightness, an on/sync status pill, an **offline count** when
+any controller is unreachable, and the sun/moon theme toggle). A controller
+dropping offline (or coming back) also raises a toast from anywhere in the app.
+The lightbulb logo lights up when any controller is on. Opening on
 Devices:
 
 1. **Devices** — one card per controller: name, host, firmware chip, live
