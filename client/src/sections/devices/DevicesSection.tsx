@@ -9,6 +9,7 @@ import { Tabs } from '../../components/ui/Tabs';
 import { DeviceCard } from './DeviceCard';
 import { DeviceDetail } from './DeviceDetail';
 import { SyncGroupCard } from './SyncGroupCard';
+import { ScenesBar } from './ScenesBar';
 import { deviceHash, parseDevicesHash, type DeviceTab } from './route';
 import './devices.css';
 
@@ -95,6 +96,8 @@ export function DevicesSection() {
         </div>
       )}
       {controllers.isError && <p role="alert">Could not load controllers.</p>}
+
+      {list.length > 0 && <ScenesBar controllers={list} />}
 
       <Tabs
         label="Devices views"
