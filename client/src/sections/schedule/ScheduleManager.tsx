@@ -2,17 +2,34 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   addSchedule, applyControl, deleteSchedule, updateSchedule, getSegmentsSnapshot,
-  type CustomTheme, type Schedule, type Target
+  addCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
+  type CustomTheme, type Schedule, type CalendarEvent, type TriggerTime, type Target
 } from '../../api/client';
-import { useControllers, useGroups, useSchedules, useThemes } from '../../api/queries';
+import { useControllers, useGroups, useSchedules, useThemes, useCalendarEvents } from '../../api/queries';
 import { useLiveStatus } from '../../api/live';
+import { resolveDate } from '../../lib/dateRules';
 import { Modal } from '../../components/ui/Modal';
 import { Toggle } from '../../components/ui/Toggle';
 import { PlusIcon, TrashIcon } from '../../components/icons';
 import { WeeklyScheduleForm, type WeeklyScheduleDraft } from './WeeklyScheduleForm';
+import { CalendarEventForm } from './CalendarEventForm';
 import type { TargetValue } from './TargetPicker';
 
 const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** A trigger time → the row's mono time cell (fixed clock or sun ± offset). */
+function triggerTimeParts(t: TriggerTime): { big?: string; small?: string } {
+  if (t.type === 'fixed') return { big: t.time };
+  const sign = t.offsetMinutes > 0 ? `+${t.offsetMinutes}` : t.offsetMinutes < 0 ? `${t.offsetMinutes}` : '';
+  return { small: `${t.type}${sign ? ` ${sign}m` : ''}` };
+}
+
+/** A calendar event's date → "Nov 26" (resolves computed rules for this year). */
+function eventDateLabel(e: CalendarEvent): string {
+  const r = resolveDate(e.dateRule, new Date().getFullYear());
+  return r ? `${MONTH_ABBR[r.month - 1]} ${r.day}` : 'date';
+}
 
 /** Human day summary for a schedule row: "Every day" / "Weekdays" / "Weekends"
  *  / "Mon Wed Fri", or the trigger type for non-weekly rules. */
@@ -30,8 +47,8 @@ function daysLabel(s: Schedule): string {
   return [...days].sort((a, b) => a - b).map((d) => DAY_ABBR[d] ?? d).join(' ');
 }
 
-/** Short "off …" tag for a schedule's optional paired power-off, or null. */
-function offLabel(s: Schedule): string | null {
+/** Short "off …" tag for an optional paired power-off, or null. */
+function offLabel(s: { offTrigger?: TriggerTime | null }): string | null {
   const o = s.offTrigger;
   if (!o) return null;
   if (o.type === 'fixed') return `off ${o.time}`;
@@ -78,6 +95,7 @@ function targetsOf(t: TargetValue): Target[] {
 
 export function ScheduleManager() {
   const schedules = useSchedules();
+  const events = useCalendarEvents();
   const groups = useGroups();
   const controllers = useControllers();
   const live = useLiveStatus((controllers.data ?? []).map((c) => c.id));
@@ -85,6 +103,7 @@ export function ScheduleManager() {
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [draft, setDraft] = useState<WeeklyScheduleDraft | null>(null);
   const [snapshot, setSnapshot] = useState<MemberSnapshot[] | null>(null);
   const [revertError, setRevertError] = useState<string | null>(null);
@@ -179,17 +198,37 @@ export function ScheduleManager() {
     return true;
   }
 
+  // The recurring trigger fields → a calendar-event TriggerTime ('weekly' means
+  // a fixed time-of-day).
+  function draftTriggerTime(d: WeeklyScheduleDraft): TriggerTime {
+    return d.triggerType === 'weekly'
+      ? { type: 'fixed', time: d.timeOfDay ?? '18:00' }
+      : { type: d.triggerType, offsetMinutes: d.offsetMinutes };
+  }
+
   async function handleApprove() {
     if (!draft) return;
     if (!(await revertToSnapshot())) return;
-    const created = await addSchedule({
-      name: draft.name, triggerType: draft.triggerType, cronExpr: null,
-      daysOfWeek: draft.daysOfWeek, timeOfDay: draft.timeOfDay, offsetMinutes: draft.offsetMinutes,
-      latitude: null, longitude: null, ...draft.target,
-      actionType: draft.actionType, actionPayload: draft.actionPayload,
-      offTrigger: draft.offTrigger, enabled: true
-    });
-    queryClient.setQueryData<Schedule[]>(['schedules'], (prev) => [...(prev ?? []), created]);
+    if (draft.repeat === 'date') {
+      const created = await addCalendarEvent({
+        name: draft.name, category: 'custom',
+        dateRule: { kind: 'fixed', month: draft.month, day: draft.day },
+        recursYearly: true, enabled: true,
+        ...draft.target,
+        triggerTime: draftTriggerTime(draft), offTrigger: draft.offTrigger,
+        actionType: draft.actionType, actionPayload: draft.actionPayload
+      });
+      queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prev) => [...(prev ?? []), created]);
+    } else {
+      const created = await addSchedule({
+        name: draft.name, triggerType: draft.triggerType, cronExpr: null,
+        daysOfWeek: draft.daysOfWeek, timeOfDay: draft.timeOfDay, offsetMinutes: draft.offsetMinutes,
+        latitude: null, longitude: null, ...draft.target,
+        actionType: draft.actionType, actionPayload: draft.actionPayload,
+        offTrigger: draft.offTrigger, enabled: true
+      });
+      queryClient.setQueryData<Schedule[]>(['schedules'], (prev) => [...(prev ?? []), created]);
+    }
     setDraft(null);
     setSnapshot(null);
     setFormOpen(false);
@@ -215,12 +254,25 @@ export function ScheduleManager() {
     );
   }
 
+  async function toggleEvent(e: CalendarEvent, enabled: boolean) {
+    const updated = await updateCalendarEvent(e.id, { enabled });
+    queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prev) =>
+      (prev ?? []).map((x) => (x.id === e.id ? updated : x))
+    );
+  }
+  async function deleteEvent(id: string) {
+    await deleteCalendarEvent(id);
+    queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prev) =>
+      (prev ?? []).filter((e) => e.id !== id)
+    );
+  }
+
   function handleModalClose() {
     if (draft) void handleDiscard();
     setFormOpen(false);
   }
 
-  function targetLabel(s: Schedule): string {
+  function targetLabel(s: Pick<Schedule, 'controllers' | 'groupId'>): string {
     if (s.controllers && s.controllers.length > 0) {
       const names = s.controllers.map((c) => {
         const name = live.get(c.controllerId)?.info?.name
@@ -234,9 +286,13 @@ export function ScheduleManager() {
     return `Group ${group?.name ?? '—'}`;
   }
 
-  function themeName(s: Schedule): string {
+  function themeName(s: { actionPayload: unknown }): string {
     const themeId = (s.actionPayload as { themeId?: string } | null)?.themeId;
     return (themes.data ?? []).find((t) => t.id === themeId)?.name ?? themeId ?? '—';
+  }
+  // Action label shared by both row kinds (theme name, or the raw action).
+  function actionLabel(s: { actionType: string | null; actionPayload: unknown }): string {
+    return s.actionType === 'theme' ? themeName(s) : (s.actionType ?? 'action');
   }
 
   const canAdd = !!groups.data && !!themes.data;
@@ -244,15 +300,15 @@ export function ScheduleManager() {
   return (
     <div className="schedules-manager">
       {revertError && <div className="error-banner" role="alert">{revertError}</div>}
-      {schedules.data && schedules.data.length === 0 && (
+      {(schedules.data?.length ?? 0) + (events.data?.length ?? 0) === 0 && (
         <p className="empty-state">No schedules yet.</p>
       )}
-      {schedules.data && schedules.data.length > 0 && (
+      {(schedules.data?.length ?? 0) + (events.data?.length ?? 0) > 0 && (
         <ul className="schedule-list">
-          {schedules.data.map((s) => {
+          {(schedules.data ?? []).map((s) => {
             const t = timeParts(s);
             return (
-              <li key={s.id} className={`schedule-row${s.enabled ? '' : ' disabled'}`}>
+              <li key={`s:${s.id}`} className={`schedule-row${s.enabled ? '' : ' disabled'}`}>
                 <div className="schedule-row-time ui-mono">
                   {t.big
                     ? <span className="schedule-row-time-big">{t.big}</span>
@@ -260,28 +316,55 @@ export function ScheduleManager() {
                 </div>
                 <div className="schedule-row-divider" aria-hidden="true" />
                 <button
-                  type="button"
-                  className="schedule-row-main"
-                  aria-label={`Edit ${s.name}`}
-                  onClick={() => setEditingSchedule(s)}
+                  type="button" className="schedule-row-main"
+                  aria-label={`Edit ${s.name}`} onClick={() => setEditingSchedule(s)}
                 >
                   <span className="schedule-row-name">{s.name}</span>
                   <span className="schedule-row-sub">
-                    {daysLabel(s)} · {s.actionType === 'theme' ? themeName(s) : s.actionType}
+                    {daysLabel(s)} · {actionLabel(s)}
                     {offLabel(s) && ` · ${offLabel(s)}`} · {targetLabel(s)}
                   </span>
                 </button>
                 <Toggle
-                  checked={s.enabled}
-                  onChange={(checked) => toggleEnabled(s, checked)}
-                  label={`${s.name} enabled`}
-                  showLabel={false}
+                  checked={s.enabled} onChange={(checked) => toggleEnabled(s, checked)}
+                  label={`${s.name} enabled`} showLabel={false}
                 />
                 <button
-                  type="button"
-                  className="schedule-row-remove"
-                  aria-label={`Remove ${s.name}`}
-                  onClick={() => handleDelete(s.id)}
+                  type="button" className="schedule-row-remove"
+                  aria-label={`Remove ${s.name}`} onClick={() => handleDelete(s.id)}
+                >
+                  <TrashIcon className="schedule-row-remove-icon" />
+                </button>
+              </li>
+            );
+          })}
+          {(events.data ?? []).map((e) => {
+            const t = triggerTimeParts(e.triggerTime);
+            return (
+              <li key={`e:${e.id}`} className={`schedule-row${e.enabled ? '' : ' disabled'}`}>
+                <div className="schedule-row-time ui-mono">
+                  {t.big
+                    ? <span className="schedule-row-time-big">{t.big}</span>
+                    : <span className="schedule-row-time-small">{t.small}</span>}
+                </div>
+                <div className="schedule-row-divider" aria-hidden="true" />
+                <button
+                  type="button" className="schedule-row-main"
+                  aria-label={`Edit ${e.name}`} onClick={() => setEditingEvent(e)}
+                >
+                  <span className="schedule-row-name">{e.name}</span>
+                  <span className="schedule-row-sub">
+                    {eventDateLabel(e)} · {actionLabel(e)}
+                    {offLabel(e) && ` · ${offLabel(e)}`} · {targetLabel(e)}
+                  </span>
+                </button>
+                <Toggle
+                  checked={e.enabled} onChange={(checked) => toggleEvent(e, checked)}
+                  label={`${e.name} enabled`} showLabel={false}
+                />
+                <button
+                  type="button" className="schedule-row-remove"
+                  aria-label={`Remove ${e.name}`} onClick={() => deleteEvent(e.id)}
                 >
                   <TrashIcon className="schedule-row-remove-icon" />
                 </button>
@@ -298,7 +381,7 @@ export function ScheduleManager() {
       >
         <PlusIcon className="schedule-add-icon" /> New schedule
       </button>
-      <Modal open={formOpen} title="New weekly schedule" onClose={handleModalClose}>
+      <Modal open={formOpen} title="New schedule" onClose={handleModalClose}>
         <WeeklyScheduleForm
           groups={groups.data ?? []}
           controllers={controllers.data ?? []}
@@ -332,6 +415,28 @@ export function ScheduleManager() {
             onApprove={() => {}}
             onDiscard={() => {}}
             previewing={false}
+          />
+        )}
+      </Modal>
+      <Modal
+        open={editingEvent !== null}
+        size="lg"
+        title={editingEvent?.category === 'holiday' ? 'Edit holiday' : 'Edit dated schedule'}
+        onClose={() => setEditingEvent(null)}
+      >
+        {editingEvent && (
+          <CalendarEventForm
+            groups={groups.data ?? []}
+            controllers={controllers.data ?? []}
+            live={live}
+            themes={themes.data ?? []}
+            initialEvent={editingEvent}
+            onSaved={(saved) => {
+              queryClient.setQueryData<CalendarEvent[]>(['calendarEvents'], (prev) =>
+                (prev ?? []).map((existing) => (existing.id === saved.id ? saved : existing))
+              );
+              setEditingEvent(null);
+            }}
           />
         )}
       </Modal>
