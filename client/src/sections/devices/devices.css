@@ -8,6 +8,13 @@
   margin-bottom: var(--space-md);
 }
 
+/* Breathing room between the tab underline and the card grid / empty states
+   / scenes panel — without this the content sits flush on the border. */
+.devices-section > .ui-tabs,
+.device-detail > .ui-tabs {
+  margin-bottom: var(--space-md);
+}
+
 .devices-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
