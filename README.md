@@ -101,30 +101,22 @@ Devices:
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.
-3. **Schedule** — two tabs. **Calendar** is a full-width month grid for
-   one-offs (holidays, birthdays, special events): events sit as chips on
-   their dates; clicking a day opens an overlay to view/edit that day's
-   events, and clicking an empty day (marked with a +) opens the same dialog
-   to create a custom entry prefilled with that date. A configured holiday
-   (a theme is set and it's enabled) shows a green dot; an unconfigured
-   placeholder is drawn as a dashed chip, so it's clear at a glance which
-   holidays are actually set up. **Weekly** holds the recurring
-   schedules as clean list rows — a big mono trigger time (or
-   sunrise/sunset), the name, a `days · action · target` sub-line, and an
-   **inline enable toggle** (disabled rows dim) — with a dashed "New schedule"
-   add row. Each recurring schedule picks a **trigger** (fixed time, or
-   sunrise/sunset with a ± minute offset) and an **action** (apply a theme, or
-   turn off), and targets either
-   a Room group or a set of specific controllers directly. An enabled calendar event overrides overlapping
-   schedules for that day. Every schedule and event shows what it's actually
-   assigned to and can be edited in place (name, target, theme, time; the
-   date too, unless it's a computed rule like "4th Thursday of November"), not just
-   toggled or removed. A calendar event's trigger can be a fixed clock time or
-   sunset/sunrise with a ± minute offset, and it can carry an independent OFF
-   trigger (also fixed/sunset/sunrise) that powers the target off — e.g. hang
-   holiday lights on at sunset and off at a set time, or off at sunrise.
-   Sunset/sunrise use the home location from Settings. Editors preview a theme
-   live against the real lights and revert exactly on approve or discard.
+3. **Schedule** — one unified list of both recurring schedules and specific-date
+   entries (holidays, birthdays, one-offs), as clean list rows: a big mono
+   trigger time (or sunrise/sunset), the name, a `when · action · target`
+   sub-line (recurring shows the days; dated shows the resolved date like
+   "Nov 26"), an optional `off …` tag, and an **inline enable toggle** (disabled
+   rows dim) — with a dashed "New schedule" add row. The single **New schedule**
+   form picks **Repeat: Weekly (pick days)** *or* **Specific date** (month/day),
+   a **trigger** (fixed time, or sunrise/sunset ± a minute offset), an **action**
+   (apply a theme, or turn off), an optional **paired "Turn off at"** trigger
+   (so "on at sunset / off at sunrise" is one entry), and a target — a Room
+   group or specific controllers. Specific-date entries **override** the weekly
+   schedules on that day. Every row edits in place (recurring via the schedule
+   form; dated via the calendar-event form, which also handles computed holiday
+   rules like "4th Thursday of November"). Sunset/sunrise use the home location
+   from Settings; creating a theme entry previews it live against the real
+   lights and reverts exactly on approve or discard.
 4. **Sync** — user-managed sync groups: pick any set of controllers and
    activate WLED's own native real-time UDP sync across exactly them, no
    hand-editing each device's Sync Interfaces settings page. See "Sync
