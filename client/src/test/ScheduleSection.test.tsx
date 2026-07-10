@@ -83,12 +83,12 @@ describe('ScheduleSection v2', () => {
   it('defaults to the Weekly tab and shows the calendar under the Calendar tab', async () => {
     stub([]);
     renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    // Weekly is the default view.
-    await waitFor(() => expect(screen.getByText('Weekly schedules')).toBeTruthy());
+    // Weekly is the default view — its dashed add-row is present.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'New schedule' })).toBeTruthy());
     expect(screen.queryByTestId('calendar-grid')).toBeNull();
     openCalendarTab();
     await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
-    expect(screen.queryByText('Weekly schedules')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'New schedule' })).toBeNull();
   });
 
   it('marks a configured holiday (theme + enabled) distinctly from an unconfigured one', async () => {

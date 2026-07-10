@@ -48,7 +48,7 @@ function stub() {
 }
 
 async function openFormAndPreview(fetchMock: ReturnType<typeof stub>) {
-  const openBtn = await screen.findByRole('button', { name: '+ New schedule' });
+  const openBtn = await screen.findByRole('button', { name: 'New schedule' });
   await waitFor(() => expect((openBtn as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(openBtn);
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Evenings' } });
@@ -110,7 +110,7 @@ describe('ScheduleManager v2', () => {
   it('previewing a controller-direct (whole-device) target snapshots every segment and applies via a controller-kind target', async () => {
     const fetchMock = stub();
     renderWithQuery(<ScheduleManager />);
-    const openBtn = await screen.findByRole('button', { name: '+ New schedule' });
+    const openBtn = await screen.findByRole('button', { name: 'New schedule' });
     await waitFor(() => expect((openBtn as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(openBtn);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Direct' } });
@@ -175,14 +175,15 @@ describe('ScheduleManager v2', () => {
       stubWithExisting();
       renderWithQuery(<ScheduleManager />);
       await screen.findByText('Evening glow');
-      expect(screen.getByText(/theme · Spooky · Group Front/)).toBeTruthy();
+      // Row sub-line is "{days} · {theme} · {target}".
+      expect(screen.getByText(/Mon Wed · Spooky · Group Front/)).toBeTruthy();
     });
 
     it('Edit pre-fills the form and PATCHes (not POST) on Save, skipping the preview dance entirely', async () => {
       const fetchMock = stubWithExisting();
       renderWithQuery(<ScheduleManager />);
       await screen.findByText('Evening glow');
-      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Evening glow' }));
       expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Evening glow');
       expect(screen.queryByText('Preview')).toBeNull(); // edit mode: straight to Save, no preview
 
