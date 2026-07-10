@@ -52,7 +52,16 @@ export function createSyncGroupsRouter(db: Database.Database): Router {
       res.json({ group, results });
     } catch (err: any) {
       if (err instanceof SyncGroupNotFoundError) return res.status(404).json({ error: err.message });
-      if (err instanceof SyncMemberConflictError || err instanceof NoFreeSyncBitError) {
+      if (err instanceof SyncMemberConflictError) {
+        const name =
+          controllers.list().find((c) => c.id === err.controllerId)?.name ?? 'A controller';
+        return res.status(409).json({
+          error:
+            `"${name}" is already active in sync group "${err.otherGroupName}". ` +
+            `Deactivate that group first, or remove the shared controller from one of them.`
+        });
+      }
+      if (err instanceof NoFreeSyncBitError) {
         return res.status(409).json({ error: err.message });
       }
       res.status(500).json({ error: err.message });

@@ -25,9 +25,19 @@ export class SyncGroupNotFoundError extends Error {
 }
 
 export class SyncMemberConflictError extends Error {
+  controllerId: string;
+  otherGroupName: string;
+
   constructor(controllerId: string, otherGroupName: string) {
-    super(`controller ${controllerId} is already an active member of sync group "${otherGroupName}"`);
+    // Message is a fallback — routes rewrite it with the controller's
+    // display name before returning the 409 to the client.
+    super(
+      `A controller is already an active member of sync group "${otherGroupName}". ` +
+        `Deactivate that group first, or remove the shared controller from one of them.`
+    );
     this.name = 'SyncMemberConflictError';
+    this.controllerId = controllerId;
+    this.otherGroupName = otherGroupName;
   }
 }
 
