@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   geocodeAddress, rescanNow, updateSettings, restoreBackupFile, BACKUP_URL,
+  listAutoBackups, autoBackupUrl, restoreAutoBackup,
   type GeocodeMatch, type Settings
 } from '../../api/client';
 import { useSettings } from '../../api/queries';
@@ -43,6 +44,8 @@ export function SettingsSection() {
   // Restore replaces the entire config, so it's gated behind a confirm.
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const autoBackups = useQuery({ queryKey: ['auto-backups'], queryFn: listAutoBackups });
+  const [restoreAutoName, setRestoreAutoName] = useState<string | null>(null);
 
   async function performRestore() {
     if (!restoreFile) return;
@@ -60,6 +63,23 @@ export function SettingsSection() {
     } finally {
       setRestoring(false);
       setRestoreFile(null);
+    }
+  }
+
+  async function performAutoRestore() {
+    if (!restoreAutoName) return;
+    setRestoring(true);
+    try {
+      const result = await restoreAutoBackup(restoreAutoName);
+      await queryClient.invalidateQueries();
+      setDraft(null);
+      const total = Object.values(result.restored).reduce((a, b) => a + b, 0);
+      toast.show({ title: `Restored ${restoreAutoName} (${total} records)`, variant: 'success' });
+    } catch (err) {
+      toast.show({ title: 'Restore failed', description: (err as Error).message, variant: 'error' });
+    } finally {
+      setRestoring(false);
+      setRestoreAutoName(null);
     }
   }
 
@@ -304,6 +324,31 @@ export function SettingsSection() {
           <p className="settings-group-hint">
             Restoring <strong>replaces everything</strong> currently in this instance with the backup's contents.
           </p>
+          <div className="settings-autobackups">
+            <h4 className="settings-autobackups-title">Automatic backups</h4>
+            <p className="settings-group-hint">
+              A snapshot is saved on the server once a day (last {(autoBackups.data?.length ?? 0)} kept).
+            </p>
+            {autoBackups.data && autoBackups.data.length > 0 ? (
+              <ul className="settings-autobackup-list">
+                {autoBackups.data.map((b) => (
+                  <li key={b.name} className="settings-autobackup-row">
+                    <span className="settings-autobackup-date ui-mono">{b.name.replace(/^uber-wled-backup-|\.json$/g, '')}</span>
+                    <span className="settings-autobackup-size">{Math.max(1, Math.round(b.size / 1024))} KB</span>
+                    <a className="settings-autobackup-dl" href={autoBackupUrl(b.name)} download>Download</a>
+                    <button
+                      type="button" className="settings-autobackup-restore"
+                      onClick={() => setRestoreAutoName(b.name)} disabled={restoring}
+                    >
+                      Restore
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-state">No automatic backups yet — the first is written within the hour.</p>
+            )}
+          </div>
         </Card>
       </div>
 
@@ -342,6 +387,25 @@ export function SettingsSection() {
           This will <strong>replace all</strong> controllers, rooms, sync groups, themes, schedules,
           calendar events, layout, and settings in this instance with the contents of
           “{restoreFile?.name}”. This can't be undone.
+        </p>
+      </Modal>
+
+      <Modal
+        open={restoreAutoName !== null}
+        onClose={() => setRestoreAutoName(null)}
+        title="Restore this automatic backup?"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setRestoreAutoName(null)} disabled={restoring}>Cancel</Button>
+            <Button variant="danger" onClick={performAutoRestore} disabled={restoring}>
+              {restoring ? 'Restoring…' : 'Replace everything'}
+            </Button>
+          </>
+        }
+      >
+        <p>
+          This will <strong>replace everything</strong> in this instance with the snapshot
+          “{restoreAutoName}”. This can't be undone.
         </p>
       </Modal>
     </section>

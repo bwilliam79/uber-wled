@@ -235,6 +235,12 @@ async function postImport<T>(url: string, body: unknown): Promise<T> {
 
 export const restoreBackupFile = (data: unknown) =>
   postImport<{ restored: Record<string, number> }>(BACKUP_URL + '/restore', data);
+
+export interface AutoBackupEntry { name: string; size: number; createdAt: string }
+export const listAutoBackups = () => getJson<AutoBackupEntry[]>(BACKUP_URL + '/auto');
+export const autoBackupUrl = (name: string) => `${BACKUP_URL}/auto/${encodeURIComponent(name)}`;
+export const restoreAutoBackup = (name: string) =>
+  sendJson<{ restored: Record<string, number> }>(`${BACKUP_URL}/auto/${encodeURIComponent(name)}/restore`, 'POST', {});
 export const importThemesFile = (data: unknown) =>
   postImport<{ imported: number }>(THEMES_EXPORT_URL, data);
 export const importSchedulesFile = (data: unknown) =>
