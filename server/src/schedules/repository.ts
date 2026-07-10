@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
+import type { TriggerTime } from '../calendar/repository.js';
 
 export interface ScheduleControllerTarget {
   controllerId: string;
@@ -26,6 +27,9 @@ export interface Schedule {
   controllers: ScheduleControllerTarget[] | null;
   actionType: 'power' | 'brightness' | 'preset' | 'theme';
   actionPayload: unknown;
+  /** Optional paired power-off: fires on the same active days at this trigger
+   *  time (fixed clock or sunrise/sunset ± offset). null = no auto-off. */
+  offTrigger: TriggerTime | null;
   enabled: boolean;
 }
 
@@ -44,6 +48,7 @@ function fromRow(row: any): Schedule {
     controllers: row.target_controllers ? JSON.parse(row.target_controllers) : null,
     actionType: row.action_type,
     actionPayload: JSON.parse(row.action_payload),
+    offTrigger: row.off_trigger ? JSON.parse(row.off_trigger) : null,
     enabled: !!row.enabled
   };
 }
@@ -58,14 +63,15 @@ export function createScheduleRepository(db: Database.Database) {
       db.prepare(
         `INSERT INTO schedules
           (id, name, trigger_type, cron_expr, days_of_week, time_of_day, offset_minutes, latitude, longitude,
-           group_id, target_controllers, action_type, action_payload, enabled)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           group_id, target_controllers, action_type, action_payload, off_trigger, enabled)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(
         id, input.name, input.triggerType, input.cronExpr,
         input.daysOfWeek ? JSON.stringify(input.daysOfWeek) : null, input.timeOfDay,
         input.offsetMinutes, input.latitude, input.longitude,
         input.groupId, input.controllers ? JSON.stringify(input.controllers) : null, input.actionType,
-        JSON.stringify(input.actionPayload), input.enabled ? 1 : 0
+        JSON.stringify(input.actionPayload), input.offTrigger ? JSON.stringify(input.offTrigger) : null,
+        input.enabled ? 1 : 0
       );
       return { id, ...input };
     },
@@ -77,14 +83,15 @@ export function createScheduleRepository(db: Database.Database) {
       db.prepare(
         `UPDATE schedules SET name = ?, trigger_type = ?, cron_expr = ?, days_of_week = ?, time_of_day = ?, offset_minutes = ?,
           latitude = ?, longitude = ?, group_id = ?, target_controllers = ?,
-          action_type = ?, action_payload = ?, enabled = ?
+          action_type = ?, action_payload = ?, off_trigger = ?, enabled = ?
          WHERE id = ?`
       ).run(
         next.name, next.triggerType, next.cronExpr,
         next.daysOfWeek ? JSON.stringify(next.daysOfWeek) : null, next.timeOfDay,
         next.offsetMinutes, next.latitude, next.longitude,
         next.groupId, next.controllers ? JSON.stringify(next.controllers) : null, next.actionType,
-        JSON.stringify(next.actionPayload), next.enabled ? 1 : 0, id
+        JSON.stringify(next.actionPayload), next.offTrigger ? JSON.stringify(next.offTrigger) : null,
+        next.enabled ? 1 : 0, id
       );
       return next;
     },

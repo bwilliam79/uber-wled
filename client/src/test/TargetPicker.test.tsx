@@ -129,7 +129,7 @@ describe('TargetPicker', () => {
         onChange={vi.fn()}
       />
     );
-    expect(screen.getByText(/No groups yet/)).toBeTruthy();
+    expect(screen.getByText(/No room groups/)).toBeTruthy();
   });
 
   it('shows an empty state in Controller mode when there are no controllers', () => {

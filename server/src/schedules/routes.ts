@@ -23,6 +23,7 @@ export function createSchedulesRouter(db: Database.Database): Router {
       controllers: body.controllers ?? null,
       actionType: body.actionType,
       actionPayload: body.actionPayload,
+      offTrigger: body.offTrigger ?? null,
       enabled: body.enabled ?? true
     });
     res.status(201).json(created);
