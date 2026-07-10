@@ -33,12 +33,14 @@ function daysLabel(s: Schedule): string {
 /** The left-hand time cell: a big mono clock for time-of-day rules, else a
  *  small label (sunrise/sunset ± offset, or a cron expression). */
 function timeParts(s: Schedule): { big?: string; small?: string } {
-  if (s.timeOfDay) return { big: s.timeOfDay };
+  // Sun-based triggers fire at the solar event, so a leftover timeOfDay is
+  // irrelevant — always label them sunrise/sunset (± offset), not a clock.
   if (s.triggerType === 'sunrise' || s.triggerType === 'sunset') {
     const off = s.offsetMinutes;
     const sign = off > 0 ? `+${off}` : off < 0 ? `${off}` : '';
     return { small: `${s.triggerType}${sign ? ` ${sign}m` : ''}` };
   }
+  if (s.timeOfDay) return { big: s.timeOfDay };
   if (s.cronExpr) return { small: s.cronExpr };
   return { small: s.triggerType };
 }
