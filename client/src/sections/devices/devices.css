@@ -123,6 +123,12 @@
 
 .device-card-open:hover { color: var(--text); border-color: var(--w14); }
 
+/* ---------- Active sync-group card ---------- */
+.devices-sync-grid { margin-bottom: 18px; }
+.sync-card { border-color: var(--accent-soft); }
+.sync-card-title { display: flex; align-items: center; gap: 8px; }
+.sync-card-icon { width: 16px; height: 16px; color: var(--accent); flex-shrink: 0; }
+
 /* ---------- Device detail ---------- */
 
 .device-detail-header {

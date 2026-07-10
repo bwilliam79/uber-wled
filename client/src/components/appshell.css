@@ -50,19 +50,28 @@
   width: 40px;
   height: 40px;
   margin-bottom: 18px;
+  border-radius: 50%;
   color: var(--m2);
-  transition: color 0.5s ease, filter 0.5s ease;
+  transition: color 0.5s ease, background 0.5s ease;
 }
 
-/* Illuminated when ≥1 controller is on; unlit gray when all off. */
+/* Illuminated when ≥1 controller is on: accent color, a soft radial halo behind
+   the bulb, and a layered glow around the filament so it reads like a lit lamp.
+   Unlit = flat gray. Light mode inherits the deeper accent + gentler tokens, so
+   the halo/glow stay visible on the pale rail instead of washing out. */
 .sidebar-logo.lit {
   color: var(--accent);
-  filter: drop-shadow(var(--glow-accent));
+  background: radial-gradient(circle at center, var(--accent-soft), transparent 70%);
+}
+
+.sidebar-logo.lit .logo-mark {
+  filter: drop-shadow(0 0 3px var(--accent)) drop-shadow(0 0 7px var(--accent));
 }
 
 .sidebar-logo .logo-mark {
   width: 27px;
   height: 27px;
+  transition: filter 0.5s ease;
 }
 
 .sidebar-nav {
