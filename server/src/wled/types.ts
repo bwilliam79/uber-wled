@@ -96,6 +96,12 @@ export interface WledInfo {
   arch: string;
   /** Build id (e.g. 2605030 on WLED 16.0.0) — drives capability-cache refresh. */
   vid?: number;
+  /** True while the device is being driven by realtime data (E1.31/DDP/UDP,
+   *  e.g. HyperHDR ambilight) — app writes are overwritten frame-by-frame.
+   *  `lip` is the source IP, `lm` the source/protocol label. */
+  live?: boolean;
+  lip?: string;
+  lm?: string;
 }
 
 export interface WledPreset {
