@@ -30,6 +30,15 @@ function daysLabel(s: Schedule): string {
   return [...days].sort((a, b) => a - b).map((d) => DAY_ABBR[d] ?? d).join(' ');
 }
 
+/** Short "off …" tag for a schedule's optional paired power-off, or null. */
+function offLabel(s: Schedule): string | null {
+  const o = s.offTrigger;
+  if (!o) return null;
+  if (o.type === 'fixed') return `off ${o.time}`;
+  const sign = o.offsetMinutes > 0 ? `+${o.offsetMinutes}` : o.offsetMinutes < 0 ? `${o.offsetMinutes}` : '';
+  return `off ${o.type}${sign ? ` ${sign}m` : ''}`;
+}
+
 /** The left-hand time cell: a big mono clock for time-of-day rules, else a
  *  small label (sunrise/sunset ± offset, or a cron expression). */
 function timeParts(s: Schedule): { big?: string; small?: string } {
@@ -177,7 +186,8 @@ export function ScheduleManager() {
       name: draft.name, triggerType: draft.triggerType, cronExpr: null,
       daysOfWeek: draft.daysOfWeek, timeOfDay: draft.timeOfDay, offsetMinutes: draft.offsetMinutes,
       latitude: null, longitude: null, ...draft.target,
-      actionType: draft.actionType, actionPayload: draft.actionPayload, enabled: true
+      actionType: draft.actionType, actionPayload: draft.actionPayload,
+      offTrigger: draft.offTrigger, enabled: true
     });
     queryClient.setQueryData<Schedule[]>(['schedules'], (prev) => [...(prev ?? []), created]);
     setDraft(null);
@@ -257,7 +267,8 @@ export function ScheduleManager() {
                 >
                   <span className="schedule-row-name">{s.name}</span>
                   <span className="schedule-row-sub">
-                    {daysLabel(s)} · {s.actionType === 'theme' ? themeName(s) : s.actionType} · {targetLabel(s)}
+                    {daysLabel(s)} · {s.actionType === 'theme' ? themeName(s) : s.actionType}
+                    {offLabel(s) && ` · ${offLabel(s)}`} · {targetLabel(s)}
                   </span>
                 </button>
                 <Toggle
