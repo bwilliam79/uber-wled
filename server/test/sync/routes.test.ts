@@ -113,7 +113,9 @@ describe('sync groups routes', () => {
     const g2 = await request(app).post('/api/sync-groups').send({ name: 'G2', memberControllerIds: [c1, c2] });
     const res = await request(app).post(`/api/sync-groups/${g2.body.id}/activate`);
     expect(res.status).toBe(409);
-    expect(res.body.error).toContain('G1');
+    // Named controller + named group, with a clear next step — not a bare UUID.
+    expect(res.body.error).toMatch(/"Cabinet".*already active.*"G1"/);
+    expect(res.body.error).toMatch(/Deactivate that group first/);
   });
 
   it('returns 409 when all 8 sync bits are already in use', async () => {
