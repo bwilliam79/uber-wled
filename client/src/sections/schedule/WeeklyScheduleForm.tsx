@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { updateSchedule, type Controller, type CustomTheme, type Group, type Schedule } from '../../api/client';
+import {
+  updateSchedule,
+  type Controller, type CustomTheme, type Group, type Schedule, type TriggerTime
+} from '../../api/client';
 import type { LiveStatusEntry } from '../../api/live';
 import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { Select } from '../../components/ui/Select';
 import { TargetPicker, type TargetValue } from './TargetPicker';
+import { TriggerTimePicker } from './TriggerTimePicker';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -19,6 +23,8 @@ export interface WeeklyScheduleDraft {
   target: TargetValue;
   actionType: 'power' | 'brightness' | 'preset' | 'theme';
   actionPayload: unknown;
+  /** Optional paired power-off at an independent trigger time. */
+  offTrigger: TriggerTime | null;
 }
 
 function themeIdOf(schedule: Schedule): string {
@@ -67,6 +73,7 @@ export function WeeklyScheduleForm({
   const [actionType, setActionType] = useState<'theme' | 'off'>(
     initialSchedule?.actionType === 'power' ? 'off' : 'theme'
   );
+  const [offTrigger, setOffTrigger] = useState<TriggerTime | null>(initialSchedule?.offTrigger ?? null);
   const [target, setTarget] = useState<TargetValue>(
     initialSchedule
       ? { groupId: initialSchedule.groupId, controllers: initialSchedule.controllers }
@@ -92,7 +99,10 @@ export function WeeklyScheduleForm({
   const triggerFields = {
     triggerType,
     timeOfDay: triggerType === 'weekly' ? timeOfDay : null,
-    offsetMinutes: triggerType === 'weekly' ? 0 : offsetMinutes
+    offsetMinutes: triggerType === 'weekly' ? 0 : offsetMinutes,
+    // A "turn off" action is itself the off — a paired off-trigger only makes
+    // sense alongside a theme/on action.
+    offTrigger: actionType === 'off' ? null : offTrigger
   };
 
   async function handleSaveEdit() {
@@ -189,12 +199,21 @@ export function WeeklyScheduleForm({
         />
       </Field>
       {actionType === 'theme' && (
-        <Field label="Theme" htmlFor="weekly-schedule-theme">
-          <Select
-            id="weekly-schedule-theme" label="theme" showLabel={false} value={themeId} onChange={setThemeId}
-            options={themes.map((t) => ({ value: t.id, label: t.name }))}
+        <>
+          <Field label="Theme" htmlFor="weekly-schedule-theme">
+            <Select
+              id="weekly-schedule-theme" label="theme" showLabel={false} value={themeId} onChange={setThemeId}
+              options={themes.map((t) => ({ value: t.id, label: t.name }))}
+            />
+          </Field>
+          <TriggerTimePicker
+            idPrefix="weekly-schedule-off"
+            label="Turn off at"
+            value={offTrigger}
+            onChange={setOffTrigger}
+            allowNone
           />
-        </Field>
+        </>
       )}
       <div className="schedule-form-actions">
         {initialSchedule ? (
