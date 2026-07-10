@@ -14,8 +14,7 @@ import { useToast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import { LedPreview } from '../../components/ui/LedPreview';
-import { effectToPreview, resolvePreviewColors } from '../../lib/effectPreview';
-import { rgbToHex } from '../../lib/color';
+import { effectToPreview, resolvePreviewColors, resolveThemeSwatches } from '../../lib/effectPreview';
 import { ThemeForm } from './ThemeForm';
 import { PresetImportModal } from './PresetImportModal';
 import './themes.css';
@@ -32,14 +31,17 @@ function ThemeRow({
   onDelete: (id: string) => void;
 }) {
   const effectName = capabilities?.effects[theme.effect] ?? `Effect #${theme.effect}`;
-  const slotHexes = theme.colors.map(rgbToHex);
   const previewEffect = effectToPreview(effectName);
   const fxMeta = capabilities?.fxMeta.find((m) => m.id === theme.effect);
   const palettePreview = capabilities?.palettePreviews[theme.palette];
-  const previewColors = resolvePreviewColors(theme.colors, palettePreview, {
+  const colorOpts = {
     usesPalette: fxMeta?.usesPalette,
     paletteId: theme.palette
-  });
+  };
+  const previewColors = resolvePreviewColors(theme.colors, palettePreview, colorOpts);
+  // Palette-aware chips (C9 bulbs, Fire/Autumn tones, non-black slots only) —
+  // not the raw 3-slot array, which is often unused/misleading for palettes.
+  const swatchHexes = resolveThemeSwatches(theme.colors, palettePreview, colorOpts);
   return (
     <li className="theme-row">
       <div className="theme-row-info">
@@ -58,9 +60,9 @@ function ThemeRow({
             ariaLabel={`${theme.name} preview`}
           />
         </div>
-        <span className="theme-row-swatches">
-          {slotHexes.map((hex, i) => (
-            <span key={i} className="theme-row-swatch" style={{ backgroundColor: hex }} />
+        <span className="theme-row-swatches" aria-label={`${theme.name} colors`}>
+          {swatchHexes.map((hex, i) => (
+            <span key={`${hex}-${i}`} className="theme-row-swatch" style={{ backgroundColor: hex }} title={hex} />
           ))}
         </span>
       </div>

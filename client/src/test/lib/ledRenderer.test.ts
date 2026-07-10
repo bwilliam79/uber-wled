@@ -4,7 +4,9 @@ import {
   effectToPreview,
   themeColorsString,
   resolvePreviewColors,
-  samplePaletteStops
+  resolveThemeSwatches,
+  samplePaletteStops,
+  uniqueStopColors
 } from '../../lib/effectPreview';
 import type { PalettePreview } from '../../api/client';
 
@@ -173,5 +175,64 @@ describe('samplePaletteStops', () => {
     const samples = samplePaletteStops(fire, 5);
     expect(samples.length).toBeGreaterThan(0);
     expect(samples.every((c) => c[0] || c[1] || c[2])).toBe(true);
+  });
+});
+
+describe('resolveThemeSwatches', () => {
+  const rwb = [
+    [255, 0, 0],
+    [255, 255, 255],
+    [0, 40, 255]
+  ];
+  const c9: PalettePreview = {
+    type: 'stops',
+    stops: [
+      [0, 255, 5, 0],
+      [60, 255, 5, 0],
+      [61, 196, 57, 2],
+      [120, 196, 57, 2],
+      [121, 6, 126, 2],
+      [180, 6, 126, 2],
+      [181, 4, 30, 114],
+      [255, 4, 30, 114]
+    ]
+  };
+
+  it('shows C9 bulb colors for Christmas C9 Chase, not the unused slot colors', () => {
+    const swatches = resolveThemeSwatches(rwb, c9, { usesPalette: true, paletteId: 53 });
+    // Four C9 plateaus: red, amber, green, blue
+    expect(swatches).toHaveLength(4);
+    expect(swatches[0]).toBe('#ff0500');
+    expect(swatches).not.toContain('#ffffff'); // white was a slot color, not C9
+  });
+
+  it('drops unused black slots (Dim White → one chip)', () => {
+    const swatches = resolveThemeSwatches(
+      [[255, 255, 255], [0, 0, 0], [0, 0, 0]],
+      { type: 'stops', stops: [[0, 155, 0, 213]] },
+      { usesPalette: false, paletteId: 0 }
+    );
+    expect(swatches).toEqual(['#ffffff']);
+  });
+
+  it('expands Colors 1&2 to two chips for Candy Cane', () => {
+    const candy = [
+      [255, 0, 0],
+      [255, 255, 255],
+      [8, 255, 0]
+    ];
+    const colors12: PalettePreview = { type: 'slots', slots: ['c1', 'c1', 'c2', 'c2'] };
+    expect(
+      resolveThemeSwatches(candy, colors12, { usesPalette: true, paletteId: 3 })
+    ).toEqual(['#ff0000', '#ffffff']);
+  });
+
+  it('uniqueStopColors collapses C9 plateaus', () => {
+    expect(uniqueStopColors(c9.stops)).toEqual([
+      [255, 5, 0],
+      [196, 57, 2],
+      [6, 126, 2],
+      [4, 30, 114]
+    ]);
   });
 });

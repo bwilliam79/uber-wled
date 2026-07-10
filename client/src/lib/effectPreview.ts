@@ -256,3 +256,87 @@ export function resolvePreviewColors(
   if (sampled.length === 0) return slotsOnly;
   return sampled.map((c) => rgbToHex(c)).join(',');
 }
+
+/**
+ * Representative hex swatches for a theme row — what colors the theme
+ * *actually* paints, not the raw three slots (which are often unused or
+ * overridden by a gradient palette like C9 New / Fire / Autumn).
+ *
+ * Returns 1–4 colors:
+ *  - Slot-driven themes → non-black slots only (Dim White → one white chip)
+ *  - Discrete palettes (C9-style plateaus) → unique stop colors
+ *  - Smooth gradients (Fire/Autumn) → evenly sampled tones
+ */
+export function resolveThemeSwatches(
+  colors: number[][],
+  palettePreview: PalettePreview | undefined,
+  opts: ResolvePreviewColorsOpts = {},
+  max = 4
+): string[] {
+  // Slot-only path: same conditions as resolvePreviewColors.
+  const useSlots =
+    opts.usesPalette === false ||
+    opts.paletteId === 0 ||
+    palettePreview == null ||
+    palettePreview.type === 'slots';
+
+  if (useSlots) {
+    if (palettePreview?.type === 'slots' && opts.usesPalette !== false && opts.paletteId !== 0) {
+      // Expand * Colors Only / * Colors 1&2, keep order, drop empties & dups.
+      const expanded: string[] = [];
+      for (const slot of palettePreview.slots) {
+        const rgb = slotRgb(colors, SLOT_INDEX[slot]);
+        if (!rgb) continue;
+        const hex = rgbToHex(rgb);
+        if (expanded[expanded.length - 1] !== hex) expanded.push(hex);
+      }
+      if (expanded.length > 0) return expanded.slice(0, max);
+    }
+    return colors
+      .filter((c) => c && (c[0] || c[1] || c[2]))
+      .map((c) => rgbToHex([c[0], c[1], c[2]]))
+      .slice(0, max);
+  }
+
+  if (palettePreview.type === 'random') {
+    return RANDOM_PREVIEW_COLORS.split(',').slice(0, max);
+  }
+
+  // Gradient stops: prefer discrete plateaus (C9 has long flat runs of the
+  // same RGB) so swatches show the named bulbs, not interpolated mud.
+  const plateaus = uniqueStopColors(palettePreview.stops);
+  if (plateaus.length >= 2 && plateaus.length <= max + 1) {
+    return plateaus.slice(0, max).map((c) => rgbToHex(c));
+  }
+  // Smooth gradients: pick evenly spaced samples (skip near-black).
+  const sampled = samplePaletteStops(palettePreview.stops, max + 2).slice(0, max);
+  if (sampled.length > 0) return sampled.map((c) => rgbToHex(c));
+
+  return colors
+    .filter((c) => c && (c[0] || c[1] || c[2]))
+    .map((c) => rgbToHex([c[0], c[1], c[2]]))
+    .slice(0, max);
+}
+
+/** Collapse consecutive identical (or near-identical) palette stops into one
+ *  color each — turns C9's 8 plateau entries into 4 bulb colors. */
+export function uniqueStopColors(
+  stops: [number, number, number, number][],
+  near = 12
+): number[][] {
+  const out: number[][] = [];
+  for (const [, r, g, b] of [...stops].sort((a, b) => a[0] - b[0])) {
+    if (!(r || g || b)) continue; // skip pure black
+    const prev = out[out.length - 1];
+    if (
+      prev &&
+      Math.abs(prev[0] - r) <= near &&
+      Math.abs(prev[1] - g) <= near &&
+      Math.abs(prev[2] - b) <= near
+    ) {
+      continue;
+    }
+    out.push([r, g, b]);
+  }
+  return out;
+}
