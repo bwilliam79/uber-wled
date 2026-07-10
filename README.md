@@ -86,18 +86,24 @@ Devices:
    include-brightness and save-bounds options), **Config** (below), and
    **Update** (the per-controller firmware pin/OTA flow).
 2. **Themes** — custom effect/palette/color/brightness/**speed/intensity** combos
-   independent of any device's presets. Each theme row shows a **live animated
-   LED preview** of its effect (rendered as a row of glowing dots on a dark
-   housing — static effects stay static). The form reads the per-controller
-   capability cache: effect search with 2D/audio badges, palette picker with
-   real gradient previews, color slots, brightness, and effect speed +
-   intensity sliders. Existing themes can be edited in place
-   (Edit on any row prefills the form and saves back over the same theme) or
-   removed, the whole set can be exported/imported as JSON, and a
-   controller's own WLED device presets can be imported as themes — with
-   dedup: presets already imported (same name + settings) are flagged, and a
-   name that clashes with a different existing theme prompts to overwrite or
-   import under a new name. Themes are
+   independent of any device's presets. Each theme row (and the create/edit
+   form) shows a **live animated LED preview** of its effect as a row of
+   glowing dots on a dark housing — static effects stay static. Previews are
+   **palette-aware**: slot-driven effects (Solid, Solid Pattern Tri) and the
+   WLED "Default" palette use the theme's color slots; `* Colors Only` /
+   `* Colors 1&2` expand those slots; real gradient palettes (C9 New, Fire,
+   Autumn, …) sample the device's cached palx stops so e.g. Christmas C9
+   Chase and Thanksgiving Glow read correctly. Effect motion is mapped by
+   name to a small set of families (chase, sparkle, fire, bands, gradient,
+   …) tuned to the effects this install actually uses. The form also has
+   effect search with 2D/audio badges, a palette picker with real gradient
+   previews, color slots, brightness, and speed + intensity sliders. Existing
+   themes can be edited in place (Edit on any row opens a modal and saves
+   back over the same theme) or removed, the whole set can be
+   exported/imported as JSON, and a controller's own WLED device presets can
+   be imported as themes — with dedup: presets already imported (same name +
+   settings) are flagged, and a name that clashes with a different existing
+   theme prompts to overwrite or import under a new name. Themes are
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.

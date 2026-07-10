@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { addTheme, updateTheme, type ControllerCapabilities, type CustomTheme } from '../../api/client';
 import { hexToRgb, rgbToHex } from '../../lib/color';
 import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
 import { Slider } from '../../components/ui/Slider';
+import { LedPreview } from '../../components/ui/LedPreview';
+import { effectToPreview, resolvePreviewColors } from '../../lib/effectPreview';
 import { EffectPicker } from './EffectPicker';
 import { PalettePicker } from './PalettePicker';
 import { ColorSlotButton } from './ColorSlotButton';
@@ -74,8 +76,33 @@ export function ThemeForm({
     });
   }
 
+  const effectName = capabilities.effects[effectId] ?? `Effect #${effectId}`;
+  const preview = useMemo(() => {
+    const slotRgbs = colors.map((c) => hexToRgb(c) ?? [0, 0, 0]);
+    const fxMeta = capabilities.fxMeta.find((m) => m.id === effectId);
+    const palettePreview = capabilities.palettePreviews[paletteId];
+    return {
+      effect: effectToPreview(effectName),
+      colors: resolvePreviewColors(slotRgbs, palettePreview, {
+        usesPalette: fxMeta?.usesPalette,
+        paletteId
+      })
+    };
+  }, [capabilities, colors, effectId, effectName, paletteId]);
+
   return (
     <div className="theme-form">
+      <div className="theme-form-preview-well" data-testid="theme-form-preview">
+        <LedPreview
+          effect={preview.effect}
+          colors={preview.colors}
+          count={56}
+          speed={Math.max(0.15, speed / 128)}
+          intensity={intensity}
+          className="theme-form-preview-canvas"
+          ariaLabel={`${name || 'Theme'} live preview`}
+        />
+      </div>
       <Field label="Name" htmlFor="theme-name">
         <input
           id="theme-name"

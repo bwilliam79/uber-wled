@@ -89,6 +89,12 @@ export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[]
     case 'fire': {
       const fl = rand(i, Math.floor(t * sp * 11));
       const heat = Math.max(0, Math.min(1, 0.35 + 0.65 * fl * (0.55 + 0.45 * Math.sin(t * sp * 3 + i * 0.7))));
+      // When the preview was resolved against a real palette (Fire, Autumn,
+      // …), sample that palette by heat so Thanksgiving/Halloween match the
+      // device. Fall back to classic orange-red when only one color is given.
+      if (rgbs.length >= 2) {
+        return { c: pal(rgbs, heat * 0.92), b: 0.35 + 0.65 * heat };
+      }
       return { c: hsl(8 + heat * 38, 100, 22 + heat * 34), b: 0.45 + 0.55 * heat };
     }
     case 'solid':
