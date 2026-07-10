@@ -28,13 +28,30 @@ const CONTROLLERS = [
   { id: 'c2', name: 'Porch', host: '10.0.0.51', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
-function stubFetchRoutes(routes: Record<string, unknown | ((init?: RequestInit) => unknown)>) {
+type RouteEntry =
+  | unknown
+  | ((init?: RequestInit) => unknown)
+  | { status: number; body: unknown }
+  | ((init?: RequestInit) => { status: number; body: unknown });
+
+function stubFetchRoutes(routes: Record<string, RouteEntry>) {
   const fn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const key = `${init?.method ?? 'GET'} ${String(input)}`;
     if (!(key in routes)) throw new Error(`unexpected fetch: ${key}`);
     const entry = routes[key];
-    const body = typeof entry === 'function' ? (entry as (init?: RequestInit) => unknown)(init) : entry;
-    return { ok: true, status: 200, json: async () => structuredClone(body) } as Response;
+    const resolved = typeof entry === 'function' ? entry(init) : entry;
+    const isStatusBody =
+      resolved !== null &&
+      typeof resolved === 'object' &&
+      'status' in (resolved as object) &&
+      'body' in (resolved as object);
+    const status = isStatusBody ? (resolved as { status: number }).status : 200;
+    const body = isStatusBody ? (resolved as { body: unknown }).body : resolved;
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => structuredClone(body)
+    } as Response;
   });
   vi.stubGlobal('fetch', fn);
   return fn;
@@ -191,5 +208,57 @@ describe('SyncSection', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(screen.getByText('No sync groups yet.')).toBeTruthy());
     expect(fetchMock).toHaveBeenCalledWith('/api/sync-groups/g1', expect.objectContaining({ method: 'DELETE' }));
+  });
+
+  it('surfaces an active-membership conflict on the row and disables Activate', async () => {
+    const activeGroup = {
+      id: 'g-active', name: 'Front porch', active: true, bitmask: 1, memberControllerIds: ['c1']
+    };
+    const blocked = {
+      id: 'g-blocked', name: 'Back yard', active: false, bitmask: null, memberControllerIds: ['c1', 'c2']
+    };
+    stubFetchRoutes({
+      'GET /api/controllers': CONTROLLERS,
+      'GET /api/sync-groups': [activeGroup, blocked]
+    });
+    renderSync();
+    await waitFor(() => expect(screen.getByText('Back yard')).toBeTruthy());
+    expect(screen.getByText(/already active in “Front porch”/)).toBeTruthy();
+    expect((screen.getByRole('button', { name: 'Activate Back yard' }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('labels controllers that are active in another group in the create modal', async () => {
+    const activeGroup = {
+      id: 'g-active', name: 'Front porch', active: true, bitmask: 1, memberControllerIds: ['c1']
+    };
+    stubFetchRoutes({
+      'GET /api/controllers': CONTROLLERS,
+      'GET /api/sync-groups': [activeGroup]
+    });
+    renderSync();
+    await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'New sync group' }));
+    expect(screen.getByText('Active in “Front porch”')).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox', { name: /Cabinet/ }));
+    expect(screen.getByText(/only be active in one sync group at a time/)).toBeTruthy();
+  });
+
+  it('toasts the server conflict message when activate fails with 409', async () => {
+    stubFetchRoutes({
+      'GET /api/controllers': CONTROLLERS,
+      'GET /api/sync-groups': [EMPTY_GROUP],
+      'POST /api/sync-groups/g1/activate': {
+        status: 409,
+        body: {
+          error:
+            '"Cabinet" is already active in sync group "Other". Deactivate that group first, or remove the shared controller from one of them.'
+        }
+      }
+    });
+    renderSync();
+    await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'Activate Front porch' }));
+    await waitFor(() => expect(screen.getByText(/Could not activate Front porch/)).toBeTruthy());
+    expect(screen.getByText(/"Cabinet" is already active in sync group "Other"/)).toBeTruthy();
   });
 });

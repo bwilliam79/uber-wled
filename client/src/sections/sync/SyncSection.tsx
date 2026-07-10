@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   addSyncGroup, renameSyncGroup, setSyncGroupMembers, deleteSyncGroup,
@@ -30,11 +30,43 @@ function summarizeResults(results: SyncMemberResult[]): { failed: SyncMemberResu
   return { failed: results.filter((r) => !r.ok) };
 }
 
+/** First active group (other than `excludeGroupId`) that shares a controller
+ *  with `memberIds`, or null if none. Used to surface activate conflicts
+ *  before the user hits the wire. */
+function findActiveMembershipConflict(
+  groups: SyncGroup[],
+  memberIds: string[],
+  excludeGroupId?: string
+): { controllerId: string; groupName: string } | null {
+  const active = groups.filter((g) => g.active && g.id !== excludeGroupId);
+  for (const id of memberIds) {
+    for (const g of active) {
+      if (g.memberControllerIds.includes(id)) {
+        return { controllerId: id, groupName: g.name };
+      }
+    }
+  }
+  return null;
+}
+
+/** Map controllerId → name of the active group currently holding it. */
+function activeElsewhereMap(groups: SyncGroup[], excludeGroupId?: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const g of groups) {
+    if (!g.active || g.id === excludeGroupId) continue;
+    for (const id of g.memberControllerIds) {
+      if (!map.has(id)) map.set(id, g.name);
+    }
+  }
+  return map;
+}
+
 function SyncGroupRow({
   group,
   controllers,
   live,
   busy,
+  conflict,
   onActivate,
   onDeactivate,
   onEdit,
@@ -44,11 +76,21 @@ function SyncGroupRow({
   controllers: Controller[];
   live: Map<string, LiveStatusEntry>;
   busy: boolean;
+  conflict: { controllerId: string; groupName: string } | null;
   onActivate: (g: SyncGroup) => void;
   onDeactivate: (g: SyncGroup) => void;
   onEdit: (g: SyncGroup) => void;
   onDelete: (g: SyncGroup) => void;
 }) {
+  const conflictCtrlName = conflict
+    ? live.get(conflict.controllerId)?.info?.name
+      || controllers.find((c) => c.id === conflict.controllerId)?.name
+      || 'a controller'
+    : null;
+  const conflictHint = conflict
+    ? `Cannot activate: ${conflictCtrlName} is already active in “${conflict.groupName}”. Deactivate that group first.`
+    : undefined;
+
   return (
     <li className="sync-group-row" data-testid={`sync-group-${group.id}`}>
       <div className="sync-group-row-info">
@@ -59,6 +101,9 @@ function SyncGroupRow({
             : <Chip>Inactive</Chip>}
         </div>
         <span className="sync-group-row-members">{memberNames(group, controllers, live)}</span>
+        {conflict && (
+          <span className="sync-group-row-conflict" role="status">{conflictHint}</span>
+        )}
       </div>
       <div className="sync-group-row-actions">
         <Button variant="secondary" size="sm" disabled={busy} onClick={() => onEdit(group)}>
@@ -74,8 +119,10 @@ function SyncGroupRow({
           </Button>
         ) : (
           <Button
-            variant="primary" size="sm" disabled={busy || group.memberControllerIds.length === 0}
+            variant="primary" size="sm"
+            disabled={busy || group.memberControllerIds.length === 0 || !!conflict}
             aria-label={`Activate ${group.name}`}
+            title={conflictHint}
             onClick={() => onActivate(group)}
           >
             Activate
@@ -106,6 +153,12 @@ export function SyncSection() {
   const [editGroup, setEditGroup] = useState<SyncGroup | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SyncGroup | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  const createActiveElsewhere = useMemo(() => activeElsewhereMap(groups), [groups]);
+  const editActiveElsewhere = useMemo(
+    () => activeElsewhereMap(groups, editGroup?.id),
+    [groups, editGroup?.id]
+  );
 
   function upsertGroup(updated: SyncGroup) {
     queryClient.setQueryData<SyncGroup[]>(['sync-groups'], (prev) =>
@@ -207,6 +260,11 @@ export function SyncSection() {
                 controllers={controllers}
                 live={live}
                 busy={busyId === g.id}
+                conflict={
+                  g.active
+                    ? null
+                    : findActiveMembershipConflict(groups, g.memberControllerIds, g.id)
+                }
                 onActivate={handleActivate}
                 onDeactivate={handleDeactivate}
                 onEdit={setEditGroup}
@@ -222,6 +280,7 @@ export function SyncSection() {
         onClose={() => setCreateOpen(false)}
         controllers={controllers}
         live={live}
+        activeElsewhere={createActiveElsewhere}
         onSave={handleCreate}
       />
       <SyncGroupModal
@@ -230,6 +289,7 @@ export function SyncSection() {
         controllers={controllers}
         live={live}
         group={editGroup ?? undefined}
+        activeElsewhere={editActiveElsewhere}
         onSave={handleSaveEdit}
       />
 

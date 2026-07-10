@@ -136,7 +136,21 @@ async function sendJson<T>(url: string, method: string, body?: unknown): Promise
     headers: { 'Content-Type': 'application/json' },
     body: body !== undefined ? JSON.stringify(body) : undefined
   });
-  if (!res.ok) throw new Error(`${method} ${url} failed`);
+  if (!res.ok) {
+    // Prefer the server's { error } body when present — otherwise every
+    // 4xx (sync-member conflicts, validation, free-bit exhaustion…)
+    // collapses to the same opaque "METHOD /url failed" toast.
+    let message = `${method} ${url} failed`;
+    try {
+      const parsed = await res.json();
+      if (parsed && typeof parsed.error === 'string' && parsed.error.length > 0) {
+        message = parsed.error;
+      }
+    } catch {
+      // non-JSON error body — keep the status-based message
+    }
+    throw new Error(message);
+  }
   return res.json();
 }
 
