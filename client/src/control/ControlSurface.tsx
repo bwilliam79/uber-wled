@@ -55,7 +55,10 @@ const QUICK_COLORS: { label: string; name: string; rgb: number[]; swatch: string
   { label: 'R', name: 'Red', rgb: [255, 0, 0], swatch: '#ff3b3b', text: '#2a0000' },
   { label: 'G', name: 'Green', rgb: [0, 255, 0], swatch: '#37d84a', text: '#002a06' },
   { label: 'B', name: 'Blue', rgb: [0, 0, 255], swatch: '#3b6bff', text: '#00082a' },
-  { label: 'W', name: 'White', rgb: [255, 255, 255], swatch: '#ffffff', text: '#333333' }
+  { label: 'W', name: 'White', rgb: [255, 255, 255], swatch: '#ffffff', text: '#333333' },
+  // Black = off for that color slot — the hue wheel can't reach pure black, so
+  // this is the way to switch part of a look off when building a theme.
+  { label: 'K', name: 'Black (off)', rgb: [0, 0, 0], swatch: '#000000', text: '#9a9ca4' }
 ];
 
 export interface ControlSurfaceProps {
@@ -257,13 +260,18 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const briValue = typeof eff.bri === 'number' ? eff.bri : 128;
   const briPct = Math.round((briValue / 255) * 100);
   const slotHexes = [0, 1, 2].map(slotHex);
+  const litHexes = slotHexes.filter((_, i) => {
+    const c = eff.colors[i];
+    // Include a slot with only a white channel set — otherwise a pure-white
+    // color drops out and the preview falls back to the placeholder.
+    return Array.isArray(c) && (c[0] || c[1] || c[2] || c[3]);
+  });
+  // Lit slots win; if colors are defined but all black (e.g. the "K"/off
+  // quick-color), preview black rather than the teal placeholder; only fall
+  // back to teal when there's no color info at all.
+  const anyColorDefined = eff.colors.some((c) => Array.isArray(c) && c.length > 0);
   const previewColors =
-    slotHexes.filter((_, i) => {
-      const c = eff.colors[i];
-      // Include a slot with only a white channel set — otherwise a pure-white
-      // color drops out and the preview falls back to the teal placeholder.
-      return Array.isArray(c) && (c[0] || c[1] || c[2] || c[3]);
-    }).join(',') || '#2ee6c0';
+    litHexes.length > 0 ? litHexes.join(',') : anyColorDefined ? '#000000' : '#2ee6c0';
   const previewEffect = effectToPreview(typeof eff.fxName === 'string' ? eff.fxName : undefined);
 
   const singleController = singleControllerId ? controllers.find((c) => c.id === singleControllerId) : null;
