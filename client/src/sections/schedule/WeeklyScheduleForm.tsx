@@ -11,7 +11,11 @@ const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 export interface WeeklyScheduleDraft {
   name: string;
   daysOfWeek: number[];
-  timeOfDay: string;
+  /** 'weekly' = fire at timeOfDay; 'sunrise'/'sunset' = fire at that solar
+   *  event ± offsetMinutes. All three still repeat on the chosen daysOfWeek. */
+  triggerType: 'weekly' | 'sunrise' | 'sunset';
+  timeOfDay: string | null;
+  offsetMinutes: number;
   target: TargetValue;
   actionType: 'power' | 'brightness' | 'preset' | 'theme';
   actionPayload: unknown;
@@ -50,9 +54,19 @@ export function WeeklyScheduleForm({
   onSaved?: (schedule: Schedule) => void;
   previewing: boolean;
 }) {
+  // Existing schedules stored as 'cron' predate this form; treat them as fixed.
+  const initialTrigger: 'weekly' | 'sunrise' | 'sunset' =
+    initialSchedule?.triggerType === 'sunrise' || initialSchedule?.triggerType === 'sunset'
+      ? initialSchedule.triggerType
+      : 'weekly';
   const [name, setName] = useState(initialSchedule?.name ?? '');
   const [days, setDays] = useState<Set<number>>(new Set(initialSchedule?.daysOfWeek ?? []));
+  const [triggerType, setTriggerType] = useState<'weekly' | 'sunrise' | 'sunset'>(initialTrigger);
   const [timeOfDay, setTimeOfDay] = useState(initialSchedule?.timeOfDay ?? '18:00');
+  const [offsetMinutes, setOffsetMinutes] = useState(initialSchedule?.offsetMinutes ?? 0);
+  const [actionType, setActionType] = useState<'theme' | 'off'>(
+    initialSchedule?.actionType === 'power' ? 'off' : 'theme'
+  );
   const [target, setTarget] = useState<TargetValue>(
     initialSchedule
       ? { groupId: initialSchedule.groupId, controllers: initialSchedule.controllers }
@@ -70,6 +84,17 @@ export function WeeklyScheduleForm({
     });
   }
 
+  // The action + trigger fields the draft/save payload share.
+  const actionFields =
+    actionType === 'off'
+      ? { actionType: 'power' as const, actionPayload: { on: false } }
+      : { actionType: 'theme' as const, actionPayload: { themeId } };
+  const triggerFields = {
+    triggerType,
+    timeOfDay: triggerType === 'weekly' ? timeOfDay : null,
+    offsetMinutes: triggerType === 'weekly' ? 0 : offsetMinutes
+  };
+
   async function handleSaveEdit() {
     if (!initialSchedule) return;
     setError(null);
@@ -77,16 +102,23 @@ export function WeeklyScheduleForm({
       const saved = await updateSchedule(initialSchedule.id, {
         name,
         daysOfWeek: Array.from(days).sort((a, b) => a - b),
-        timeOfDay,
+        ...triggerFields,
         ...target,
-        actionType: 'theme',
-        actionPayload: { themeId }
+        ...actionFields
       });
       onSaved?.(saved);
     } catch {
       setError('Failed to save schedule.');
     }
   }
+
+  const draft = (): WeeklyScheduleDraft => ({
+    name,
+    daysOfWeek: Array.from(days).sort((a, b) => a - b),
+    ...triggerFields,
+    target,
+    ...actionFields
+  });
 
   return (
     <div className="schedule-form">
@@ -110,12 +142,33 @@ export function WeeklyScheduleForm({
           ))}
         </div>
       </div>
-      <Field label="Time of day" htmlFor="weekly-schedule-time">
-        <input
-          id="weekly-schedule-time" aria-label="time of day" className="input" type="time"
-          value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)}
+      <Field label="Trigger" htmlFor="weekly-schedule-trigger">
+        <Select
+          id="weekly-schedule-trigger" label="trigger" showLabel={false}
+          value={triggerType}
+          onChange={(v) => setTriggerType(v as 'weekly' | 'sunrise' | 'sunset')}
+          options={[
+            { value: 'weekly', label: 'Fixed time' },
+            { value: 'sunrise', label: 'Sunrise' },
+            { value: 'sunset', label: 'Sunset' }
+          ]}
         />
       </Field>
+      {triggerType === 'weekly' ? (
+        <Field label="Time of day" htmlFor="weekly-schedule-time">
+          <input
+            id="weekly-schedule-time" aria-label="time of day" className="input" type="time"
+            value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)}
+          />
+        </Field>
+      ) : (
+        <Field label="Offset (min)" htmlFor="weekly-schedule-offset">
+          <input
+            id="weekly-schedule-offset" aria-label="offset minutes" className="input" type="number"
+            value={offsetMinutes} onChange={(e) => setOffsetMinutes(Number(e.target.value))}
+          />
+        </Field>
+      )}
       <TargetPicker
         idPrefix="weekly-schedule"
         groups={groups}
@@ -124,32 +177,33 @@ export function WeeklyScheduleForm({
         value={target}
         onChange={setTarget}
       />
-      <Field label="Theme" htmlFor="weekly-schedule-theme">
+      <Field label="Action" htmlFor="weekly-schedule-action">
         <Select
-          id="weekly-schedule-theme" label="theme" showLabel={false} value={themeId} onChange={setThemeId}
-          options={themes.map((t) => ({ value: t.id, label: t.name }))}
+          id="weekly-schedule-action" label="action" showLabel={false}
+          value={actionType}
+          onChange={(v) => setActionType(v as 'theme' | 'off')}
+          options={[
+            { value: 'theme', label: 'Apply theme' },
+            { value: 'off', label: 'Turn off' }
+          ]}
         />
       </Field>
+      {actionType === 'theme' && (
+        <Field label="Theme" htmlFor="weekly-schedule-theme">
+          <Select
+            id="weekly-schedule-theme" label="theme" showLabel={false} value={themeId} onChange={setThemeId}
+            options={themes.map((t) => ({ value: t.id, label: t.name }))}
+          />
+        </Field>
+      )}
       <div className="schedule-form-actions">
         {initialSchedule ? (
           <Button variant="primary" onClick={handleSaveEdit}>Save</Button>
         ) : (
           <>
             {!previewing && (
-              <Button
-                variant="primary"
-                onClick={() =>
-                  onPreview({
-                    name,
-                    daysOfWeek: Array.from(days).sort((a, b) => a - b),
-                    timeOfDay,
-                    target,
-                    actionType: 'theme',
-                    actionPayload: { themeId }
-                  })
-                }
-              >
-                Preview
+              <Button variant="primary" onClick={() => onPreview(draft())}>
+                {actionType === 'off' ? 'Create' : 'Preview'}
               </Button>
             )}
             {previewing && (
