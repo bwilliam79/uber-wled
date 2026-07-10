@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import type { Controller } from '../api/client';
-import { useSyncGroups } from '../api/queries';
 import type { LiveStatusEntry } from '../api/live';
 import { useTheme } from '../theme/ThemeProvider';
 
@@ -34,16 +33,16 @@ export function MasterBar({
   live: ReadonlyMap<string, LiveStatusEntry>;
 }) {
   const { theme, setTheme } = useTheme();
-  const syncGroups = useSyncGroups();
 
   const onCount = useMemo(
     () => controllers.filter((c) => live.get(c.id)?.state?.on).length,
     [controllers, live]
   );
-  const activeSync = (syncGroups.data ?? []).find((g) => g.active);
 
-  const statusText = activeSync ? activeSync.name : onCount > 0 ? `${onCount} on` : 'All off';
-  const statusActive = !!activeSync || onCount > 0;
+  // The pill is a plain fleet power read-out ("N on" / "All off"); active sync
+  // groups now surface as their own cards on the Devices page, not here.
+  const statusText = onCount > 0 ? `${onCount} on` : 'All off';
+  const statusActive = onCount > 0;
 
   return (
     <header className="master-bar">
@@ -53,7 +52,7 @@ export function MasterBar({
       </div>
       <div className="master-bar-spacer" />
 
-      <div className="master-bar-status" title={activeSync ? 'Active sync group' : `${onCount} controller(s) on`}>
+      <div className="master-bar-status" title={`${onCount} controller(s) on`}>
         <span className={`master-bar-status-dot${statusActive ? ' pulse' : ''}`} />
         <span className="master-bar-status-text">{statusText}</span>
       </div>
