@@ -26,6 +26,10 @@ themes so the glow reads like real light.
 |---|---|
 | ![Themes](docs/screenshots/themes.png) | ![Segments](docs/screenshots/segments.png) |
 
+| Schedule — weekly & calendar automation | Sync groups — control a synced set together |
+|---|---|
+| ![Schedule](docs/screenshots/schedule.png) | ![Sync groups](docs/screenshots/sync.png) |
+
 ## Quick start
 
 Runs as a single Docker container.
@@ -99,11 +103,13 @@ Devices:
    to create a custom entry prefilled with that date. A configured holiday
    (a theme is set and it's enabled) shows a green dot; an unconfigured
    placeholder is drawn as a dashed chip, so it's clear at a glance which
-   holidays are actually set up. **Weekly** holds the weekly and cron
-   recurring schedules as clean list rows — a big mono trigger time (or
+   holidays are actually set up. **Weekly** holds the recurring
+   schedules as clean list rows — a big mono trigger time (or
    sunrise/sunset), the name, a `days · action · target` sub-line, and an
    **inline enable toggle** (disabled rows dim) — with a dashed "New schedule"
-   add row. Each targets either
+   add row. Each recurring schedule picks a **trigger** (fixed time, or
+   sunrise/sunset with a ± minute offset) and an **action** (apply a theme, or
+   turn off), and targets either
    a Room group or a set of specific controllers directly. An enabled calendar event overrides overlapping
    schedules for that day. Every schedule and event shows what it's actually
    assigned to and can be edited in place (name, target, theme, time; the
