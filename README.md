@@ -162,7 +162,10 @@ Devices:
    survive (a rebuilt instance re-discovers controllers under new ids, so
    the backup brings the original controller ids back too, keeping schedules
    and rooms pointing at the right devices); it replaces everything and is
-   gated behind a confirm. Themes (Themes page) and schedules + calendar
+   gated behind a confirm. The server also writes an **automatic daily
+   snapshot** (kept for the last 14 days, next to the DB) — the card lists them
+   with per-entry download and restore, so there's a recent config to fall back
+   on even if you never export manually. Themes (Themes page) and schedules + calendar
    events (Schedule page) also have their own lighter **Export**/**Import**
    buttons for sharing or partial transfer — theme import appends under
    fresh ids; schedule import appends and skips any row whose referenced

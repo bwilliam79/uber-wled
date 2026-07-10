@@ -41,3 +41,19 @@
   font: inherit;
 }
 .settings-address-candidate:hover { background: var(--surface); border-color: var(--accent); }
+
+/* Automatic backups list in the Backup & restore card. */
+.settings-autobackups { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--w6); }
+.settings-autobackups-title { margin: 0 0 4px; font-size: 0.9rem; }
+.settings-autobackup-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.settings-autobackup-row { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; }
+.settings-autobackup-date { color: var(--text); }
+.settings-autobackup-size { color: var(--m2); min-width: 52px; }
+.settings-autobackup-dl { margin-left: auto; color: var(--accent); text-decoration: none; }
+.settings-autobackup-dl:hover { text-decoration: underline; }
+.settings-autobackup-restore {
+  background: none; border: 1px solid var(--w10); color: var(--text2);
+  border-radius: var(--radius-control); padding: 3px 10px; font-size: 0.8rem; cursor: pointer;
+}
+.settings-autobackup-restore:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
+.settings-autobackup-restore:disabled { opacity: 0.5; cursor: not-allowed; }

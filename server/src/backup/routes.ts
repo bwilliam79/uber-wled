@@ -4,6 +4,9 @@ import {
   buildBackup, restoreBackup, buildThemesExport, importThemes,
   buildSchedulesExport, importSchedules, BackupFormatError
 } from './service.js';
+import {
+  autoBackupDir, listAutoBackups, readAutoBackup, restoreAutoBackup, isAutoBackupName
+} from './autoBackup.js';
 
 function attach(res: import('express').Response, filename: string): void {
   res.setHeader('Content-Type', 'application/json');
@@ -34,6 +37,31 @@ export function createBackupRouter(db: Database.Database): Router {
     } catch (err) {
       if (err instanceof BackupFormatError) return res.status(400).json({ error: err.message });
       throw err;
+    }
+  });
+
+  // --- Server-side nightly auto-backups (kept next to the DB) ---
+  const dir = () => autoBackupDir(db.name);
+
+  router.get('/auto', (_req, res) => res.json(listAutoBackups(dir())));
+
+  router.get('/auto/:name', (req, res) => {
+    if (!isAutoBackupName(req.params.name)) return res.status(400).json({ error: 'invalid name' });
+    try {
+      attach(res, req.params.name);
+      res.send(readAutoBackup(dir(), req.params.name));
+    } catch {
+      return res.status(404).json({ error: 'not found' });
+    }
+  });
+
+  router.post('/auto/:name/restore', (req, res) => {
+    if (!isAutoBackupName(req.params.name)) return res.status(400).json({ error: 'invalid name' });
+    try {
+      res.json(restoreAutoBackup(db, dir(), req.params.name));
+    } catch (err) {
+      if (err instanceof BackupFormatError) return res.status(400).json({ error: err.message });
+      return res.status(404).json({ error: 'not found' });
     }
   });
 
