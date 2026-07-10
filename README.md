@@ -60,12 +60,11 @@ Devices:
    WiFi signal, FPS, power, uptime, stale/offline and update-available
    badges, plus a live-output strip (one swatch per segment, driven by the
    live stream) so a card shows what its lights are actually doing without
-   opening it. Cards are bucketed into collapsible **room** sections (icon +
-   name + count), with an *Ungrouped* section for the rest — a flat grid until
-   you make a room. **Manage rooms** (top of the page) creates/renames/deletes
-   rooms, picks an icon, and assigns whole controllers to them; discovered
-   controllers show up automatically, and adding one manually lives in
-   Settings. The detail page has five tabs: **Info** (the live-output
+   opening it. Two tabs split the view: **Controllers** (a card per device;
+   discovery adds them automatically, manual add lives in Settings) and **Sync
+   Groups**, where each *active* sync group appears as its own aggregate card —
+   power, brightness, and Control fanned out to its member controllers so the
+   whole synced set moves together. The detail page has five tabs: **Info** (the live-output
    strip shown automatically, identity, network, uptime, heap, filesystem,
    LED counts, usermods, an opt-in "Open native live view" embed of the
    device's own `/liveview` page, reboot with confirm, open-native-UI),

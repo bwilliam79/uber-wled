@@ -1,25 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Controller } from '../../api/client';
+import type { Controller, Target } from '../../api/client';
 import { useLiveStatus } from '../../api/live';
-import { useControllers, useGroups } from '../../api/queries';
+import { useControllers, useSyncGroups } from '../../api/queries';
 import { ControlSurface } from '../../control/ControlSurface';
 import { Button } from '../../components/ui/Button';
 import { Skeleton } from '../../components/ui/Skeleton';
+import { Tabs } from '../../components/ui/Tabs';
 import { DeviceCard } from './DeviceCard';
 import { DeviceDetail } from './DeviceDetail';
-import { RoomGroup } from './RoomGroup';
-import { RoomsManagerModal } from './RoomsManagerModal';
-import { groupControllersByRoom } from './deviceGrouping';
+import { SyncGroupCard } from './SyncGroupCard';
 import { deviceHash, parseDevicesHash, type DeviceTab } from './route';
-import { cachedDeviceName } from '../../lib/deviceNames';
 import './devices.css';
 
 export function DevicesSection() {
   const [route, setRoute] = useState(() => parseDevicesHash(window.location.hash));
   const controllers = useControllers();
-  const groups = useGroups();
-  const [controlId, setControlId] = useState<string | null>(null);
-  const [roomsOpen, setRoomsOpen] = useState(false);
+  const syncGroups = useSyncGroups();
+  const [tab, setTab] = useState<'controllers' | 'sync'>('controllers');
+  // A single target-set drives the Control surface, so both a single device
+  // card and a whole sync group (its members) can open it.
+  const [controlTargets, setControlTargets] = useState<Target[] | null>(null);
 
   useEffect(() => {
     const onHash = () => setRoute(parseDevicesHash(window.location.hash));
@@ -34,17 +34,19 @@ export function DevicesSection() {
   );
   const live = useLiveStatus(liveIds);
 
-  const { rooms, ungrouped } = useMemo(
-    () => groupControllersByRoom(groups.data ?? [], list),
-    [groups.data, list]
-  );
-  const renderCard = (c: Controller) => (
-    <DeviceCard key={c.id} controller={c} live={live.get(c.id)} onControl={setControlId} onOpen={openDetail} />
-  );
-  // Same resolution as DeviceCard so the room manager labels controllers with
-  // their live/friendly name rather than the frozen add-time name.
-  const nameFor = (id: string) =>
-    live.get(id)?.info?.name || cachedDeviceName(id) || list.find((c) => c.id === id)?.name || id;
+  // Active sync groups surface as their own aggregate-control cards, pinned
+  // above the individual devices; members still appear as their own cards too.
+  const activeSyncGroups = useMemo(() => {
+    const byId = new Map(list.map((c) => [c.id, c]));
+    return (syncGroups.data ?? [])
+      .filter((sg) => sg.active)
+      .map((sg) => ({
+        id: sg.id,
+        name: sg.name,
+        members: sg.memberControllerIds.map((id) => byId.get(id)).filter((c): c is Controller => !!c)
+      }))
+      .filter((sg) => sg.members.length > 0);
+  }, [syncGroups.data, list]);
 
   function openDetail(controllerId: string, tab: DeviceTab = 'info') {
     window.location.hash = deviceHash(controllerId, tab);
@@ -85,9 +87,6 @@ export function DevicesSection() {
     <section className="section devices-section">
       <header className="devices-header">
         <h2>Devices</h2>
-        {list.length > 0 && (
-          <Button variant="secondary" size="sm" onClick={() => setRoomsOpen(true)}>Manage rooms</Button>
-        )}
       </header>
       {controllers.isLoading && (
         <div className="devices-grid">
@@ -96,38 +95,62 @@ export function DevicesSection() {
         </div>
       )}
       {controllers.isError && <p role="alert">Could not load controllers.</p>}
-      {!controllers.isLoading && !controllers.isError && list.length === 0 && (
-        <p className="empty-state">
-          No controllers yet — discovery adds them automatically, or add one in Settings.
-        </p>
-      )}
-      {rooms.length === 0 ? (
-        <div className="devices-grid">{list.map(renderCard)}</div>
-      ) : (
-        <div className="devices-rooms">
-          {rooms.map(({ group, controllers: members }) => (
-            <RoomGroup key={group.id} title={group.name} icon={group.icon} count={members.length}>
-              {members.map(renderCard)}
-            </RoomGroup>
-          ))}
-          {ungrouped.length > 0 && (
-            <RoomGroup title="Ungrouped" count={ungrouped.length}>
-              {ungrouped.map(renderCard)}
-            </RoomGroup>
-          )}
-        </div>
-      )}
-      <ControlSurface
-        targets={controlId ? [{ kind: 'controller', controllerId: controlId }] : []}
-        open={controlId !== null}
-        onClose={() => setControlId(null)}
+
+      <Tabs
+        label="Devices views"
+        active={tab}
+        onChange={(id) => setTab(id as 'controllers' | 'sync')}
+        tabs={[
+          { id: 'controllers', label: 'Controllers' },
+          { id: 'sync', label: 'Sync Groups' }
+        ]}
       />
-      <RoomsManagerModal
-        open={roomsOpen}
-        onClose={() => setRoomsOpen(false)}
-        groups={groups.data ?? []}
-        controllers={list}
-        nameFor={nameFor}
+
+      {tab === 'controllers' && (
+        !controllers.isLoading && !controllers.isError && list.length === 0 ? (
+          <p className="empty-state">
+            No controllers yet — discovery adds them automatically, or add one in Settings.
+          </p>
+        ) : (
+          <div className="devices-grid">
+            {list.map((c) => (
+              <DeviceCard
+                key={c.id}
+                controller={c}
+                live={live.get(c.id)}
+                onControl={(id) => setControlTargets([{ kind: 'controller', controllerId: id }])}
+                onOpen={openDetail}
+              />
+            ))}
+          </div>
+        )
+      )}
+
+      {tab === 'sync' && (
+        activeSyncGroups.length === 0 ? (
+          <p className="empty-state">
+            No active sync groups — create one and turn it on in the Sync section, and it
+            will show up here for whole-group control.
+          </p>
+        ) : (
+          <div className="devices-grid">
+            {activeSyncGroups.map((sg) => (
+              <SyncGroupCard
+                key={sg.id}
+                name={sg.name}
+                members={sg.members}
+                live={live}
+                onControl={setControlTargets}
+              />
+            ))}
+          </div>
+        )
+      )}
+
+      <ControlSurface
+        targets={controlTargets ?? []}
+        open={controlTargets !== null}
+        onClose={() => setControlTargets(null)}
       />
     </section>
   );
