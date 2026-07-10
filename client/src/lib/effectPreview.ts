@@ -7,25 +7,29 @@ import { rgbToHex } from './color';
 // goal is a live sense of the look, not a bit-exact reproduction.
 export function effectToPreview(effectName: string | undefined): LedEffect {
   const n = (effectName ?? '').toLowerCase();
+  const has = (...kw: string[]) => kw.some((k) => n.includes(k));
   // Static effects first — these must NOT animate.
   if (n.includes('solid') && n.includes('pattern')) return 'bands'; // Solid Pattern (Tri) = static bands
   if (n === 'solid' || n.startsWith('solid ')) return 'solid';
   if (n.includes('rainbow')) return 'rainbow';
-  if (n.includes('fire')) return 'fire';
-  if (n.includes('twinkle') || n.includes('glitter') || n.includes('sparkle') || n.includes('fairy'))
+  if (has('fire', 'flame', 'lava', 'volcano', 'ember', 'candle', 'torch')) return 'fire';
+  if (has('twinkle', 'glitter', 'sparkle', 'fairy', 'firework', 'starburst', 'star', 'popcorn',
+    'sputter', 'flicker'))
     return 'sparkle';
-  if (n.includes('chase') || n.includes('theater') || n.includes('marquee') || n.includes('lighthouse'))
+  if (has('chase', 'theater', 'marquee', 'lighthouse', 'railway', 'tetrix', 'chaser'))
     return 'chase';
-  if (n.includes('comet') || n.includes('meteor') || n.includes('scan') || n.includes('runner'))
+  if (has('comet', 'meteor', 'scan', 'runner', 'larson', 'cylon', 'sweep', 'juggle', 'sinelon',
+    'bounce', 'ball', 'drip', 'dot'))
     return 'comet';
   // Multi-color palette-flow effects must come BEFORE the single-color "wave"
   // (Colorwaves contains "wave" but cycles the whole palette, not one color).
-  if (n.includes('colorwave') || n.includes('colorloop') || n.includes('colorflow') || n.includes('aurora')
-    || n.includes('gradient') || n.includes('palette') || n.includes('flow') || n.includes('loop') || n.includes('colorful'))
+  if (has('colorwave', 'colorloop', 'colorflow', 'aurora', 'gradient', 'palette', 'flow', 'loop',
+    'colorful', 'pride', 'stream', 'galaxy', 'vortex', 'blend'))
     return 'gradient';
-  if (n.includes('wave') || n.includes('sine') || n.includes('ripple') || n.includes('dissolve') || n.includes('noise'))
+  if (has('wave', 'sine', 'ripple', 'dissolve', 'noise', 'plasma', 'phased', 'oscillate', 'saw',
+    'bpm', 'heartbeat', 'wobble', 'tremolo', 'gravity', 'geq', 'sonic'))
     return 'wave';
-  if (n.includes('breathe') || n.includes('fade') || n.includes('pulse') || n.includes('blink') || n.includes('strobe'))
+  if (has('breathe', 'fade', 'pulse', 'blink', 'strobe', 'police', 'lightning', 'glow', 'sunrise'))
     return 'breathe';
   // WLED's "PS ..." (particle system) family is a whole set the keyword map
   // doesn't model. The ones already caught above win first (PS Fire→fire,
