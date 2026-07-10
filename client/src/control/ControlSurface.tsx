@@ -304,6 +304,22 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
     : null;
   const singleCount = singleInfo?.leds.count;
 
+  // Segment scope: for a single controller with >1 real segment, let the user
+  // narrow control to one segment (WLED marks deleted segments with stop=0).
+  const segments = singleControllerId && singleEntry?.state?.seg
+    ? singleEntry.state.seg.filter((s) => s.stop > s.start)
+    : [];
+  const selectedSegId =
+    localTargets.length === 1 && localTargets[0].kind === 'segment' ? localTargets[0].wledSegId : null;
+  const scopeToSegment = (segId: number | null) => {
+    if (!singleControllerId) return;
+    setLocalTargets(
+      segId === null
+        ? [{ kind: 'controller', controllerId: singleControllerId }]
+        : [{ kind: 'segment', controllerId: singleControllerId, wledSegId: segId }]
+    );
+  };
+
   if (!open) return null;
 
   return (
@@ -367,6 +383,29 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
             />
           )}
         </div>
+
+        {segments.length > 1 && (
+          <div className="cs-segment-scope" role="group" aria-label="Segment scope">
+            <span className="cs-section-label">Apply to</span>
+            <button
+              type="button"
+              className={`cs-seg-chip${selectedSegId === null ? ' selected' : ''}`}
+              onClick={() => scopeToSegment(null)}
+            >
+              Whole device
+            </button>
+            {segments.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                className={`cs-seg-chip${selectedSegId === s.id ? ' selected' : ''}`}
+                onClick={() => scopeToSegment(s.id)}
+              >
+                {s.n || `Seg ${s.id}`}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Two-column control: color wheel + palettes | effect chips + brightness. */}
         <div className="cs-main">
