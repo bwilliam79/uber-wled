@@ -131,8 +131,9 @@
 .cs-modal-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .cs-power-label { font-size: 11px; color: var(--m2); }
 
-.cs-preview-well { height: 46px; border-radius: 11px; background: #0c0c0e; overflow: hidden; margin-bottom: 20px; }
+.cs-preview-well { height: 46px; border-radius: 11px; background: #0c0c0e; overflow: hidden; margin-bottom: 20px; display: flex; align-items: center; }
 .cs-preview-canvas { display: block; width: 100%; height: 100%; }
+.cs-preview-live-strip { width: 100%; height: 100%; padding: 0 6px; }
 
 .cs-main { display: flex; gap: 34px; }
 .cs-main-left { flex: none; display: flex; flex-direction: column; align-items: center; gap: 16px; width: 240px; }
