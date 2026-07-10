@@ -38,6 +38,12 @@ export function MasterBar({
     () => controllers.filter((c) => live.get(c.id)?.state?.on).length,
     [controllers, live]
   );
+  // A controller is "offline" once its live entry has arrived and is unreachable
+  // (an entry that hasn't loaded yet is unknown, not offline).
+  const offlineCount = useMemo(
+    () => controllers.filter((c) => { const e = live.get(c.id); return e !== undefined && !e.reachable; }).length,
+    [controllers, live]
+  );
 
   // The pill is a plain fleet power read-out ("N on" / "All off"); active sync
   // groups now surface as their own cards on the Devices page, not here.
@@ -56,6 +62,12 @@ export function MasterBar({
         <span className={`master-bar-status-dot${statusActive ? ' pulse' : ''}`} />
         <span className="master-bar-status-text">{statusText}</span>
       </div>
+      {offlineCount > 0 && (
+        <div className="master-bar-offline" title={`${offlineCount} controller(s) offline`}>
+          <span className="master-bar-offline-dot" />
+          <span>{offlineCount} offline</span>
+        </div>
+      )}
 
       <div className="theme-toggle" role="group" aria-label="Theme">
         <button
