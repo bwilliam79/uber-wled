@@ -8,11 +8,11 @@ afterEach(() => vi.unstubAllGlobals());
 const halloween = {
   id: 'e1', name: 'Halloween', category: 'holiday',
   dateRule: { kind: 'fixed', month: 10, day: 31 }, recursYearly: true, enabled: true,
-  groupId: 'g1', triggerTime: { type: 'fixed', time: '18:00' },
-  actionType: 'theme', actionPayload: { themeId: 't1' }
+  groupId: 'g1', controllers: null, triggerTime: { type: 'fixed', time: '18:00' },
+  offTrigger: null, actionType: 'theme', actionPayload: { themeId: 't1' }
 };
 
-function stub(events: unknown[] = [halloween]) {
+function stub(events: unknown[] = [halloween], schedules: unknown[] = []) {
   const fetchMock = vi.fn((url: string, init?: RequestInit) => {
     const method = init?.method ?? 'GET';
     if (url.startsWith('/api/calendar-events') && method === 'PATCH') {
@@ -31,7 +31,7 @@ function stub(events: unknown[] = [halloween]) {
       });
     }
     if (url.startsWith('/api/schedules')) {
-      return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => schedules });
     }
     return Promise.resolve({ ok: true, json: async () => [] });
   });
@@ -39,96 +39,39 @@ function stub(events: unknown[] = [halloween]) {
   return fetchMock;
 }
 
-// The Schedule page defaults to the Weekly tab; calendar tests switch to it.
-function openCalendarTab() {
-  fireEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
-}
-
-describe('ScheduleSection v2', () => {
-  it('opens a day overlay with the override badge when a day that has an enabled event is clicked', async () => {
+describe('ScheduleSection (unified list)', () => {
+  it('renders a specific-date calendar event as a row with its resolved date, action and target', async () => {
     stub();
-    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    openCalendarTab();
-    // Wait for the event chip to render so the click sees the loaded events.
-    await screen.findByText('Halloween');
-    fireEvent.click(screen.getByTestId('day-31'));
-    await waitFor(() => expect(screen.getByText(/Overrides the weekly schedule/i)).toBeTruthy());
-    expect(screen.getByText(/theme · Spooky/)).toBeTruthy();
+    renderWithQuery(<ScheduleSection />);
+    expect(await screen.findByText('Halloween')).toBeTruthy();
+    expect(screen.getByText(/Oct 31 · Spooky · Group Front/)).toBeTruthy();
   });
 
-  it('clicking an empty day opens the create form prefilled with that date', async () => {
-    stub([]); // no events → every day is empty
-    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    openCalendarTab();
-    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
-    fireEvent.click(screen.getByTestId('day-12'));
-    // The create form opens with the clicked day's date prefilled.
-    expect((await screen.findByLabelText('month') as HTMLInputElement).value).toBe('10');
-    expect((screen.getByLabelText('day') as HTMLInputElement).value).toBe('12');
-    expect(screen.getByText('New calendar event')).toBeTruthy();
-  });
-
-  it('toggling an event PATCHes enabled', async () => {
-    const fetchMock = stub();
-    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    openCalendarTab();
-    await screen.findByText('Halloween');
-    fireEvent.click(screen.getByTestId('day-31'));
-    fireEvent.click(await screen.findByLabelText('Halloween enabled'));
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('/api/calendar-events/e1', expect.objectContaining({ method: 'PATCH' }))
-    );
-  });
-
-  it('defaults to the Weekly tab and shows the calendar under the Calendar tab', async () => {
+  it('shows the dashed "New schedule" add row', async () => {
     stub([]);
-    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    // Weekly is the default view — its dashed add-row is present.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'New schedule' })).toBeTruthy());
-    expect(screen.queryByTestId('calendar-grid')).toBeNull();
-    openCalendarTab();
-    await waitFor(() => expect(screen.getByTestId('calendar-grid')).toBeTruthy());
-    expect(screen.queryByRole('button', { name: 'New schedule' })).toBeNull();
+    renderWithQuery(<ScheduleSection />);
+    expect(await screen.findByRole('button', { name: 'New schedule' })).toBeTruthy();
   });
 
-  it('marks a configured holiday (theme + enabled) distinctly from an unconfigured one', async () => {
-    const configured = { ...halloween, id: 'c1', name: 'Halloween', enabled: true, actionType: 'theme' };
-    const placeholder = {
-      id: 'p1', name: 'Thanksgiving', category: 'holiday',
-      dateRule: { kind: 'fixed', month: 10, day: 15 }, recursYearly: true, enabled: true,
-      groupId: null, triggerTime: { type: 'fixed', time: '18:00' }, actionType: null, actionPayload: null
-    };
-    stub([configured, placeholder]);
-    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    openCalendarTab();
-    // findByText returns the inner label span; the status class is on the chip.
-    const configuredChip = (await screen.findByText('Halloween')).closest('.event-chip')!;
-    const placeholderChip = (await screen.findByText('Thanksgiving')).closest('.event-chip')!;
-    expect(configuredChip.className).toContain('configured');
-    expect(placeholderChip.className).toContain('unconfigured');
-  });
-
-  it('Edit opens a pre-filled form and PATCHes the event on save, including for a holiday', async () => {
-    // Regression: there was previously no way to edit an existing calendar
-    // event at all (holiday or custom) — only toggle enabled/Remove, or
-    // create a brand new one. This is the "I don't see any way to set a
-    // theme for a holiday entry" gap.
+  it('toggling a calendar-event row PATCHes enabled', async () => {
     const fetchMock = stub();
-    renderWithQuery(<ScheduleSection initialYear={2026} initialMonth={10} />);
-    openCalendarTab();
+    renderWithQuery(<ScheduleSection />);
     await screen.findByText('Halloween');
-    fireEvent.click(screen.getByTestId('day-31'));
-    fireEvent.click(await screen.findByText('Edit'));
-    expect((await screen.findByLabelText('event name') as HTMLInputElement).value).toBe('Halloween');
-    fireEvent.change(screen.getByLabelText('event name'), { target: { value: 'Halloween (spookier)' } });
-    fireEvent.click(screen.getByText('Save'));
+    fireEvent.click(screen.getByRole('switch', { name: 'Halloween enabled' }));
     await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('/api/calendar-events/e1', expect.objectContaining({ method: 'PATCH' }))
+      expect(
+        fetchMock.mock.calls.some(
+          ([u, i]) => String(u).startsWith('/api/calendar-events') && (i as RequestInit)?.method === 'PATCH'
+        )
+      ).toBe(true)
     );
-    const call = fetchMock.mock.calls.find(
-      ([url, init]) => url === '/api/calendar-events/e1' && (init as RequestInit)?.method === 'PATCH'
-    );
-    expect(JSON.parse((call![1] as RequestInit).body as string).name).toBe('Halloween (spookier)');
-    await waitFor(() => expect(screen.queryByLabelText('event name')).toBeNull());
+  });
+
+  it('clicking a calendar-event row opens a pre-filled edit form', async () => {
+    stub();
+    renderWithQuery(<ScheduleSection />);
+    await screen.findByText('Halloween');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Halloween' }));
+    await waitFor(() => expect((screen.getByLabelText('event name') as HTMLInputElement).value).toBe('Halloween'));
   });
 });

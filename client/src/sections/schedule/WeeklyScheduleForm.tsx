@@ -25,7 +25,17 @@ export interface WeeklyScheduleDraft {
   actionPayload: unknown;
   /** Optional paired power-off at an independent trigger time. */
   offTrigger: TriggerTime | null;
+  /** 'weekly' → a recurring Schedule; 'date' → a specific-date CalendarEvent
+   *  (fixed month/day) that overrides the weekly schedules that day. */
+  repeat: 'weekly' | 'date';
+  month: number;
+  day: number;
 }
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 function themeIdOf(schedule: Schedule): string {
   return (schedule.actionPayload as { themeId?: string } | null)?.themeId ?? '';
@@ -66,6 +76,12 @@ export function WeeklyScheduleForm({
       ? initialSchedule.triggerType
       : 'weekly';
   const [name, setName] = useState(initialSchedule?.name ?? '');
+  // Repeat/date apply only when creating; edit is always an existing recurring
+  // schedule (specific-date entries are edited via the calendar-event form).
+  const nowDate = new Date();
+  const [repeat, setRepeat] = useState<'weekly' | 'date'>('weekly');
+  const [month, setMonth] = useState(nowDate.getMonth() + 1);
+  const [day, setDay] = useState(nowDate.getDate());
   const [days, setDays] = useState<Set<number>>(new Set(initialSchedule?.daysOfWeek ?? []));
   const [triggerType, setTriggerType] = useState<'weekly' | 'sunrise' | 'sunset'>(initialTrigger);
   const [timeOfDay, setTimeOfDay] = useState(initialSchedule?.timeOfDay ?? '18:00');
@@ -127,7 +143,10 @@ export function WeeklyScheduleForm({
     daysOfWeek: Array.from(days).sort((a, b) => a - b),
     ...triggerFields,
     target,
-    ...actionFields
+    ...actionFields,
+    repeat,
+    month,
+    day
   });
 
   return (
@@ -138,20 +157,54 @@ export function WeeklyScheduleForm({
           onChange={(e) => setName(e.target.value)} placeholder="Schedule name"
         />
       </Field>
-      <div className="field">
-        <span id="weekly-schedule-days-label" className="field-label">Days</span>
-        <div className="day-toggle-group" role="group" aria-labelledby="weekly-schedule-days-label">
-          {DAY_LABELS.map((label, day) => (
-            <label key={day} className={`day-toggle${days.has(day) ? ' active' : ''}`}>
-              <input
-                type="checkbox" aria-label={label} checked={days.has(day)}
-                onChange={() => toggleDay(day)}
-              />
-              {label}
-            </label>
-          ))}
+      {!initialSchedule && (
+        <Field label="Repeat" htmlFor="weekly-schedule-repeat">
+          <Select
+            id="weekly-schedule-repeat" label="repeat" showLabel={false}
+            value={repeat}
+            onChange={(v) => setRepeat(v as 'weekly' | 'date')}
+            options={[
+              { value: 'weekly', label: 'Weekly (pick days)' },
+              { value: 'date', label: 'Specific date' }
+            ]}
+          />
+        </Field>
+      )}
+      {repeat === 'weekly' ? (
+        <div className="field">
+          <span id="weekly-schedule-days-label" className="field-label">Days</span>
+          <div className="day-toggle-group" role="group" aria-labelledby="weekly-schedule-days-label">
+            {DAY_LABELS.map((label, dayIdx) => (
+              <label key={dayIdx} className={`day-toggle${days.has(dayIdx) ? ' active' : ''}`}>
+                <input
+                  type="checkbox" aria-label={label} checked={days.has(dayIdx)}
+                  onChange={() => toggleDay(dayIdx)}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="schedule-date-row">
+            <Field label="Month" htmlFor="weekly-schedule-month">
+              <Select
+                id="weekly-schedule-month" label="month" showLabel={false}
+                value={String(month)} onChange={(v) => setMonth(Number(v))}
+                options={MONTH_NAMES.map((n, i) => ({ value: String(i + 1), label: n }))}
+              />
+            </Field>
+            <Field label="Day" htmlFor="weekly-schedule-day">
+              <input
+                id="weekly-schedule-day" aria-label="day of month" className="input" type="number"
+                min={1} max={31} value={day} onChange={(e) => setDay(Number(e.target.value))}
+              />
+            </Field>
+          </div>
+          <p className="control-label">Overrides the weekly schedules on this date.</p>
+        </>
+      )}
       <Field label="Trigger" htmlFor="weekly-schedule-trigger">
         <Select
           id="weekly-schedule-trigger" label="trigger" showLabel={false}

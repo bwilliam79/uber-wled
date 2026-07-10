@@ -24,12 +24,12 @@ describe('WeeklyScheduleForm v2', () => {
     fireEvent.click(screen.getByLabelText('Fri'));
     fireEvent.change(screen.getByLabelText('time of day'), { target: { value: '20:30' } });
     fireEvent.click(screen.getByText('Preview'));
-    expect(onPreview).toHaveBeenCalledWith({
+    expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Evenings', daysOfWeek: [1, 5],
       triggerType: 'weekly', timeOfDay: '20:30', offsetMinutes: 0,
       target: { groupId: 'g1', controllers: null },
-      actionType: 'theme', actionPayload: { themeId: 't1' }, offTrigger: null
-    });
+      actionType: 'theme', actionPayload: { themeId: 't1' }, offTrigger: null, repeat: 'weekly'
+    }));
   });
 
   it('includes a paired sunrise off-trigger in the draft when set', () => {

@@ -11,6 +11,7 @@ function stub() {
     if (url === '/api/schedules' && method === 'GET') {
       return Promise.resolve({ ok: true, json: async () => [] });
     }
+    if (url === '/api/calendar-events') return Promise.resolve({ ok: true, json: async () => [] });
     if (url === '/api/controllers') {
       return Promise.resolve({
         ok: true,
@@ -143,6 +144,7 @@ describe('ScheduleManager v2', () => {
         if (url === '/api/schedules' && method === 'GET') {
           return Promise.resolve({ ok: true, json: async () => [existing] });
         }
+        if (url === '/api/calendar-events') return Promise.resolve({ ok: true, json: async () => [] });
         if (url === '/api/controllers') {
           return Promise.resolve({
             ok: true,
