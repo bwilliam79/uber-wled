@@ -225,3 +225,19 @@
   line-height: 1.4;
 }
 .cs-live-note strong { color: var(--accent); }
+
+/* Segment scope selector — narrow control to one segment of a multi-seg device. */
+.cs-segment-scope { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: -6px 0 18px; }
+.cs-seg-chip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--w5);
+  border: 1px solid var(--w9);
+  color: var(--text2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.cs-seg-chip:hover { color: var(--text); border-color: var(--w14); }
+.cs-seg-chip.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
