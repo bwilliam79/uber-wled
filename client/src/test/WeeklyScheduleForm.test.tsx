@@ -28,8 +28,26 @@ describe('WeeklyScheduleForm v2', () => {
       name: 'Evenings', daysOfWeek: [1, 5],
       triggerType: 'weekly', timeOfDay: '20:30', offsetMinutes: 0,
       target: { groupId: 'g1', controllers: null },
-      actionType: 'theme', actionPayload: { themeId: 't1' }
+      actionType: 'theme', actionPayload: { themeId: 't1' }, offTrigger: null
     });
+  });
+
+  it('includes a paired sunrise off-trigger in the draft when set', () => {
+    const onPreview = vi.fn();
+    render(
+      <WeeklyScheduleForm
+        groups={groups} controllers={controllers} live={live} themes={themes}
+        onPreview={onPreview} onApprove={() => {}} onDiscard={() => {}} previewing={false}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Evenings' } });
+    fireEvent.click(screen.getByLabelText('Mon'));
+    // "Turn off at" defaults to "Don't turn off"; switch it to Sunrise.
+    fireEvent.change(screen.getByLabelText('Turn off at'), { target: { value: 'sunrise' } });
+    fireEvent.click(screen.getByText('Preview'));
+    expect(onPreview).toHaveBeenCalledWith(
+      expect.objectContaining({ offTrigger: { type: 'sunrise', offsetMinutes: 0 } })
+    );
   });
 
   it('builds a draft targeting several individual controllers directly, no group', () => {

@@ -79,6 +79,9 @@ export interface Schedule {
   controllers: ScheduleControllerTarget[] | null;
   actionType: 'power' | 'brightness' | 'preset' | 'theme';
   actionPayload: unknown;
+  /** Optional paired power-off: fires on the same active days at this trigger
+   *  time (fixed clock or sunrise/sunset ± offset). null = no auto-off. */
+  offTrigger: TriggerTime | null;
   enabled: boolean;
 }
 
