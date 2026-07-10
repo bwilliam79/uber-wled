@@ -128,6 +128,14 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
           <Chip variant={on ? 'success' : 'default'}>{on ? 'Online' : 'Off'}</Chip>
         )}
         {!offline && controller.stale && <Chip variant="warning">Stale</Chip>}
+        {!offline && info?.live && (
+          <Chip
+            variant="accent"
+            title={`Driven by realtime data${info.lip ? ` from ${info.lip}` : ''}${info.lm ? ` (${info.lm})` : ''} — app changes are overwritten while this is active`}
+          >
+            Live
+          </Chip>
+        )}
         {firmware.data?.updateAvailable && <Chip variant="warning">Update</Chip>}
         {info?.leds.fps !== undefined && !offline && (
           <span className="device-card-fps ui-mono">{info.leds.fps} FPS</span>

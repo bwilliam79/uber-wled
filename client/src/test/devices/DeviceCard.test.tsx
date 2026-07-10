@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import { DeviceCard } from '../../sections/devices/DeviceCard';
 import { renderDevices, stubFetchRoutes } from './helpers';
-import { CONTROLLERS, FIRMWARE_OK, liveEntry } from './fixtures';
+import { CONTROLLERS, FIRMWARE_OK, LIVE_INFO, liveEntry } from './fixtures';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -27,6 +27,16 @@ describe('DeviceCard', () => {
     expect(screen.getByTestId('live-swatch-c:0').style.backgroundColor).toBe('rgb(0, 0, 0)');
     expect(screen.getByTestId('live-swatch-c:1').style.backgroundColor).toBe('rgb(0, 0, 0)');
     expect(strip.children).toHaveLength(2);
+  });
+
+  it('shows a Live badge (with source in the tooltip) when driven by realtime data', () => {
+    stubFetchRoutes({ 'GET /api/controllers/c1/firmware': NO_UPDATE });
+    renderDevices(<DeviceCard controller={CONTROLLERS[0]}
+      live={liveEntry({ info: { ...LIVE_INFO, live: true, lip: '192.168.1.50' } })}
+      onControl={vi.fn()} onOpen={vi.fn()} />);
+    const badge = screen.getByText('Live');
+    expect(badge).toBeTruthy();
+    expect(badge.getAttribute('title')).toMatch(/192\.168\.1\.50/);
   });
 
   it('shows the update chip from the firmware query', async () => {

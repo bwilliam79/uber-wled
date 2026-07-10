@@ -68,7 +68,10 @@ Devices:
    discovery adds them automatically, manual add lives in Settings) and **Sync
    Groups**, where each *active* sync group appears as its own aggregate card —
    power, brightness, and Control fanned out to its member controllers so the
-   whole synced set moves together. The detail page has five tabs: **Info** (the live-output
+   whole synced set moves together. A card (and the control surface) shows a
+   **Live** badge when a controller is being driven by realtime data (e.g.
+   HyperHDR ambilight) — a heads-up that app changes are overwritten frame-by-
+   frame until that external source stops. The detail page has five tabs: **Info** (the live-output
    strip shown automatically, identity, network, uptime, heap, filesystem,
    LED counts, usermods, an opt-in "Open native live view" embed of the
    device's own `/liveview` page, reboot with confirm, open-native-UI),
