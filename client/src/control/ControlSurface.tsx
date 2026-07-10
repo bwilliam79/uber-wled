@@ -21,6 +21,9 @@ import { IconButton } from '../components/ui/IconButton';
 import { Select } from '../components/ui/Select';
 import { ConicColorWheel } from '../components/ui/ConicColorWheel';
 import { LedPreview } from '../components/ui/LedPreview';
+import { LiveOutputStrip } from '../components/ui/LiveOutputStrip';
+import { useLiveWsPixels } from '../api/liveWsPixels';
+import { swatchesForEntry } from '../lib/liveOutputSwatches';
 import { effectToPreview } from '../lib/effectPreview';
 import { rgbToHex } from '../lib/color';
 import { ColorTab } from './ColorTab';
@@ -134,6 +137,19 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
       ? expanded[0].controllerId
       : null;
   const { data: devicePresets } = useDevicePresets(singleControllerId);
+
+  // For a single on+reachable controller, preview its REAL live output (the
+  // per-pixel WS stream) instead of the archetype approximation — truthful,
+  // and it shows the actual effect animation. Multi-target / off falls back to
+  // the archetype renderer below.
+  const singleEntry = singleControllerId ? live.get(singleControllerId) : undefined;
+  const singleHost = singleControllerId ? controllers.find((c) => c.id === singleControllerId)?.host : undefined;
+  const showLivePreview = !!singleEntry?.reachable && !!singleEntry.state?.on && !!singleHost;
+  const livePreviewHosts = useMemo(
+    () => (showLivePreview && singleHost ? [singleHost] : []),
+    [showLivePreview, singleHost]
+  );
+  const livePreviewPixels = useLiveWsPixels(livePreviewHosts);
 
   const [failures, setFailures] = useState<ApplyResult[] | null>(null);
   const [activeTab, setActiveTab] = useState('colors');
@@ -331,16 +347,25 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
           </div>
         )}
 
-        {/* Live preview of the current look. */}
+        {/* Preview: the device's real per-pixel output when it's a single
+            on controller (truthful, shows the actual effect), otherwise the
+            archetype approximation of the selected look. */}
         <div className="cs-preview-well">
-          <LedPreview
-            effect={previewEffect}
-            colors={previewColors}
-            count={singleCount ?? 48}
-            speed={0.9}
-            className="cs-preview-canvas"
-            ariaLabel="Live preview"
-          />
+          {showLivePreview && singleEntry ? (
+            <LiveOutputStrip
+              swatches={swatchesForEntry(singleEntry, singleHost ? livePreviewPixels.get(singleHost) : undefined)}
+              className="cs-preview-live-strip"
+            />
+          ) : (
+            <LedPreview
+              effect={previewEffect}
+              colors={previewColors}
+              count={singleCount ?? 48}
+              speed={0.9}
+              className="cs-preview-canvas"
+              ariaLabel="Live preview"
+            />
+          )}
         </div>
 
         {/* Two-column control: color wheel + palettes | effect chips + brightness. */}
