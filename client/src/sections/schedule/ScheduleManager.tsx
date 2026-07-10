@@ -1,17 +1,47 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  addSchedule, applyControl, deleteSchedule, getSegmentsSnapshot,
+  addSchedule, applyControl, deleteSchedule, updateSchedule, getSegmentsSnapshot,
   type CustomTheme, type Schedule, type Target
 } from '../../api/client';
 import { useControllers, useGroups, useSchedules, useThemes } from '../../api/queries';
 import { useLiveStatus } from '../../api/live';
-import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { Chip } from '../../components/ui/Chip';
 import { Modal } from '../../components/ui/Modal';
+import { Toggle } from '../../components/ui/Toggle';
+import { PlusIcon, TrashIcon } from '../../components/icons';
 import { WeeklyScheduleForm, type WeeklyScheduleDraft } from './WeeklyScheduleForm';
 import type { TargetValue } from './TargetPicker';
+
+const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Human day summary for a schedule row: "Every day" / "Weekdays" / "Weekends"
+ *  / "Mon Wed Fri", or the trigger type for non-weekly rules. */
+function daysLabel(s: Schedule): string {
+  const days = s.daysOfWeek;
+  if (!days || days.length === 0) {
+    // sunrise/sunset with no day filter fire daily; the time cell already
+    // names the trigger, so don't repeat it here.
+    return s.triggerType === 'weekly' ? 'No days' : 'Every day';
+  }
+  if (days.length === 7) return 'Every day';
+  const key = [...days].sort((a, b) => a - b).join(',');
+  if (key === '1,2,3,4,5') return 'Weekdays';
+  if (key === '0,6') return 'Weekends';
+  return [...days].sort((a, b) => a - b).map((d) => DAY_ABBR[d] ?? d).join(' ');
+}
+
+/** The left-hand time cell: a big mono clock for time-of-day rules, else a
+ *  small label (sunrise/sunset ± offset, or a cron expression). */
+function timeParts(s: Schedule): { big?: string; small?: string } {
+  if (s.timeOfDay) return { big: s.timeOfDay };
+  if (s.triggerType === 'sunrise' || s.triggerType === 'sunset') {
+    const off = s.offsetMinutes;
+    const sign = off > 0 ? `+${off}` : off < 0 ? `${off}` : '';
+    return { small: `${s.triggerType}${sign ? ` ${sign}m` : ''}` };
+  }
+  if (s.cronExpr) return { small: s.cronExpr };
+  return { small: s.triggerType };
+}
 
 interface MemberSnapshot {
   controllerId: string;
@@ -158,6 +188,13 @@ export function ScheduleManager() {
     );
   }
 
+  async function toggleEnabled(s: Schedule, enabled: boolean) {
+    const updated = await updateSchedule(s.id, { enabled });
+    queryClient.setQueryData<Schedule[]>(['schedules'], (prev) =>
+      (prev ?? []).map((x) => (x.id === s.id ? updated : x))
+    );
+  }
+
   function handleModalClose() {
     if (draft) void handleDiscard();
     setFormOpen(false);
@@ -182,43 +219,64 @@ export function ScheduleManager() {
     return (themes.data ?? []).find((t) => t.id === themeId)?.name ?? themeId ?? '—';
   }
 
+  const canAdd = !!groups.data && !!themes.data;
+
   return (
-    <Card className="schedules-card">
-      <div className="schedules-card-header">
-        <h3>Weekly schedules</h3>
-        <Button
-          variant="primary"
-          disabled={!groups.data || !themes.data}
-          onClick={() => setFormOpen(true)}
-        >
-          + New schedule
-        </Button>
-      </div>
+    <div className="schedules-manager">
       {revertError && <div className="error-banner" role="alert">{revertError}</div>}
       {schedules.data && schedules.data.length === 0 && (
         <p className="empty-state">No schedules yet.</p>
       )}
       {schedules.data && schedules.data.length > 0 && (
         <ul className="schedule-list">
-          {schedules.data.map((s) => (
-            <li key={s.id} className="schedule-list-row">
-              <div className="schedule-list-info">
-                <span className="schedule-list-name">{s.name}</span>
-                <Chip>{s.triggerType}</Chip>
-              </div>
-              <span className="schedule-list-meta">
-                {s.actionType} · {themeName(s)} · {targetLabel(s)}
-              </span>
-              <div className="schedule-list-actions">
-                <Button variant="secondary" onClick={() => setEditingSchedule(s)}>Edit</Button>
-                <Button variant="danger" aria-label={`Remove ${s.name}`} onClick={() => handleDelete(s.id)}>
-                  Remove
-                </Button>
-              </div>
-            </li>
-          ))}
+          {schedules.data.map((s) => {
+            const t = timeParts(s);
+            return (
+              <li key={s.id} className={`schedule-row${s.enabled ? '' : ' disabled'}`}>
+                <div className="schedule-row-time ui-mono">
+                  {t.big
+                    ? <span className="schedule-row-time-big">{t.big}</span>
+                    : <span className="schedule-row-time-small">{t.small}</span>}
+                </div>
+                <div className="schedule-row-divider" aria-hidden="true" />
+                <button
+                  type="button"
+                  className="schedule-row-main"
+                  aria-label={`Edit ${s.name}`}
+                  onClick={() => setEditingSchedule(s)}
+                >
+                  <span className="schedule-row-name">{s.name}</span>
+                  <span className="schedule-row-sub">
+                    {daysLabel(s)} · {s.actionType === 'theme' ? themeName(s) : s.actionType} · {targetLabel(s)}
+                  </span>
+                </button>
+                <Toggle
+                  checked={s.enabled}
+                  onChange={(checked) => toggleEnabled(s, checked)}
+                  label={`${s.name} enabled`}
+                  showLabel={false}
+                />
+                <button
+                  type="button"
+                  className="schedule-row-remove"
+                  aria-label={`Remove ${s.name}`}
+                  onClick={() => handleDelete(s.id)}
+                >
+                  <TrashIcon className="schedule-row-remove-icon" />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
+      <button
+        type="button"
+        className="schedule-add-row"
+        disabled={!canAdd}
+        onClick={() => setFormOpen(true)}
+      >
+        <PlusIcon className="schedule-add-icon" /> New schedule
+      </button>
       <Modal open={formOpen} title="New weekly schedule" onClose={handleModalClose}>
         <WeeklyScheduleForm
           groups={groups.data ?? []}
@@ -256,6 +314,6 @@ export function ScheduleManager() {
           />
         )}
       </Modal>
-    </Card>
+    </div>
   );
 }
