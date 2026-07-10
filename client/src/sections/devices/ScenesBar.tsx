@@ -35,9 +35,9 @@ export function ScenesBar({ controllers }: { controllers: Controller[] }) {
   }
 
   return (
-    <div className="scenes-bar" role="group" aria-label="Scenes">
-      <span className="scenes-bar-label">Scenes</span>
-      <div className="scenes-bar-chips">
+    <div className="scenes-tab" role="group" aria-label="Scenes">
+      <p className="scenes-hint">Tap a scene to apply it to every controller.</p>
+      <div className="scenes-grid">
         {themes.data.map((t) => (
           <button
             key={t.id}

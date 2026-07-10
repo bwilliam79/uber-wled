@@ -17,7 +17,7 @@ export function DevicesSection() {
   const [route, setRoute] = useState(() => parseDevicesHash(window.location.hash));
   const controllers = useControllers();
   const syncGroups = useSyncGroups();
-  const [tab, setTab] = useState<'controllers' | 'sync'>('controllers');
+  const [tab, setTab] = useState<'controllers' | 'sync' | 'scenes'>('controllers');
   // A single target-set drives the Control surface, so both a single device
   // card and a whole sync group (its members) can open it.
   const [controlTargets, setControlTargets] = useState<Target[] | null>(null);
@@ -97,15 +97,14 @@ export function DevicesSection() {
       )}
       {controllers.isError && <p role="alert">Could not load controllers.</p>}
 
-      {list.length > 0 && <ScenesBar controllers={list} />}
-
       <Tabs
         label="Devices views"
         active={tab}
-        onChange={(id) => setTab(id as 'controllers' | 'sync')}
+        onChange={(id) => setTab(id as 'controllers' | 'sync' | 'scenes')}
         tabs={[
           { id: 'controllers', label: 'Controllers' },
-          { id: 'sync', label: 'Sync Groups' }
+          { id: 'sync', label: 'Sync Groups' },
+          { id: 'scenes', label: 'Scenes' }
         ]}
       />
 
@@ -149,6 +148,8 @@ export function DevicesSection() {
           </div>
         )
       )}
+
+      {tab === 'scenes' && <ScenesBar controllers={list} />}
 
       <ControlSurface
         targets={controlTargets ?? []}
