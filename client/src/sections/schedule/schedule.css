@@ -44,15 +44,85 @@
 .schedule-detail-meta { color: var(--text-muted); font-size: 0.85rem; }
 .schedule-detail-event-actions { display: flex; gap: 8px; }
 
-.schedules-card-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-.schedules-card-header h3 { margin: 0; }
-.schedule-list { list-style: none; margin: 0; padding: 0; }
-.schedule-list-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 4px; border-bottom: 1px solid var(--border); }
-.schedule-list-row:last-child { border-bottom: none; }
-.schedule-list-info { display: flex; align-items: center; gap: 8px; }
-.schedule-list-name { font-weight: 600; color: var(--text); }
-.schedule-list-meta { color: var(--text-muted); font-size: 0.85rem; }
-.schedule-list-actions { display: flex; gap: 8px; }
+/* Weekly schedules — clean list-rows (mono time · divider · label/sub · toggle)
+   with a dashed "New schedule" add row, per the design guide. */
+.schedules-manager { max-width: 820px; }
+.schedule-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+
+.schedule-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  background: var(--panel);
+  border: 1px solid var(--w6);
+  border-radius: 14px;
+}
+
+.schedule-row-time { width: 74px; text-align: center; flex-shrink: 0; }
+.schedule-row-time-big { font-size: 22px; font-weight: 600; color: var(--text); }
+.schedule-row-time-small { font-size: 12px; color: var(--m2); text-transform: capitalize; }
+.schedule-row.disabled .schedule-row-time-big,
+.schedule-row.disabled .schedule-row-time-small { color: var(--m3); }
+
+.schedule-row-divider { width: 1px; height: 38px; background: var(--w8); flex-shrink: 0; }
+
+.schedule-row-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.schedule-row-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.schedule-row.disabled .schedule-row-name { color: var(--m2); }
+.schedule-row-main:hover .schedule-row-name { color: var(--accent); }
+.schedule-row-sub {
+  font-size: 11px;
+  color: var(--m2);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-row-remove {
+  flex-shrink: 0;
+  display: flex;
+  padding: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--m3);
+}
+.schedule-row-remove:hover { color: var(--danger); }
+.schedule-row-remove-icon { width: 16px; height: 16px; }
+
+.schedule-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 11px;
+  padding: 16px;
+  border: 1px dashed var(--w14);
+  border-radius: 14px;
+  background: none;
+  color: var(--m2);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.schedule-add-row:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.schedule-add-row:disabled { opacity: 0.5; cursor: not-allowed; }
+.schedule-add-icon { width: 15px; height: 15px; }
 
 .schedule-form, .calendar-event-form { display: flex; flex-direction: column; gap: 12px; min-width: min(420px, 86vw); }
 .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
