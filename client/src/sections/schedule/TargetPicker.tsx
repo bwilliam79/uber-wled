@@ -77,7 +77,7 @@ export function TargetPicker({
       {mode === 'group' ? (
         <Field label="Group" htmlFor={`${idPrefix}-target-group`}>
           {groups.length === 0 ? (
-            <p className="empty-state">No groups yet — add one on Home first.</p>
+            <p className="empty-state">No room groups — target specific controllers instead.</p>
           ) : (
             <Select
               id={`${idPrefix}-target-group`}
