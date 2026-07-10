@@ -27,6 +27,9 @@ export interface LiveInfo {
   fs?: { u: number; t: number };
   arch?: string; core?: string; mac?: string; ip?: string;
   uptime?: number; freeheap?: number;
+  /** True while realtime data (E1.31/DDP/UDP, e.g. HyperHDR) is driving the
+   *  device — app writes are overwritten. `lip` = source IP, `lm` = source. */
+  live?: boolean; lip?: string; lm?: string;
   u?: Record<string, unknown>;
 }
 

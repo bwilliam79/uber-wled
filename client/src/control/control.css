@@ -210,3 +210,17 @@
   .cs-main-left { width: 100%; }
   .cs-modal { padding: 20px 18px 22px; }
 }
+
+/* Realtime-override notice: shown when a target is being driven by an external
+   source (e.g. HyperHDR ambilight) so it's clear why changes won't stick. */
+.cs-live-note {
+  margin: 0 0 14px;
+  padding: 9px 14px;
+  border-radius: var(--radius-control);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.cs-live-note strong { color: var(--accent); }

@@ -234,6 +234,12 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const transitionUnits = typeof eff.transition === 'number' ? eff.transition : 7;
   const failureCount = failures?.length ?? 0;
 
+  // Targets currently driven by realtime data (e.g. HyperHDR ambilight) — any
+  // change made here is overwritten frame-by-frame until that source stops.
+  const liveControlledNames = Array.from(new Set(expanded.map((t) => t.controllerId)))
+    .filter((id) => live.get(id)?.info?.live)
+    .map((id) => live.get(id)?.info?.name || controllers.find((c) => c.id === id)?.name || id);
+
   // Close on Escape (the Drawer used to provide this).
   useEffect(() => {
     if (!open) return;
@@ -316,6 +322,13 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
             <IconButton label="Close" onClick={onClose}>✕</IconButton>
           </div>
         </div>
+
+        {liveControlledNames.length > 0 && (
+          <div className="cs-live-note" role="status">
+            <strong>Live-controlled:</strong> {liveControlledNames.join(', ')} {liveControlledNames.length > 1 ? 'are' : 'is'} being
+            driven by realtime data (e.g. HyperHDR) — changes here are overwritten until that stops.
+          </div>
+        )}
 
         {/* Live preview of the current look. */}
         <div className="cs-preview-well">
