@@ -30,6 +30,16 @@ describe('api client v2 control fetchers', () => {
     await expect(applyControl([], {})).rejects.toThrow('POST /api/control/apply failed');
   });
 
+  it('applyControl prefers the server error body over the generic METHOD/url message', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ error: '"Cabinet" is already active in sync group "Front porch".' })
+    });
+    await expect(applyControl([], {})).rejects.toThrow(
+      '"Cabinet" is already active in sync group "Front porch".'
+    );
+  });
+
   it('applyControl carries a device-preset patch { ps }', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ results: [] }) });
     await applyControl([{ kind: 'controller', controllerId: 'c1' }], { ps: 3 });
