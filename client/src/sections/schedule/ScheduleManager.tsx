@@ -103,9 +103,17 @@ export function ScheduleManager() {
   }
 
   async function handlePreview(nextDraft: WeeklyScheduleDraft) {
-    const theme = themeFor(nextDraft);
     const targets = targetsOf(nextDraft.target);
-    if (!theme || targets.length === 0) return;
+    if (targets.length === 0) return;
+    const theme = themeFor(nextDraft);
+    // A "turn off" (or a themeless) schedule has nothing to preview against the
+    // real lights — go straight to a confirmable draft without touching them.
+    if (nextDraft.actionType !== 'theme' || !theme) {
+      setSnapshot(null);
+      setDraft(nextDraft);
+      setRevertError(null);
+      return;
+    }
     const members = await membersFor(nextDraft.target);
     const snapshots: MemberSnapshot[] = [];
     for (const member of members) {
@@ -164,8 +172,8 @@ export function ScheduleManager() {
     if (!draft) return;
     if (!(await revertToSnapshot())) return;
     const created = await addSchedule({
-      name: draft.name, triggerType: 'weekly', cronExpr: null,
-      daysOfWeek: draft.daysOfWeek, timeOfDay: draft.timeOfDay, offsetMinutes: 0,
+      name: draft.name, triggerType: draft.triggerType, cronExpr: null,
+      daysOfWeek: draft.daysOfWeek, timeOfDay: draft.timeOfDay, offsetMinutes: draft.offsetMinutes,
       latitude: null, longitude: null, ...draft.target,
       actionType: draft.actionType, actionPayload: draft.actionPayload, enabled: true
     });
