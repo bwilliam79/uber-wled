@@ -103,7 +103,20 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
     ? (effects.find((e) => e.name === eff.fxName)?.meta ?? null)
     : null;
 
-  const anyRgbw = controllerIds.some((id) => live.get(id)?.info?.leds.rgbw === true);
+  // "Has a real white channel" — drives whether White uses the dedicated W
+  // channel ([0,0,0,255]) or RGB white ([255,255,255]). info.leds.rgbw can be
+  // true even when no segment actually outputs white (e.g. an RGB strip on an
+  // RGBW-capable build), which makes a [0,0,0,255] white render as black. The
+  // per-segment light capability (seglc, bit 1 = white) is authoritative; fall
+  // back to the rgbw flag only when the firmware doesn't report seglc.
+  const anyRgbw = controllerIds.some((id) => {
+    const leds = live.get(id)?.info?.leds;
+    if (!leds) return false;
+    if (Array.isArray(leds.seglc) && leds.seglc.length > 0) {
+      return leds.seglc.some((lc) => (lc & 0x02) !== 0);
+    }
+    return leds.rgbw === true;
+  });
   const cctSupported = controllerIds.some((id) => {
     const cct = live.get(id)?.info?.leds.cct;
     return cct === true || (typeof cct === 'number' && cct > 0);
@@ -229,7 +242,15 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   // ---- Derived values for the design's compact control view ----
   const slotHex = (i: number): string => {
     const c = eff.colors[i];
-    return Array.isArray(c) ? rgbToHex([c[0] ?? 0, c[1] ?? 0, c[2] ?? 0]) : '#000000';
+    if (!Array.isArray(c)) return '#000000';
+    // Fold the white channel into the RGB approximation so a dedicated-white
+    // color (e.g. [0,0,0,255] on a true RGBW strip) previews as white, not black.
+    const w = c[3] ?? 0;
+    return rgbToHex([
+      Math.min(255, (c[0] ?? 0) + w),
+      Math.min(255, (c[1] ?? 0) + w),
+      Math.min(255, (c[2] ?? 0) + w)
+    ]);
   };
   const color0 = eff.colors[0];
   const centerHex = Array.isArray(color0) ? slotHex(0) : '#ffffff';
@@ -239,7 +260,9 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   const previewColors =
     slotHexes.filter((_, i) => {
       const c = eff.colors[i];
-      return Array.isArray(c) && (c[0] || c[1] || c[2]);
+      // Include a slot with only a white channel set — otherwise a pure-white
+      // color drops out and the preview falls back to the teal placeholder.
+      return Array.isArray(c) && (c[0] || c[1] || c[2] || c[3]);
     }).join(',') || '#2ee6c0';
   const previewEffect = effectToPreview(typeof eff.fxName === 'string' ? eff.fxName : undefined);
 
