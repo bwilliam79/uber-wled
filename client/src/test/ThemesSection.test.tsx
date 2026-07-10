@@ -44,7 +44,10 @@ const CONTROLLERS = [
   { id: 'c1', name: 'Cabinet Lights', host: '192.168.1.86', source: 'discovered', stale: false, pinnedAssetPattern: null }
 ];
 const THEMES = [
-  { id: 't1', name: 'Sunset Party', effect: 1, palette: 6, colors: [[255, 136, 0], [0, 0, 0], [0, 0, 0]], brightness: 200, speed: 128, intensity: 128 }
+  // effect 1 = Blink (usesPalette), palette 6 = Party stops in CAPS fixture
+  { id: 't1', name: 'Sunset Party', effect: 1, palette: 6, colors: [[255, 136, 0], [0, 0, 0], [0, 0, 0]], brightness: 200, speed: 128, intensity: 128 },
+  // effect 0 = Solid (no palette), palette 0 Default — must use slot colors
+  { id: 't2', name: 'Dim White', effect: 0, palette: 0, colors: [[255, 255, 255], [0, 0, 0], [0, 0, 0]], brightness: 9, speed: 128, intensity: 128 }
 ];
 
 function stubFetch() {
@@ -84,8 +87,18 @@ describe('ThemesSection', () => {
     const canvas = preview.querySelector('canvas');
     expect(canvas).toBeTruthy();
     expect(canvas!.getAttribute('data-strip')).toBe('breathe');
+    // Palette-aware colors: Party stops (palette 6) rather than a single slot.
+    const colors = canvas!.getAttribute('data-colors') ?? '';
+    expect(colors.split(',').length).toBeGreaterThan(1);
+    expect(colors).not.toBe('#ff8800');
     // three color swatches rendered from the stored theme colors
     expect((row as HTMLElement).querySelectorAll('.theme-row-swatch')).toHaveLength(3);
+
+    // Solid + Default → slot colors only (white), not the palx rainbow.
+    const dim = (await screen.findByText('Dim White')).closest('li')!;
+    const dimCanvas = within(dim as HTMLElement).getByTestId('theme-preview-t2').querySelector('canvas');
+    expect(dimCanvas!.getAttribute('data-strip')).toBe('solid');
+    expect(dimCanvas!.getAttribute('data-colors')).toBe('#ffffff');
   });
 
   it('the Source controller dropdown prefers the live device-reported name over the stored controller name', async () => {

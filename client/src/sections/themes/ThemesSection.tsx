@@ -14,7 +14,7 @@ import { useToast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import { LedPreview } from '../../components/ui/LedPreview';
-import { effectToPreview, themeColorsString } from '../../lib/effectPreview';
+import { effectToPreview, resolvePreviewColors } from '../../lib/effectPreview';
 import { rgbToHex } from '../../lib/color';
 import { ThemeForm } from './ThemeForm';
 import { PresetImportModal } from './PresetImportModal';
@@ -34,7 +34,12 @@ function ThemeRow({
   const effectName = capabilities?.effects[theme.effect] ?? `Effect #${theme.effect}`;
   const slotHexes = theme.colors.map(rgbToHex);
   const previewEffect = effectToPreview(effectName);
-  const previewColors = themeColorsString(theme.colors);
+  const fxMeta = capabilities?.fxMeta.find((m) => m.id === theme.effect);
+  const palettePreview = capabilities?.palettePreviews[theme.palette];
+  const previewColors = resolvePreviewColors(theme.colors, palettePreview, {
+    usesPalette: fxMeta?.usesPalette,
+    paletteId: theme.palette
+  });
   return (
     <li className="theme-row">
       <div className="theme-row-info">

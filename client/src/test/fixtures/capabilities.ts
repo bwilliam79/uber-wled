@@ -130,14 +130,19 @@ export function liveEntry(state: LiveState, info?: LiveInfo): LiveStatusEntry {
 }
 
 // ── Themes v2 picker fixture ────────────────────────────────────────────────
-function fx(id: number, name: string, flags: string[] = ['1']): FxMeta {
+function fx(
+  id: number,
+  name: string,
+  flags: string[] = ['1'],
+  usesPalette = true
+): FxMeta {
   return {
     id,
     name,
     sliders: { sx: 'Effect speed', ix: 'Effect intensity', c1: null, c2: null, c3: null },
     options: { o1: null, o2: null, o3: null },
     colorLabels: ['Fx', 'Bg', 'Cs'],
-    usesPalette: true,
+    usesPalette,
     flags,
     defaults: {}
   };
@@ -151,7 +156,12 @@ export const CAPS: ControllerCapabilities = {
     'Default', '* Random Cycle', '* Color 1', '* Colors 1&2',
     '* Color Gradient', '* Colors Only', 'Party', 'Cloud'
   ],
-  fxMeta: [fx(0, 'Solid', []), fx(1, 'Blink'), fx(2, 'Breathe'), fx(3, 'Wipe', ['1', 'v'])],
+  fxMeta: [
+    fx(0, 'Solid', [], false),
+    fx(1, 'Blink'),
+    fx(2, 'Breathe'),
+    fx(3, 'Wipe', ['1', 'v'])
+  ],
   palettePreviews: {
     0: { type: 'stops', stops: [[0, 155, 0, 213], [128, 213, 155, 0], [240, 0, 50, 252]] },
     1: { type: 'random' },
