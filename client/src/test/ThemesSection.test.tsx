@@ -91,14 +91,17 @@ describe('ThemesSection', () => {
     const colors = canvas!.getAttribute('data-colors') ?? '';
     expect(colors.split(',').length).toBeGreaterThan(1);
     expect(colors).not.toBe('#ff8800');
-    // three color swatches rendered from the stored theme colors
-    expect((row as HTMLElement).querySelectorAll('.theme-row-swatch')).toHaveLength(3);
+    // Palette-driven theme: swatches come from palette stops (Party), not a
+    // single unused slot — more than one chip when the palette has range.
+    expect((row as HTMLElement).querySelectorAll('.theme-row-swatch').length).toBeGreaterThan(1);
 
     // Solid + Default → slot colors only (white), not the palx rainbow.
+    // Unused black slots are not shown as chips.
     const dim = (await screen.findByText('Dim White')).closest('li')!;
     const dimCanvas = within(dim as HTMLElement).getByTestId('theme-preview-t2').querySelector('canvas');
     expect(dimCanvas!.getAttribute('data-strip')).toBe('solid');
     expect(dimCanvas!.getAttribute('data-colors')).toBe('#ffffff');
+    expect((dim as HTMLElement).querySelectorAll('.theme-row-swatch')).toHaveLength(1);
   });
 
   it('the Source controller dropdown prefers the live device-reported name over the stored controller name', async () => {

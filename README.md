@@ -95,7 +95,9 @@ Devices:
    Autumn, …) sample the device's cached palx stops so e.g. Christmas C9
    Chase and Thanksgiving Glow read correctly. Effect motion is mapped by
    name to a small set of families (chase, sparkle, fire, bands, gradient,
-   …) tuned to the effects this install actually uses. The form also has
+   …) tuned to the effects this install actually uses. The small color chips
+   next to each row use the same resolution (C9 bulbs, Fire/Autumn tones,
+   non-black slots only — not always the raw three slot values). The form also has
    effect search with 2D/audio badges, a palette picker with real gradient
    previews, color slots, brightness, and speed + intensity sliders. Existing
    themes can be edited in place (Edit on any row opens a modal and saves
