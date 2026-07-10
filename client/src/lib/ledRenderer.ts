@@ -61,9 +61,10 @@ export function led(fx: string, i: number, count: number, t: number, rgbs: RGB[]
       return { c: hsl(((((i / count) * 360 + t * sp * 70) % 360) + 360) % 360, 85, 56), b: 1 };
     case 'gradient':
       // Multi-color: flow the palette. Single color: pal() would return a flat
-      // color (looks static), so add a moving brightness shimmer instead.
+      // color (looks static), so run a clearly-moving brightness band instead
+      // (a wider swing than a faint shimmer so it reads as animated).
       if (rgbs.length === 1) {
-        return { c: rgbs[0], b: 0.5 + 0.5 * (0.5 + 0.5 * Math.sin(i * 0.4 - t * sp * 2.4)) };
+        return { c: rgbs[0], b: 0.12 + 0.88 * (0.5 + 0.5 * Math.sin(i * 0.36 - t * sp * 3)) };
       }
       return { c: pal(rgbs, i / count + t * sp * 0.3), b: 1 };
     case 'comet': {

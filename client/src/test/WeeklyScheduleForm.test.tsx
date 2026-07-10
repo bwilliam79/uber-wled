@@ -25,7 +25,8 @@ describe('WeeklyScheduleForm v2', () => {
     fireEvent.change(screen.getByLabelText('time of day'), { target: { value: '20:30' } });
     fireEvent.click(screen.getByText('Preview'));
     expect(onPreview).toHaveBeenCalledWith({
-      name: 'Evenings', daysOfWeek: [1, 5], timeOfDay: '20:30',
+      name: 'Evenings', daysOfWeek: [1, 5],
+      triggerType: 'weekly', timeOfDay: '20:30', offsetMinutes: 0,
       target: { groupId: 'g1', controllers: null },
       actionType: 'theme', actionPayload: { themeId: 't1' }
     });
