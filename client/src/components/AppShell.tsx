@@ -12,7 +12,7 @@ import { ScheduleSection } from '../sections/schedule/ScheduleSection';
 import { SyncSection } from '../sections/sync/SyncSection';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 import { SettingsSection } from '../sections/settings/SettingsSection';
-import { useFirmwareUpdateAvailable, useAppUpdateStatus } from '../api/queries';
+import { useFirmwareUpdateAvailable, useAppUpdateStatus, useServerVersion } from '../api/queries';
 import './appshell.css';
 
 const DEFAULT_SECTION: SectionKey = 'devices';
@@ -45,6 +45,12 @@ export function AppShell() {
   const live = useLiveStatus(ids);
   const anyOn = controllers.some((c) => live.get(c.id)?.state?.on);
 
+  // A long-open tab keeps running the bundle it first loaded; when the deployed
+  // server version moves past this build, prompt a reload so fixes land.
+  const serverVersion = useServerVersion();
+  const staleBundle =
+    typeof serverVersion.data?.version === 'string' && serverVersion.data.version !== __APP_VERSION__;
+
   useEffect(() => {
     const onHash = () => setActive(sectionFromHash());
     window.addEventListener('hashchange', onHash);
@@ -69,6 +75,12 @@ export function AppShell() {
         logoLit={anyOn}
       />
       <div className="app-content">
+        {staleBundle && (
+          <div className="reload-banner" role="status">
+            <span>A new version (v{serverVersion.data!.version}) is available.</span>
+            <button type="button" onClick={() => window.location.reload()}>Reload</button>
+          </div>
+        )}
         <MasterBar title={meta.title} subtitle={meta.subtitle} controllers={controllers} live={live} />
         <main className="app-main">
           {active === 'layout' && <LayoutSection />}
