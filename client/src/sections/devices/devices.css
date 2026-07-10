@@ -335,3 +335,21 @@
 .segment-strip-sel { font-size: 11px; color: var(--m1); margin-right: 4px; }
 .segment-strip-hint { font-size: 12px; color: var(--m3); }
 
+
+/* ---------- Scenes bar (one-tap fleet looks) ---------- */
+.scenes-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+.scenes-bar-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--m3); }
+.scenes-bar-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.scene-chip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--w5);
+  border: 1px solid var(--w9);
+  color: var(--text2);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.scene-chip:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.scene-chip-off:hover { background: rgba(255, 107, 107, 0.12); border-color: var(--danger); color: var(--danger); }
