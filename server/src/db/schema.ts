@@ -262,6 +262,14 @@ export function runMigrations(db: Database.Database): void {
     })();
   }
 
+  // Recurring schedules gained the same optional OFF trigger as calendar events
+  // (on at X / off at Y in one row). Added AFTER the group_id rebuild above,
+  // which recreates the table without this column and would otherwise drop it.
+  const schedOffCols = db.prepare('PRAGMA table_info(schedules)').all() as { name: string }[];
+  if (!schedOffCols.some((c) => c.name === 'off_trigger')) {
+    db.exec('ALTER TABLE schedules ADD COLUMN off_trigger TEXT');
+  }
+
   // Widen controller-direct targeting from a single controller to a list —
   // picking several individual controllers on one schedule/event shouldn't
   // require first creating a Room group for them. target_controller_id/

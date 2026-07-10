@@ -259,6 +259,7 @@ export async function importSchedules(
       controllers: [{ controllerId, wledSegId: null }],
       actionType: 'preset',
       actionPayload: { presetId: result.parsed.macro },
+      offTrigger: null,
       enabled: true
     });
     imported.push(schedule);

@@ -386,3 +386,27 @@ a.sidebar-version-update:hover {
     font-weight: 600;
   }
 }
+
+/* Reload prompt shown when a long-open tab is running a bundle older than the
+   deployed server version (so fixes actually reach the user). */
+.reload-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--accent);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.reload-banner button {
+  margin-left: auto;
+  padding: 4px 14px;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+.reload-banner button:hover { background: var(--accent-hover); }

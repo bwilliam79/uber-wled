@@ -5,7 +5,7 @@ import {
   listControllers, listGroups, listThemes, listSchedules, listCalendarEvents,
   getControllerStatus, getFirmwareStatus, getSettings,
   getCapabilities, listDevicePresets, getControllerConfig, getControllerSegments,
-  listStrips, listRoomLabels, listSyncGroups, getAppUpdateStatus,
+  listStrips, listRoomLabels, listSyncGroups, getAppUpdateStatus, getServerVersion,
   type Controller, type Group, type CustomTheme, type ControllerStatus,
   type Schedule, type CalendarEvent, type Settings, type FirmwareStatus,
   type ControllerCapabilities, type DevicePreset, type Strip, type RoomLabel, type SyncGroup,
@@ -163,6 +163,17 @@ export function useAppUpdateStatus(): UseQueryResult<AppUpdateStatus> {
     queryFn: getAppUpdateStatus,
     refetchInterval: 6 * 60 * 60_000,
     staleTime: 60 * 60_000
+  });
+}
+
+/** Polls the deployed server version every few minutes so a long-open tab can
+ *  prompt a reload once it detects it's running a stale bundle after a deploy. */
+export function useServerVersion(): UseQueryResult<{ version: string }> {
+  return useQuery({
+    queryKey: ['server-version'],
+    queryFn: getServerVersion,
+    refetchInterval: 2 * 60_000,
+    staleTime: 60_000
   });
 }
 

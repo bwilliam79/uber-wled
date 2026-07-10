@@ -100,6 +100,14 @@ function todayMatches(dateRule: CalendarEvent['dateRule'], now: Date): boolean {
   return !!resolved && resolved.month === now.getMonth() + 1 && resolved.day === now.getDate();
 }
 
+/** Whether a schedule's day filter includes today (no filter = every day).
+ *  Used to gate the paired OFF trigger to the same days the schedule runs. */
+function scheduleActiveToday(schedule: Schedule, now: Date): boolean {
+  const days = schedule.daysOfWeek;
+  if (!days || days.length === 0) return true;
+  return days.includes(now.getDay());
+}
+
 function triggerTimeDue(triggerTime: TriggerTime, now: Date, lat: number, lon: number): boolean {
   if (triggerTime.type === 'fixed') {
     const [hh, mm] = triggerTime.time.split(':').map(Number);
@@ -197,12 +205,6 @@ export class SchedulerEngine {
 
     for (const schedule of schedules.list()) {
       if (!schedule.enabled) continue;
-      const due = nextTriggerDate(schedule, now);
-      if (!sameMinute(due, now)) continue;
-
-      const alreadyFired = this.lastFired.get(schedule.id);
-      if (alreadyFired && sameMinute(alreadyFired, now)) continue;
-
       const members = resolveMembers(this.db, schedule);
       if (members.length === 0) continue;
 
@@ -211,15 +213,33 @@ export class SchedulerEngine {
         if (!segs) return false;
         return m.wledSegId === null ? segs.size > 0 : segs.has('ALL') || segs.has(m.wledSegId);
       });
-      if (overlapsSuppressed) {
-        this.lastFired.set(schedule.id, now); // treat as handled for this minute, don't re-check every tick
-        continue;
+
+      // ON: the schedule's own action at its trigger time.
+      if (sameMinute(nextTriggerDate(schedule, now), now)) {
+        const fired = this.lastFired.get(schedule.id);
+        if (!fired || !sameMinute(fired, now)) {
+          // Claim before awaiting so an overlapping tick can't double-fire.
+          // Still claim (and skip the apply) when a calendar event suppresses
+          // this day, so we don't re-check every tick.
+          this.lastFired.set(schedule.id, now);
+          if (!overlapsSuppressed) {
+            await this.applyFn(members, { type: schedule.actionType, ...(schedule.actionPayload as object) });
+          }
+        }
       }
 
-      // Claim before awaiting (see comment above) so an overlapping
-      // invocation cannot also fire this schedule for the same minute.
-      this.lastFired.set(schedule.id, now);
-      await this.applyFn(members, { type: schedule.actionType, ...(schedule.actionPayload as object) });
+      // OFF: optional paired power-off at an independent trigger time, on the
+      // same active days. Keyed separately so on/off never suppress each other.
+      if (schedule.offTrigger && scheduleActiveToday(schedule, now) && triggerTimeDue(schedule.offTrigger, now, lat, lon)) {
+        const key = `${schedule.id}:off`;
+        const fired = this.lastFired.get(key);
+        if (!fired || !sameMinute(fired, now)) {
+          this.lastFired.set(key, now);
+          if (!overlapsSuppressed) {
+            await this.applyFn(members, { type: 'power', on: false });
+          }
+        }
+      }
     }
   }
 

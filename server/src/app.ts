@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'node:path';
 import type Database from 'better-sqlite3';
+import { CURRENT_APP_VERSION } from './appVersion.js';
 import { createControllersRouter } from './controllers/routes.js';
 import { createSegmentsRouter } from './segments/routes.js';
 import { createStripsRouter } from './strips/routes.js';
@@ -43,10 +44,26 @@ export function createApp(db: Database.Database) {
   app.use('/api/app-update', createAppUpdateRouter(db));
   app.use('/api/backup', createBackupRouter(db));
 
+  // Cheap deployed-version probe (no GitHub call). The client polls this and
+  // compares it to its own build version to prompt a reload after a deploy —
+  // otherwise a long-open SPA tab keeps running the bundle it first loaded.
+  app.get('/api/version', (_req, res) => res.json({ version: CURRENT_APP_VERSION }));
+
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {
-    app.use(express.static(staticDir));
+    app.use(
+      express.static(staticDir, {
+        setHeaders: (res, filePath) => {
+          // Vite fingerprints asset filenames, so they're safe to cache
+          // forever; index.html must always revalidate so a reload picks up
+          // the new bundle hashes after a deploy.
+          if (filePath.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+          else res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      })
+    );
     app.get('*', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache');
       res.sendFile(path.join(staticDir, 'index.html'));
     });
   }

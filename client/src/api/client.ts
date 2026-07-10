@@ -337,6 +337,10 @@ export interface AppUpdateStatus {
 
 export const getAppUpdateStatus = () => getJson<AppUpdateStatus>('/api/app-update');
 
+/** The deployed server's version — polled to detect when a long-open SPA tab
+ *  is running an out-of-date bundle after a deploy. */
+export const getServerVersion = () => getJson<{ version: string }>('/api/version');
+
 export const getSegmentsSnapshot = (controllerId: string) =>
   getJson<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][] }[]>(
     `/api/controllers/${controllerId}/segments`
