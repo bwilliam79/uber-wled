@@ -410,3 +410,24 @@ a.sidebar-version-update:hover {
   cursor: pointer;
 }
 .reload-banner button:hover { background: var(--accent-hover); }
+
+/* Fleet offline indicator in the master bar (shown only when >0 offline). */
+.master-bar-offline {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.master-bar-offline-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--danger);
+}

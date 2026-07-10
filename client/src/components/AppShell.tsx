@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { useToast } from './ui/Toast';
 import { MasterBar } from './MasterBar';
 import { BottomNav } from './BottomNav';
 import { SECTIONS, SECTION_META, type SectionKey } from './nav';
@@ -45,6 +46,27 @@ export function AppShell() {
   const ids = useMemo(() => controllers.map((c) => c.id), [controllers]);
   const live = useLiveStatus(ids);
   const anyOn = controllers.some((c) => live.get(c.id)?.state?.on);
+
+  // Toast when a controller drops offline or comes back — a lightweight health
+  // notification from anywhere in the app. Tracks the previous reachability per
+  // controller; the very first frame seeds state without alerting.
+  const toast = useToast();
+  const prevReachable = useRef<Map<string, boolean>>(new Map());
+  useEffect(() => {
+    for (const c of controllers) {
+      const entry = live.get(c.id);
+      if (!entry) continue;
+      const was = prevReachable.current.get(c.id);
+      const now = entry.reachable;
+      const name = entry.info?.name || c.name;
+      if (was === true && now === false) {
+        toast.show({ title: `${name} went offline`, variant: 'error' });
+      } else if (was === false && now === true) {
+        toast.show({ title: `${name} is back online`, variant: 'success' });
+      }
+      prevReachable.current.set(c.id, now);
+    }
+  }, [live, controllers, toast]);
 
   // A long-open tab keeps running the bundle it first loaded; when the deployed
   // server version moves past this build, prompt a reload so fixes land.
