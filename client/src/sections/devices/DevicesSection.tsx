@@ -27,7 +27,7 @@ export function DevicesSection() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const list = controllers.data ?? [];
+  const list = useMemo(() => controllers.data ?? [], [controllers.data]);
   const liveIds = useMemo(
     () => (route.controllerId ? [route.controllerId] : list.map((c) => c.id)),
     [route.controllerId, list]

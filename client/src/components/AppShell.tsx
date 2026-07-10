@@ -40,7 +40,8 @@ export function AppShell() {
 
   // Single live-status subscription for the shell chrome (lit logo + master
   // bar); sections open their own as needed. One EventSource, not several.
-  const controllers = useControllers().data ?? [];
+  const controllersData = useControllers().data;
+  const controllers = useMemo(() => controllersData ?? [], [controllersData]);
   const ids = useMemo(() => controllers.map((c) => c.id), [controllers]);
   const live = useLiveStatus(ids);
   const anyOn = controllers.some((c) => live.get(c.id)?.state?.on);

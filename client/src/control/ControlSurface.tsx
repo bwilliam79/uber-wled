@@ -151,6 +151,7 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
     );
     // Primitive deps: `agg` is rebuilt whenever live/caps identities move, so
     // depending on the object identity would refire this on every SSE tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aggNl?.on, aggNl?.dur, aggNl?.mode, aggNl?.tbri]);
 
   const doApply = useCallback((patch: ControlPatch, targetsOverride?: Target[]) => {

@@ -28,7 +28,7 @@ export function LayoutSection() {
 
   const strips = useMemo(() => stripsQuery.data ?? [], [stripsQuery.data]);
   const labels = labelsQuery.data ?? [];
-  const controllers = controllersQuery.data ?? [];
+  const controllers = useMemo(() => controllersQuery.data ?? [], [controllersQuery.data]);
 
   const [state, dispatch] = useReducer(layoutReducer, initialLayoutState);
   const [viewport, setViewport] = useState<Viewport>(IDENTITY_VIEWPORT);
