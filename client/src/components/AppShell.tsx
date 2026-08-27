@@ -14,6 +14,7 @@ import { SyncSection } from '../sections/sync/SyncSection';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 import { SettingsSection } from '../sections/settings/SettingsSection';
 import { useFirmwareUpdateAvailable, useAppUpdateStatus, useServerVersion } from '../api/queries';
+import { isNewerVersion } from '../lib/version';
 import './appshell.css';
 
 const DEFAULT_SECTION: SectionKey = 'devices';
@@ -69,10 +70,12 @@ export function AppShell() {
   }, [live, controllers, toast]);
 
   // A long-open tab keeps running the bundle it first loaded; when the deployed
-  // server version moves past this build, prompt a reload so fixes land.
+  // server version is *newer* than this build, prompt a reload so fixes land.
+  // Strict greater-than (not mere inequality): client and server package.json
+  // can drift, and an older /api/version must never be offered as an "update".
   const serverVersion = useServerVersion();
-  const staleBundle =
-    typeof serverVersion.data?.version === 'string' && serverVersion.data.version !== __APP_VERSION__;
+  const deployed = serverVersion.data?.version;
+  const staleBundle = typeof deployed === 'string' && isNewerVersion(deployed, __APP_VERSION__);
 
   useEffect(() => {
     const onHash = () => setActive(sectionFromHash());
