@@ -176,10 +176,20 @@ Devices:
 The sidebar also passively checks GitHub for a newer **uber-wled** release
 (the app itself, not device firmware) — the server reads `server/package.json`
 off the tip of `main` via GitHub's raw-content CDN, caches it for six hours,
-and compares it to the running version. When a newer version exists, the
-version label under the logo turns into an "update available" link to the
-repo. There is no in-place self-update: updating means `git pull` +
-`docker compose up -d --build` on the host, as with any deploy.
+and compares it to the running version with a numeric semver check (not string
+inequality). When a **newer** version exists, the version label under the logo
+turns into an "update available" link to the repo. There is no in-place
+self-update: updating means `git pull` + `docker compose up -d --build` on the
+host, as with any deploy.
+
+A separate **reload banner** ("A new version (vX.Y.Z) is available" + Reload)
+is for long-open tabs after a deploy: the SPA polls `/api/version` and only
+prompts when that deployed version is strictly newer than the bundle already
+running in the tab. An older or equal number is never offered as an update.
+The footer version is baked in from `client/package.json` at build time;
+`/api/version` and the GitHub check read `server/package.json`. **Bump both
+files to the same version** on every release — the Docker build fails if they
+drift.
 
 ## The Control surface
 
@@ -311,8 +321,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 48 files / 373 tests
-cd client && npm test   # 78 files / 605 tests
+cd server && npm test   # 49 files / 377 tests
+cd client && npm test   # 77 files / 625 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered

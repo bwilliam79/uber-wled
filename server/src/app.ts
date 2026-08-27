@@ -47,7 +47,10 @@ export function createApp(db: Database.Database) {
   // Cheap deployed-version probe (no GitHub call). The client polls this and
   // compares it to its own build version to prompt a reload after a deploy —
   // otherwise a long-open SPA tab keeps running the bundle it first loaded.
-  app.get('/api/version', (_req, res) => res.json({ version: CURRENT_APP_VERSION }));
+  app.get('/api/version', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ version: CURRENT_APP_VERSION });
+  });
 
   const staticDir = process.env.STATIC_DIR;
   if (staticDir) {

@@ -11,3 +11,14 @@ describe('GET /health', () => {
     expect(res.body).toEqual({ status: 'ok' });
   });
 });
+
+describe('GET /api/version', () => {
+  it('returns the running server package version and forbids caching', async () => {
+    const { CURRENT_APP_VERSION } = await import('../src/appVersion.js');
+    const app = createApp(createDb(':memory:'));
+    const res = await request(app).get('/api/version');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ version: CURRENT_APP_VERSION });
+    expect(res.headers['cache-control']).toMatch(/no-store/);
+  });
+});
