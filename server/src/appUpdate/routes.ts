@@ -6,7 +6,8 @@ import { CURRENT_APP_VERSION } from '../appVersion.js';
 
 const CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
-/** Compares dotted numeric versions (e.g. "1.5.3"); no pre-release suffixes to handle here. */
+/** Compares dotted numeric versions (e.g. "1.5.3"); no pre-release suffixes to handle here.
+ *  Keep in sync with client/src/lib/version.ts. */
 export function isNewerVersion(candidate: string, current: string): boolean {
   const a = candidate.split('.').map(Number);
   const b = current.split('.').map(Number);

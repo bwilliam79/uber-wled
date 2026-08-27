@@ -145,6 +145,49 @@ describe('AppShell v2', () => {
     expect(within(sidebar).queryByRole('link', { name: /update available/i })).toBeNull();
   });
 
+  it('does not show a reload banner when /api/version is older than this bundle', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url === '/api/version') {
+        return Promise.resolve({ ok: true, json: async () => ({ version: '2.10.1' }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderShell();
+    await waitFor(() => expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy());
+    expect(screen.queryByText(/A new version/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Reload' })).toBeNull();
+  });
+
+  it('does not show a reload banner when /api/version matches this bundle', async () => {
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url === '/api/version') {
+        return Promise.resolve({ ok: true, json: async () => ({ version: __APP_VERSION__ }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderShell();
+    await waitFor(() => expect(screen.getByText(`v${__APP_VERSION__}`)).toBeTruthy());
+    expect(screen.queryByText(/A new version/)).toBeNull();
+  });
+
+  it('shows a reload banner only when /api/version is newer than this bundle', async () => {
+    const [maj, min, patch] = __APP_VERSION__.split('.').map(Number);
+    const newer = `${maj}.${min}.${patch + 1}`;
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url === '/api/version') {
+        return Promise.resolve({ ok: true, json: async () => ({ version: newer }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    renderShell();
+    expect(await screen.findByText(`A new version (v${newer}) is available.`)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reload' })).toBeTruthy();
+    expect(screen.getByText(`v${__APP_VERSION__}`)).toBeTruthy();
+  });
+
   it('shows a firmware badge in both navs when any controller has an update available', async () => {
     const fetchMock = vi.fn().mockImplementation((url: string) => {
       if (typeof url === 'string' && url === '/api/controllers') {
