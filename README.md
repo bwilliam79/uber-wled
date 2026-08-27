@@ -363,3 +363,7 @@ in **Quick start** at the top.)
   only be an active member of one sync group at a time (no combined-bitmask
   multi-membership), and up to 8 sync groups can be active simultaneously
   (WLED's own bitmask ceiling).
+
+### App icon
+
+PWA / home-screen mark is the locked **B neon stroke** pack (`favicon.svg`, `icon-16/32.png`, `apple-touch-icon.png`, `icon-192/512.png`, `icon-maskable-512.png`, `manifest.webmanifest`) under `client/public/`.
