@@ -80,5 +80,7 @@ describe('isNewerVersion', () => {
   it('treats equal or lower versions as not newer', () => {
     expect(isNewerVersion('1.5.2', '1.5.2')).toBe(false);
     expect(isNewerVersion('1.4.9', '1.5.0')).toBe(false);
+    expect(isNewerVersion('2.16.1', '2.16.2')).toBe(false);
+    expect(isNewerVersion('2.10.1', '2.16.2')).toBe(false);
   });
 });
