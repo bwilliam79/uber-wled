@@ -364,6 +364,13 @@ in **Quick start** at the top.)
   multi-membership), and up to 8 sync groups can be active simultaneously
   (WLED's own bitmask ceiling).
 
-### App icon
+## PWA icons
 
-PWA / home-screen mark is the locked **B neon stroke** pack (`favicon.svg`, `icon-16/32.png`, `apple-touch-icon.png`, `icon-192/512.png`, `icon-maskable-512.png`, `manifest.webmanifest`) under `client/public/`.
+App icon is the locked neon-stroke lightbulb mark (`b-neon-stroke`). Pack in `client/public/`:
+
+- `favicon.svg` / `icon-16.png` / `icon-32.png`
+- `apple-touch-icon.png` / `icon-180.png` (180)
+- `icon-192.png` / `icon-512.png` / `icon-maskable-512.png`
+- `manifest.json`
+
+Links in `client/index.html` use `?v=` cache-bust. Vite serves `public/` at `/`.
