@@ -1,6 +1,6 @@
 {
-  "name": "uber-wled",
-  "short_name": "uber-wled",
+  "name": "Uber WLED",
+  "short_name": "Uber WLED",
   "description": "LAN-only control plane for every WLED device on the network",
   "start_url": "/",
   "display": "standalone",
