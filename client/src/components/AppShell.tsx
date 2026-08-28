@@ -8,7 +8,6 @@ import { useControllers } from '../api/queries';
 import { useLiveStatus } from '../api/live';
 import { DevicesSection } from '../sections/devices/DevicesSection';
 import { ThemesSection } from '../sections/themes/ThemesSection';
-import { LayoutSection } from '../sections/layout/LayoutSection';
 import { ScheduleSection } from '../sections/schedule/ScheduleSection';
 import { SyncSection } from '../sections/sync/SyncSection';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
@@ -26,7 +25,11 @@ const KEYS = SECTIONS.map((s) => s.key);
 const LEGACY_ALIASES: Record<string, SectionKey> = {
   controllers: 'devices',
   groups: 'devices',
-  home: 'devices'
+  home: 'devices',
+  // Orphan Layout / Segments top-level — dropped from nav; segments live under
+  // device detail. Keep bookmarks from landing on a blank main.
+  layout: 'devices',
+  segments: 'devices'
 };
 
 export function sectionFromHash(): SectionKey {
@@ -109,7 +112,6 @@ export function AppShell() {
         )}
         <MasterBar title={meta.title} subtitle={meta.subtitle} controllers={controllers} live={live} />
         <main className="app-main">
-          {active === 'layout' && <LayoutSection />}
           {active === 'devices' && <DevicesSection />}
           {active === 'themes' && <ThemesSection />}
           {active === 'schedule' && <ScheduleSection />}

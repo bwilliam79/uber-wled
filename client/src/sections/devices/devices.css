@@ -27,6 +27,18 @@
 
 @media (max-width: 720px) {
   .devices-grid { grid-template-columns: 1fr; }
+  /* Phone density: tighter card stack; Control becomes a full-width row so
+     it reads as the primary action without changing desktop chrome. */
+  .device-card { gap: 10px; }
+  .device-card-strip-well { height: 26px; }
+  .device-card-status { gap: 8px; }
+  .device-card-open {
+    flex: 1 1 100%;
+    margin-left: 0;
+    margin-top: 2px;
+    text-align: center;
+    padding: 8px 14px;
+  }
 }
 
 /* ---------- Device card (list view) — matches the prototype device card ---------- */
