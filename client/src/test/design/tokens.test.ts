@@ -9,9 +9,9 @@ import { describe, it, expect } from 'vitest';
 const moduleUrl = import.meta.url;
 const css = readFileSync(new URL('../../design/tokens.css', moduleUrl), 'utf-8');
 
-// v2.0.0 reskin (2026-07-09): teal dark-first system with a light theme,
+// v2.0.0 reskin (2026-07-09): black + neon-green dark-first system with a light theme,
 // per design/README.md + the prototype's :root / [data-theme] blocks.
-describe('design tokens (v2 teal system — dark)', () => {
+describe('design tokens (v2 neon-green system — dark)', () => {
   it.each([
     ['--bg', '#0e0e11'],
     ['--rail', '#08080a'],
