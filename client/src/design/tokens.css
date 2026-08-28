@@ -1,5 +1,5 @@
 /* ============================================================
-   uber-wled v2 design tokens — teal dark-first system with light
+   uber-wled v2 design tokens — black + neon-green dark-first system with light
    mode, per design/README.md + the prototype's :root/[data-theme]
    blocks (Uber-WLED Prototype.dc.html). The new vocabulary
    (--bg, --rail, --panel, --text, --m1..3, --accent, --w3..28) is
@@ -23,8 +23,8 @@
   --m1: #9797a1;
   --m2: #7a7a84;
   --m3: #63636c;
-  --accent: #2ee6c0;
-  --accent-hover: #26c9a8;
+  --accent: #22C55E;
+  --accent-hover: #16a34a;
 
   /* White-alpha scale — borders, tracks, chip fills, subtle surfaces. */
   --w3: rgba(255,255,255,.03);
@@ -73,8 +73,8 @@
   --shadow-lg: 0 24px 60px rgba(0,0,0,.5);
 
   /* ---- Accent glow (LED/logo) ---- */
-  --glow-accent: 0 0 12px rgba(46,230,192,.5);
-  --glow-accent-strong: 0 0 16px rgba(46,230,192,.85);
+  --glow-accent: 0 0 12px rgba(34,197,94,.5);
+  --glow-accent-strong: 0 0 16px rgba(34,197,94,.85);
 
   /* ---- Spacing scale (carried — sections depend on these names) ---- */
   --space-xs: 0.25rem;
@@ -97,7 +97,7 @@
   --surface-2: #202026;
   --border: var(--w8);
   --text-muted: var(--m1);
-  --accent-soft: rgba(46,230,192,.12);
+  --accent-soft: rgba(34,197,94,.12);
 }
 
 /* Light theme: override only the values that differ; the bridge aliases
@@ -114,8 +114,8 @@
   --m1: #63656d;
   --m2: #7c7e88;
   --m3: #9a9ca4;
-  --accent: #0c917a;
-  --accent-hover: #0a7d69;
+  --accent: #16a34a;
+  --accent-hover: #15803d;
 
   --w3: rgba(0,0,0,.035);
   --w4: rgba(0,0,0,.045);
@@ -129,11 +129,11 @@
   --w14: rgba(0,0,0,.16);
   --w28: rgba(0,0,0,.34);
 
-  --accent-soft: rgba(12,145,122,.12);
+  --accent-soft: rgba(22,163,74,.12);
   --surface-2: #eceae4;
 
-  --glow-accent: 0 0 10px rgba(12,145,122,.35);
-  --glow-accent-strong: 0 0 14px rgba(12,145,122,.55);
+  --glow-accent: 0 0 10px rgba(22,163,74,.35);
+  --glow-accent-strong: 0 0 14px rgba(22,163,74,.55);
 }
 
 /* Desktop density: phone keeps full touch-target sizing; mouse input at
