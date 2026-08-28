@@ -3,17 +3,15 @@ import {
   ChipIcon, PaletteIcon, CalendarIcon, DownloadIcon, GearIcon, SyncIcon
 } from './icons';
 
-// 'layout' stays in the union (and LayoutSection stays wired up in AppShell)
-// even though it's no longer listed in SECTIONS — the Layout section is
-// hidden from the nav for now, not removed. Re-adding its SECTIONS entry
-// below is all it takes to bring it back.
+// 'layout' remains in the union for SECTION_META / legacy hashes, but is not
+// in SECTIONS. Orphan #/layout and #/segments alias to Devices (AppShell).
+// Per-controller Segments stay under device detail; no top-level Layout nav.
 export type SectionKey =
   'layout' | 'devices' | 'themes' | 'schedule' | 'sync' | 'firmware' | 'settings';
 
 type IconComp = (p: { className?: string }) => ReactElement;
 
-/** The nav sections. Order here is render order in both navs. Layout is
- *  deliberately omitted for now (see SectionKey comment above). */
+/** The nav sections. Order here is render order in both navs. */
 export const SECTIONS: { key: SectionKey; label: string; Icon: IconComp }[] = [
   { key: 'devices', label: 'Devices', Icon: ChipIcon },
   { key: 'themes', label: 'Themes', Icon: PaletteIcon },

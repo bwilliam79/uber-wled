@@ -187,4 +187,26 @@ describe('ThemesSection', () => {
     );
     await waitFor(() => expect(screen.getByText(/Imported 2 themes/)).toBeTruthy());
   });
+
+  it('applies a theme to every controller via primary Apply', async () => {
+    const fetchMock = stubFetch();
+    renderWithQuery(<ThemesSection />);
+    fireEvent.click(await screen.findByLabelText('Apply Sunset Party to all devices'));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/control/apply',
+        expect.objectContaining({ method: 'POST' })
+      )
+    );
+    const call = fetchMock.mock.calls.find(([u]) => u === '/api/control/apply')!;
+    const body = JSON.parse((call[1] as RequestInit).body as string);
+    expect(body.targets).toEqual([
+      { kind: 'controller', controllerId: 'c0' },
+      { kind: 'controller', controllerId: 'c1' }
+    ]);
+    expect(body.patch.on).toBe(true);
+    expect(body.patch.bri).toBe(200);
+    expect(body.patch.seg.fxId).toBe(1);
+    expect(body.patch.seg.palId).toBe(6);
+  });
 });

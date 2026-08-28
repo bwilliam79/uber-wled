@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  deleteTheme, importThemesFile, THEMES_EXPORT_URL,
+  applyControl, deleteTheme, importThemesFile, THEMES_EXPORT_URL,
   type ControllerCapabilities, type CustomTheme
 } from '../../api/client';
 import { useCapabilities, useControllers, useThemes } from '../../api/queries';
@@ -22,13 +22,17 @@ import './themes.css';
 function ThemeRow({
   theme,
   capabilities,
+  onApply,
   onEdit,
-  onDelete
+  onDelete,
+  applying
 }: {
   theme: CustomTheme;
   capabilities: ControllerCapabilities | undefined;
+  onApply: (theme: CustomTheme) => void;
   onEdit: (theme: CustomTheme) => void;
   onDelete: (id: string) => void;
+  applying: boolean;
 }) {
   const effectName = capabilities?.effects[theme.effect] ?? `Effect #${theme.effect}`;
   const previewEffect = effectToPreview(effectName);
@@ -67,6 +71,15 @@ function ThemeRow({
         </span>
       </div>
       <div className="theme-row-actions">
+        <Button
+          variant="primary"
+          size="sm"
+          aria-label={`Apply ${theme.name} to all devices`}
+          disabled={applying}
+          onClick={() => onApply(theme)}
+        >
+          Apply
+        </Button>
         <Button variant="secondary" size="sm" aria-label={`Edit ${theme.name}`} onClick={() => onEdit(theme)}>
           Edit
         </Button>
@@ -93,6 +106,31 @@ export function ThemesSection() {
   const toast = useToast();
   const [editingTheme, setEditingTheme] = useState<CustomTheme | null>(null);
   const [presetImportOpen, setPresetImportOpen] = useState(false);
+  const [applyingThemeId, setApplyingThemeId] = useState<string | null>(null);
+
+  function applyThemeToFleet(theme: CustomTheme) {
+    const list = controllers.data ?? [];
+    if (list.length === 0) {
+      toast.show({ title: 'No controllers to apply to', variant: 'error' });
+      return;
+    }
+    const targets = list.map((c) => ({ kind: 'controller' as const, controllerId: c.id }));
+    setApplyingThemeId(theme.id);
+    applyControl(targets, {
+      on: true,
+      bri: theme.brightness,
+      seg: {
+        fxId: theme.effect,
+        palId: theme.palette,
+        col: theme.colors,
+        sx: theme.speed,
+        ix: theme.intensity
+      }
+    })
+      .then(() => toast.show({ title: `Applied "${theme.name}" to all devices`, variant: 'success' }))
+      .catch(() => toast.show({ title: 'Failed to apply theme', variant: 'error' }))
+      .finally(() => setApplyingThemeId(null));
+  }
 
   const removeTheme = useMutation({
     mutationFn: deleteTheme,
@@ -150,11 +188,13 @@ export function ThemesSection() {
                 key={t.id}
                 theme={t}
                 capabilities={capabilities.data}
+                onApply={applyThemeToFleet}
                 onEdit={setEditingTheme}
                 onDelete={(id) => {
                   if (editingTheme?.id === id) setEditingTheme(null);
                   removeTheme.mutate(id);
                 }}
+                applying={applyingThemeId === t.id}
               />
             ))}
           </ul>

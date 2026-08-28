@@ -204,7 +204,7 @@ export function SettingsSection() {
                 id="settings-address-lookup"
                 className="input"
                 type="text"
-                placeholder="123 Main St, Anytown, USA"
+                placeholder="Search address…"
                 value={addressQuery}
                 onChange={(e) => setAddressQuery(e.target.value)}
                 onKeyDown={(e) => {

@@ -387,4 +387,4 @@ Links in `client/index.html` use `?v=` cache-bust. Vite serves `public/` at `/`.
 
 ### Chrome accent
 
-UI chrome uses black + neon green `#22C55E` (B neon). Phone bottom-nav labels are always visible. Schedule rows with no group target show **No action set** (not `Group —`).
+UI chrome uses black + neon green `#22C55E` (B neon). Phone bottom-nav labels are always visible. Schedule rows with no group target show **No action set** (not `Group —`). Theme rows expose primary **Apply** (fleet), secondary Edit, danger Remove. Settings address lookup placeholder is **Search address…** (never a fake street address). Document / PWA title is **Uber WLED**. Orphan `#/layout` and `#/segments` hashes land on Devices; segments stay under device detail.

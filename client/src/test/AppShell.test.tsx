@@ -42,7 +42,7 @@ describe('AppShell v2', () => {
     expect(within(sidebar).queryByRole('button', { name: /Home/ })).toBeNull();
     expect(within(sidebar).queryByRole('button', { name: /Groups/ })).toBeNull();
     expect(within(sidebar).queryByRole('button', { name: /Controllers/ })).toBeNull();
-    // Layout is hidden from the nav for now (component/route kept in code).
+    // Layout/Segments top-level was dropped; orphan hashes alias to Devices.
     expect(within(sidebar).queryByRole('button', { name: /Layout/ })).toBeNull();
     expect(within(sidebar).getByText(/^v\d+\.\d+\.\d+$/)).toBeTruthy();
   });
@@ -227,6 +227,13 @@ describe('sectionFromHash deep links (Phase F)', () => {
 
   it('still maps the legacy #/controllers alias to devices', () => {
     window.location.hash = '#/controllers';
+    expect(sectionFromHash()).toBe('devices');
+  });
+
+  it('aliases orphan #/layout and #/segments hashes to devices', () => {
+    window.location.hash = '#/layout';
+    expect(sectionFromHash()).toBe('devices');
+    window.location.hash = '#/segments';
     expect(sectionFromHash()).toBe('devices');
   });
 });
