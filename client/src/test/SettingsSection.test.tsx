@@ -84,6 +84,15 @@ describe('SettingsSection v2', () => {
     await waitFor(() => expect(screen.getByText(/Re-scan complete — 2 controller/i)).toBeTruthy());
   });
 
+
+  it('uses a Search address placeholder, never a fake street address', async () => {
+    stub();
+    renderWithQuery(<SettingsSection />);
+    const input = await screen.findByLabelText('Look up an address') as HTMLInputElement;
+    expect(input.placeholder).toMatch(/Search address/);
+    expect(input.placeholder).not.toMatch(/123 Main|Anytown/i);
+  });
+
   describe('"Look up an address" (server-proxied Nominatim geocoding)', () => {
     it('auto-applies the single match to the latitude/longitude fields', async () => {
       stub(undefined, [{ displayName: '1 Main St, Anytown, USA', latitude: 40.1234, longitude: -75.5678 }]);
