@@ -13,7 +13,7 @@ implementation plans live in [docs/superpowers/plans/](docs/superpowers/plans/).
 
 ## Screenshots
 
-A dark-first interface (teal accent, Space Grotesk for UI + IBM Plex Mono for
+A dark-first interface (black + neon green `#22C55E`, Space Grotesk for UI + IBM Plex Mono for
 metrics) with a one-click light theme — the theme, master brightness, and last
 view persist across reloads. LED/effect previews sit on a dark housing in both
 themes so the glow reads like real light.
@@ -322,7 +322,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 49 files / 377 tests
-cd client && npm test   # 77 files / 625 tests
+cd client && npm test   # 79 files / 627 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered
