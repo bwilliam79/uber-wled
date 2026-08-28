@@ -860,7 +860,7 @@
 }
 
 .ui-toast-success {
-  border-color: rgba(46, 230, 192, 0.4);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .ui-toast-error {

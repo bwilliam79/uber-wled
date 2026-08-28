@@ -107,11 +107,7 @@
 
 .sidebar-link.active {
   color: var(--accent);
-  background: rgba(46, 230, 192, 0.12);
-}
-
-[data-theme="light"] .sidebar-link.active {
-  background: rgba(12, 145, 122, 0.12);
+  background: var(--accent-soft);
 }
 
 .sidebar-link-icon-wrap {
@@ -243,14 +239,9 @@ a.sidebar-version-update:hover {
   gap: 7px;
   padding: 7px 13px;
   border-radius: 10px;
-  background: rgba(46, 230, 192, 0.1);
-  border: 1px solid rgba(46, 230, 192, 0.25);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
   white-space: nowrap;
-}
-
-[data-theme="light"] .master-bar-status {
-  background: rgba(12, 145, 122, 0.1);
-  border-color: rgba(12, 145, 122, 0.25);
 }
 
 .master-bar-status-dot {
