@@ -283,7 +283,8 @@ export function ScheduleManager() {
       return `Controller${names.length > 1 ? 's' : ''} ${names.join(', ')}`;
     }
     const group = (groups.data ?? []).find((g) => g.id === s.groupId);
-    return `Group ${group?.name ?? '—'}`;
+    if (!group?.name) return 'No action set';
+    return `Group ${group.name}`;
   }
 
   function themeName(s: { actionPayload: unknown }): string {

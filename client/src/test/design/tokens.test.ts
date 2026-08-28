@@ -22,7 +22,7 @@ describe('design tokens (v2 teal system — dark)', () => {
     ['--m1', '#9797a1'],
     ['--m2', '#7a7a84'],
     ['--m3', '#63636c'],
-    ['--accent', '#2ee6c0'],
+    ['--accent', '#22C55E'],
     ['--on-accent', '#04140f'],
     ['--danger', '#ff6b6b'],
     ['--warning', '#ffb020'],
@@ -41,7 +41,7 @@ describe('design tokens (v2 teal system — dark)', () => {
 describe('design tokens (light theme)', () => {
   it('overrides core surfaces + accent under [data-theme="light"]', () => {
     expect(css).toContain('[data-theme="light"]');
-    for (const value of ['--bg: #ebe9e4;', '--panel: #f5f4f1;', '--accent: #0c917a;', '--text: #191a1c;']) {
+    for (const value of ['--bg: #ebe9e4;', '--panel: #f5f4f1;', '--accent: #16a34a;', '--text: #191a1c;']) {
       expect(css).toContain(value);
     }
   });

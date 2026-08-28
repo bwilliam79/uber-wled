@@ -24,7 +24,7 @@ export function BottomNav({
             <Icon className="bottom-nav-icon" />
             {badges?.[key] && <span className="sidebar-link-badge" title="Update available" />}
           </span>
-          {active === key && <span className="bottom-nav-label">{label}</span>}
+          <span className="bottom-nav-label">{label}</span>
         </button>
       ))}
     </nav>

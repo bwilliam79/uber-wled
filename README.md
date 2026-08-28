@@ -384,3 +384,7 @@ App icon is the locked neon-stroke lightbulb mark (`b-neon-stroke`). Pack in `cl
 - `manifest.json`
 
 Links in `client/index.html` use `?v=` cache-bust. Vite serves `public/` at `/`.
+
+### Chrome accent
+
+UI chrome uses black + neon green `#22C55E` (B neon). Phone bottom-nav labels are always visible. Schedule rows with no group target show **No action set** (not `Group —`).
