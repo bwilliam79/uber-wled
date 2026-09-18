@@ -9,7 +9,7 @@ const groups: Group[] = [
 ];
 const controllers: Controller[] = [
   { id: 'c1', name: 'cabinet-lights', host: '203.0.113.86', source: 'discovered', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'tv-lights', host: '203.0.113.161', source: 'discovered', stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'tv-lights', host: '203.0.113.61', source: 'discovered', stale: false, pinnedAssetPattern: null }
 ];
 
 describe('TargetPicker', () => {

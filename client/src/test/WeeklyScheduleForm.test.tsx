@@ -5,7 +5,7 @@ import { WeeklyScheduleForm } from '../sections/schedule/WeeklyScheduleForm';
 const groups = [{ id: 'g1', name: 'Front', icon: null, sortOrder: 0, members: [] }];
 const controllers = [
   { id: 'c1', name: 'cabinet-lights', host: '203.0.113.86', source: 'discovered' as const, stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'tv-lights', host: '203.0.113.161', source: 'discovered' as const, stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'tv-lights', host: '203.0.113.61', source: 'discovered' as const, stale: false, pinnedAssetPattern: null }
 ];
 const live = new Map();
 const themes = [{ id: 't1', name: 'Spooky', effect: 0, palette: 0, colors: [[0, 0, 0]], brightness: 128, speed: 128, intensity: 128 }];

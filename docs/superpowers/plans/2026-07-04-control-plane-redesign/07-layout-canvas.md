@@ -1592,7 +1592,7 @@ const strips: Strip[] = [
 const labels: RoomLabel[] = [{ id: 'l1', name: 'Kitchen', x: 50, y: 20 }];
 const controllers: Controller[] = [
   { id: 'c1', name: 'Porch Ctrl', host: '203.0.113.86', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Deck Ctrl', host: '192.168.1.87', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'Deck Ctrl', host: '203.0.113.87', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 function jsonResponse(data: unknown, status = 200) {

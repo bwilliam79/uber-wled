@@ -15,14 +15,14 @@ describe('assertValidHost', () => {
 
   it('accepts valid IPv4 addresses', () => {
     expect(() => assertValidHost('10.0.0.50')).not.toThrow();
-    expect(() => assertValidHost('192.168.1.1')).not.toThrow();
+    expect(() => assertValidHost('203.0.113.1')).not.toThrow();
     expect(() => assertValidHost('255.255.255.255')).not.toThrow();
     expect(() => assertValidHost('0.0.0.0')).not.toThrow();
   });
 
   it('accepts valid IPv4 addresses with a port', () => {
     expect(() => assertValidHost('10.0.0.50:80')).not.toThrow();
-    expect(() => assertValidHost('192.168.1.1:65535')).not.toThrow();
+    expect(() => assertValidHost('203.0.113.1:65535')).not.toThrow();
   });
 
   it('does not reject private/RFC1918 IP ranges — these are where real WLED controllers live', () => {

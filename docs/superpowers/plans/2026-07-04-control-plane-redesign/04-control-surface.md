@@ -339,7 +339,7 @@ import {
 
 const CONTROLLERS = [
   { id: 'c1', name: 'Cabinet', host: '203.0.113.86', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Porch', host: '192.168.1.87', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'Porch', host: '203.0.113.87', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 function makeWrapper() {
@@ -2636,7 +2636,7 @@ vi.mock('../../api/client', async (importOriginal) => {
 
 const CONTROLLERS = [
   { id: 'cA', name: 'Cabinet', host: '203.0.113.86', source: 'manual' as const, stale: false, pinnedAssetPattern: null },
-  { id: 'cB', name: 'Porch', host: '192.168.1.87', source: 'manual' as const, stale: false, pinnedAssetPattern: null }
+  { id: 'cB', name: 'Porch', host: '203.0.113.87', source: 'manual' as const, stale: false, pinnedAssetPattern: null }
 ];
 const TWO_TARGETS: Target[] = [
   { kind: 'controller', controllerId: 'cA' },

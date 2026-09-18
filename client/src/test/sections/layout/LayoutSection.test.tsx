@@ -28,11 +28,11 @@ const strips: Strip[] = [
 const labels: RoomLabel[] = [{ id: 'l1', name: 'Kitchen', x: 50, y: 20 }];
 const controllers: Controller[] = [
   { id: 'c1', name: 'Porch Ctrl', host: '203.0.113.86', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Deck Ctrl', host: '192.168.1.87', source: 'manual', stale: false, pinnedAssetPattern: null },
+  { id: 'c2', name: 'Deck Ctrl', host: '203.0.113.87', source: 'manual', stale: false, pinnedAssetPattern: null },
   // No strip references c3 — covers a controller that hasn't had a strip
   // drawn for it yet, which is exactly the case the real app was in when
   // this bug was reported (zero strips existed anywhere).
-  { id: 'c3', name: 'wled-bar-lights', host: '192.168.1.132', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c3', name: 'wled-bar-lights', host: '203.0.113.32', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 function jsonResponse(data: unknown, status = 200) {

@@ -935,10 +935,10 @@ describe('buildLedHardwarePatch', () => {
 });
 
 describe('ip helpers', () => {
-  it('parses dotted quads', () => expect(parseIpv4('192.168.1.50')).toEqual([192, 168, 1, 50]));
+  it('parses dotted quads', () => expect(parseIpv4('203.0.113.50')).toEqual([192, 168, 1, 50]));
   it('rejects malformed and out-of-range strings', () => {
     expect(parseIpv4('192.168.1')).toBeNull();
-    expect(parseIpv4('192.168.1.256')).toBeNull();
+    expect(parseIpv4('203.0.113.256')).toBeNull();
     expect(parseIpv4('lights.local')).toBeNull();
   });
   it('formats the probed subnet mask back to text', () =>
@@ -2922,7 +2922,7 @@ import { Toggle } from '../../../components/ui/Toggle';
 import { buildWifiPatch, formatIpv4, parseIpv4, type Cfg } from '../configPatches';
 import type { ConfigFormProps } from './types';
 
-const IP_ERROR = 'Use dotted-quad form, e.g. 192.168.1.50';
+const IP_ERROR = 'Use dotted-quad form, e.g. 203.0.113.50';
 
 export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
   const row0 = (cfg.nw?.ins?.[0] ?? {}) as Cfg;

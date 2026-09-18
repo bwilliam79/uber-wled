@@ -9,7 +9,7 @@ import {
 } from '../configPatches';
 import type { ConfigFormProps } from './types';
 
-const IP_ERROR = 'Use dotted-quad form, e.g. 192.168.1.50';
+const IP_ERROR = 'Use dotted-quad form, e.g. 203.0.113.50';
 
 export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
   const row0 = (cfg.nw?.ins?.[0] ?? {}) as Cfg;

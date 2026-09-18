@@ -1343,7 +1343,7 @@ const GROUPS = [
 ];
 const CONTROLLERS = [
   { id: 'c1', name: 'Cabinet Lights', host: '203.0.113.86', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Desk Strip', host: '192.168.1.90', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'Desk Strip', host: '203.0.113.90', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 // captured 2026-07-04 from GET http://203.0.113.86/json/state (color slot changed for test clarity)

@@ -32,7 +32,7 @@ describe('DeviceCard', () => {
   it('shows a Live badge (with source in the tooltip) when driven by realtime data', () => {
     stubFetchRoutes({ 'GET /api/controllers/c1/firmware': NO_UPDATE });
     renderDevices(<DeviceCard controller={CONTROLLERS[0]}
-      live={liveEntry({ info: { ...LIVE_INFO, live: true, lip: '192.168.1.50' } })}
+      live={liveEntry({ info: { ...LIVE_INFO, live: true, lip: '203.0.113.50' } })}
       onControl={vi.fn()} onOpen={vi.fn()} />);
     const badge = screen.getByText('Live');
     expect(badge).toBeTruthy();

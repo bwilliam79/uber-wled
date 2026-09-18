@@ -8,7 +8,7 @@ import {
 
 const CONTROLLERS = [
   { id: 'c1', name: 'Cabinet', host: '203.0.113.86', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Porch', host: '192.168.1.87', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c2', name: 'Porch', host: '203.0.113.87', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 function makeWrapper() {

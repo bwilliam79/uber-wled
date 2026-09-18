@@ -47,7 +47,7 @@ export function AddControllerCard() {
         </Field>
         <Field label="Host or IP" htmlFor="add-controller-host">
           <input id="add-controller-host" className="input" value={host}
-            onChange={(e) => setHost(e.target.value)} placeholder="192.168.1.50" />
+            onChange={(e) => setHost(e.target.value)} placeholder="203.0.113.50" />
         </Field>
       </div>
       <Button variant="primary" onClick={handleAdd} disabled={adding || !name.trim() || !host.trim()}>
