@@ -339,7 +339,7 @@ in **Quick start** at the top.)
 
 1. **Add controllers** — Devices fills itself via mDNS discovery (interval
    in Settings), or add one manually by name + IP/hostname from **Settings →
-   Add a controller**. A stale badge means a discovered controller stopped
+   Add a controller**. Discovery prefers IPv4 from mDNS and also HTTP-probes known hosts (`/json/info`) so Colima/vm bridges that drop multicast still clear stale when the device answers. A stale badge means a discovered controller stopped
    responding; it's kept, not deleted.
 2. **Make rooms** — on Devices, hit **Manage rooms**, create a room, pick its
    icon, and check off the controllers that belong to it; cards then group

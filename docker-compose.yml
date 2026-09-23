@@ -1,13 +1,15 @@
 services:
   uber-wled:
     build: .
-    # host networking is required so mDNS multicast discovery can see WLED
-    # devices on the LAN; if unavailable on your platform, add controllers
-    # manually via IP instead.
-    network_mode: "host"
+    container_name: uber-wled
+    restart: unless-stopped
+    # Colima/Docker bridge often cannot mDNS (or reliably reach) LAN WLED
+    # devices. Host networking uses the Colima VM stack, which can reach the
+    # LAN. Published ports are ignored with network_mode:host — app binds
+    # PORT directly (8081). On Colima this is reachable at localhost:8081.
+    network_mode: host
     volumes:
       - ./data:/app/data
     environment:
-      - PORT=${PORT:-8081}
+      - PORT=8081
       - DB_PATH=/app/data/uber-wled.db
-    restart: unless-stopped
