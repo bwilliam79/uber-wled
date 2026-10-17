@@ -168,4 +168,59 @@ describe('schema migrations (phase B additions)', () => {
       db.prepare('UPDATE controllers SET pinned_asset_pattern = ? WHERE id = ?').run('ESP32', 'c1')
     ).not.toThrow();
   });
+
+  it('rebuilds controller_active_look to allow source game and is rerunnable', () => {
+    const db = createDb(':memory:');
+    db.exec(`
+      DROP TABLE controller_active_look;
+      CREATE TABLE controller_active_look (
+        controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
+        theme_id TEXT NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('manual','calendar','schedule')),
+        source_id TEXT,
+        applied_at TEXT NOT NULL,
+        expires_at TEXT
+      );
+    `);
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')").run();
+    db.prepare(
+      `INSERT INTO controller_active_look (controller_id, theme_id, source, source_id, applied_at, expires_at)
+       VALUES ('c1', 't1', 'manual', NULL, '2026-10-31T12:00:00.000Z', NULL)`
+    ).run();
+    const before = db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'controller_active_look'`).get() as {
+      sql: string;
+    };
+    expect(before.sql).not.toContain("'game'");
+
+    runMigrations(db);
+    runMigrations(db);
+
+    const after = db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'controller_active_look'`).get() as {
+      sql: string;
+    };
+    expect(after.sql).toContain("'game'");
+    const row = db.prepare('SELECT * FROM controller_active_look WHERE controller_id = ?').get('c1') as any;
+    expect(row.source).toBe('manual');
+    expect(row.theme_id).toBe('t1');
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c2', 'Shelf', '10.0.0.6', 'manual')").run();
+    expect(() =>
+      db.prepare(
+        `INSERT INTO controller_active_look (controller_id, theme_id, source, source_id, applied_at, expires_at)
+         VALUES ('c2', 't1', 'game', 'evt', '2026-10-31T18:00:00.000Z', NULL)`
+      ).run()
+    ).not.toThrow();
+    expect(columnNames(db, 'settings')).toEqual(
+      expect.arrayContaining([
+        'game_day_enabled',
+        'game_group_id',
+        'game_left_controller_id',
+        'game_right_controller_id',
+        'game_arkansas_theme_id',
+        'game_lsu_theme_id'
+      ])
+    );
+    expect(columnNames(db, 'game_triggers')).toEqual(
+      expect.arrayContaining(['espn_event_id', 'sport', 'assignments', 'status', 'early_final'])
+    );
+  });
 });

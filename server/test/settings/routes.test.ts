@@ -26,7 +26,13 @@ describe('settings routes', () => {
       discoveryRescanIntervalMinutes: 5,
       scheduleImportDisableOnDeviceDefault: false,
       controllerStatusPollIntervalMinutes: 5,
-      livePollIntervalSeconds: 2
+      livePollIntervalSeconds: 2,
+      gameDayEnabled: false,
+      gameGroupId: null,
+      gameLeftControllerId: null,
+      gameRightControllerId: null,
+      gameArkansasThemeId: null,
+      gameLsuThemeId: null
     });
   });
 
@@ -48,6 +54,24 @@ describe('settings routes', () => {
 
     const get = await request(app).get('/api/settings');
     expect(get.body.livePollIntervalSeconds).toBe(5);
+  });
+
+  it('persists game-day settings in camelCase', async () => {
+    const patch = await request(app).patch('/api/settings').send({
+      gameDayEnabled: true,
+      gameGroupId: 'g1',
+      gameLeftControllerId: 'left',
+      gameRightControllerId: 'right',
+      gameArkansasThemeId: 'ark',
+      gameLsuThemeId: 'lsu'
+    });
+    expect(patch.status).toBe(200);
+    expect(patch.body.gameDayEnabled).toBe(true);
+    expect(patch.body.gameGroupId).toBe('g1');
+    expect(patch.body.gameLsuThemeId).toBe('lsu');
+    const get = await request(app).get('/api/settings');
+    expect(get.body.gameArkansasThemeId).toBe('ark');
+    expect(get.body.gameLeftControllerId).toBe('left');
   });
 
   it('runs a discovery cycle on POST /rescan and returns the controller list', async () => {

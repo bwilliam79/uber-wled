@@ -9,7 +9,7 @@ import { isControllerIdle, polledOffSince } from './idle.js';
 import { payloadThemeId } from './applyTracking.js';
 import { createActiveLookRepository, type LookSource } from './repository.js';
 
-const SOURCES: readonly LookSource[] = ['manual', 'calendar', 'schedule'];
+const SOURCES: readonly LookSource[] = ['manual', 'calendar', 'schedule', 'game'];
 
 function isLookSource(value: unknown): value is LookSource {
   return typeof value === 'string' && (SOURCES as readonly string[]).includes(value);

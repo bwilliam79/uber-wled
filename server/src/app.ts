@@ -14,6 +14,7 @@ import { createShortcutsRouter } from './shortcuts/routes.js';
 import { createSchedulesRouter } from './schedules/routes.js';
 import { createLooksRouter } from './looks/routes.js';
 import { createCalendarRouter } from './calendar/routes.js';
+import { createGamesRouter } from './games/routes.js';
 import { createSettingsRouter } from './settings/routes.js';
 import { createLiveRouter } from './live/routes.js';
 import { createDevicesRouter } from './devices/routes.js';
@@ -43,6 +44,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/schedules', createSchedulesRouter(db));
   app.use('/api/looks', createLooksRouter(db));
   app.use('/api/calendar-events', createCalendarRouter(db));
+  app.use('/api/games', createGamesRouter(db));
   app.use('/api/settings', createSettingsRouter(db));
   app.use('/api/live', createLiveRouter(db));
   app.use('/api/app-update', createAppUpdateRouter(db));
