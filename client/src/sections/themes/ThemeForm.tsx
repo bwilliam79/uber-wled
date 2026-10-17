@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { addTheme, updateTheme, type ControllerCapabilities, type CustomTheme } from '../../api/client';
+import { addTheme, updateTheme, type ControllerCapabilities, type CustomTheme, type ThemeDirections } from '../../api/client';
+import { useControllers } from '../../api/queries';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { hexToRgb, rgbToHex } from '../../lib/color';
 import { Button } from '../../components/ui/Button';
 import { Field } from '../../components/ui/Field';
@@ -21,6 +23,53 @@ function colorsFromTheme(theme: CustomTheme): [string, string, string] {
     return rgb ? rgbToHex([rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0]) : '#000000';
   });
   return [slots[0], slots[1], slots[2]];
+}
+
+const DIRECTION_OPTIONS = [
+  { value: 'keep', label: 'Leave as is' },
+  { value: 'normal', label: 'Normal' },
+  { value: 'reversed', label: 'Reversed' }
+];
+
+/** Per-controller segment direction. "Leave as is" stores no entry, so the
+ *  theme never touches that controller's direction. */
+function DirectionField({
+  value,
+  onChange
+}: {
+  value: ThemeDirections;
+  onChange: (next: ThemeDirections) => void;
+}) {
+  const controllers = useControllers();
+  const list = Array.isArray(controllers.data) ? controllers.data : [];
+  if (list.length === 0) return null;
+  function set(controllerId: string, choice: string) {
+    const next = { ...value };
+    if (choice === 'keep') delete next[controllerId];
+    else next[controllerId] = { rev: choice === 'reversed' };
+    onChange(next);
+  }
+  return (
+    <Field label="Direction per controller">
+      <div className="theme-form-directions">
+        {list.map((c) => {
+          const entry = value[c.id];
+          const current = entry === undefined ? 'keep' : entry.rev ? 'reversed' : 'normal';
+          return (
+            <div key={c.id} className="theme-form-direction-row">
+              <span className="theme-form-direction-name">{c.name}</span>
+              <SegmentedControl
+                label={`${c.name} direction`}
+                options={DIRECTION_OPTIONS}
+                value={current}
+                onChange={(v) => set(c.id, v)}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </Field>
+  );
 }
 
 export function ThemeForm({
@@ -44,6 +93,7 @@ export function ThemeForm({
   const [brightness, setBrightness] = useState(editing?.brightness ?? 128);
   const [speed, setSpeed] = useState(editing?.speed ?? 128);
   const [intensity, setIntensity] = useState(editing?.intensity ?? 128);
+  const [directions, setDirections] = useState<ThemeDirections>(editing?.directions ?? {});
   const queryClient = useQueryClient();
 
   const save = useMutation({
@@ -64,6 +114,7 @@ export function ThemeForm({
         setBrightness(128);
         setSpeed(128);
         setIntensity(128);
+        setDirections({});
       }
     }
   });
@@ -142,6 +193,7 @@ export function ThemeForm({
           <Slider min={0} max={255} value={intensity} onChange={setIntensity} label="Effect intensity" />
         </Field>
       </div>
+      <DirectionField value={directions} onChange={setDirections} />
       {save.isError && (
         <div className="error-banner" role="alert">Failed to save theme.</div>
       )}
@@ -157,7 +209,8 @@ export function ThemeForm({
               brightness,
               speed,
               intensity,
-              colors: colors.map((c) => hexToRgb(c) ?? [0, 0, 0])
+              colors: colors.map((c) => hexToRgb(c) ?? [0, 0, 0]),
+              directions: Object.keys(directions).length > 0 ? directions : null
             })
           }
         >

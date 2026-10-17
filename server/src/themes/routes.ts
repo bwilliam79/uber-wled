@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
-import { createThemeRepository } from './repository.js';
+import { createThemeRepository, validateDirections } from './repository.js';
 import { createControllerRepository } from '../controllers/repository.js';
 import { getPresets, getPresetsRaw, getEffects, getPalettes } from '../wled/client.js';
 import { classifyPresetImport, type RawPreset } from './presetImport.js';
@@ -19,18 +19,29 @@ export function createThemesRouter(db: Database.Database): Router {
 
   router.post('/', (req, res) => {
     const { name, effect, palette, colors, brightness, speed, intensity } = req.body;
+    const dir = validateDirections(req.body?.directions);
+    if ('error' in dir) return res.status(400).json({ error: dir.error });
     res.status(201).json(repo.add({
       name, effect, palette, colors, brightness,
-      speed: clamp255(speed), intensity: clamp255(intensity)
+      speed: clamp255(speed), intensity: clamp255(intensity),
+      directions: dir.directions
     }));
   });
 
   router.put('/:id', (req, res) => {
     const { name, effect, palette, colors, brightness, speed, intensity } = req.body;
+    // `directions` omitted → keep stored value; null or {} → clear.
+    let directions;
+    if (req.body && 'directions' in req.body) {
+      const dir = validateDirections(req.body.directions);
+      if ('error' in dir) return res.status(400).json({ error: dir.error });
+      directions = dir.directions;
+    }
     try {
       res.json(repo.update(req.params.id, {
         name, effect, palette, colors, brightness,
-        speed: clamp255(speed), intensity: clamp255(intensity)
+        speed: clamp255(speed), intensity: clamp255(intensity),
+        ...(directions !== undefined ? { directions } : {})
       }));
     } catch {
       res.status(404).json({ error: 'theme not found' });

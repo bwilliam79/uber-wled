@@ -1,3 +1,4 @@
+import { themeToPatch } from '../../lib/themePatch';
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -79,6 +80,7 @@ interface MemberSnapshot {
   fx: number;
   pal: number;
   col: number[][];
+  rev?: boolean;
 }
 
 function targetsOf(t: TargetValue): Target[] {
@@ -152,7 +154,7 @@ export function ScheduleManager() {
       if (seg) {
         snapshots.push({
           controllerId: member.controllerId, wledSegId: member.wledSegId,
-          on: seg.on, bri: seg.bri, fx: seg.fx, pal: seg.pal, col: seg.col
+          on: seg.on, bri: seg.bri, fx: seg.fx, pal: seg.pal, col: seg.col, rev: seg.rev
         });
       }
     }
@@ -161,11 +163,7 @@ export function ScheduleManager() {
     setRevertError(null);
     await applyControl(
       targets,
-      {
-        on: true,
-        bri: theme.brightness,
-        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
-      }
+      themeToPatch(theme, { on: true })
     );
   }
 
@@ -181,7 +179,7 @@ export function ScheduleManager() {
     for (const s of snapshot) {
       const { results } = await applyControl(
         [{ kind: 'segment', controllerId: s.controllerId, wledSegId: s.wledSegId }],
-        { seg: { on: s.on, bri: s.bri, fxId: s.fx, palId: s.pal, col: s.col } }
+        { seg: { on: s.on, bri: s.bri, fxId: s.fx, palId: s.pal, col: s.col, ...(s.rev !== undefined ? { rev: s.rev } : {}) } }
       );
       for (const r of results) {
         if (!r.ok) {

@@ -1,3 +1,4 @@
+import { themeToPatch } from '../../lib/themePatch';
 import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -116,17 +117,7 @@ export function ThemesSection() {
     }
     const targets = list.map((c) => ({ kind: 'controller' as const, controllerId: c.id }));
     setApplyingThemeId(theme.id);
-    applyControl(targets, {
-      on: true,
-      bri: theme.brightness,
-      seg: {
-        fxId: theme.effect,
-        palId: theme.palette,
-        col: theme.colors,
-        sx: theme.speed,
-        ix: theme.intensity
-      }
-    })
+    applyControl(targets, themeToPatch(theme, { on: true }))
       .then(() => toast.show({ title: `Applied "${theme.name}" to all devices`, variant: 'success' }))
       .catch(() => toast.show({ title: 'Failed to apply theme', variant: 'error' }))
       .finally(() => setApplyingThemeId(null));

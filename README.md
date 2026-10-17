@@ -109,6 +109,21 @@ Devices:
    applicable from the Control surface (where the tab is labeled "Themes" to
    match this section — WLED device presets remain a separate, clearly
    labeled subsection there), schedules, and calendar events.
+
+   **Direction per controller.** A theme can optionally store a segment
+   direction for individual controllers (*Leave as is* / *Normal* /
+   *Reversed* in the theme editor) — e.g. mirrored shelves where one effect
+   needs the right shelf reversed and another doesn't. It is stored as
+   `directions: { "<controllerId>": { "rev": true|false } }` (keyed by the
+   stable controller id; `null` when unset). Every apply path (Themes
+   Apply, Scenes bar, Control surface, schedule preview, scheduler and
+   calendar engine) sends `rev` only to controllers that have an entry, on
+   exactly the segments the theme's colors go to; controllers without an
+   entry keep their current direction (the pre-2.17 behaviour). On
+   `PUT /api/themes/:id`, omitting `directions` keeps the stored value and
+   `null`/`{}` clears it; a non-boolean `rev` is rejected with 400. Directions
+   round-trip through full backups and the themes export/import (older
+   exports simply import with none); device-preset imports never set them.
 3. **Schedule** — one unified list of both recurring schedules and specific-date
    entries (holidays, birthdays, one-offs), as clean list rows: a big mono
    trigger time (or sunrise/sunset), the name, a `when · action · target`

@@ -17,6 +17,7 @@ export interface SegPatch {
   o1?: boolean; o2?: boolean; o3?: boolean;
   cct?: number;
   on?: boolean; bri?: number;
+  rev?: boolean;
 }
 
 export interface ControlPatch {
@@ -27,6 +28,11 @@ export interface ControlPatch {
                                        // client restricts to single-controller selections)
   nl?: { on?: boolean; dur?: number; mode?: 0 | 1 | 2 | 3; tbri?: number };
   seg?: SegPatch;
+  /** Per-controller segment direction (controllerId → rev), from a theme's
+   *  directions. Merged into the segment payload for matching controllers
+   *  only — on exactly the segments the rest of `seg` targets. Controllers
+   *  not listed keep their current rev. */
+  segRev?: Record<string, boolean>;
 }
 
 export interface ApplyResult {
@@ -141,6 +147,7 @@ export function buildSegPatch(
   if (patch.cct !== undefined) seg.cct = patch.cct;
   if (patch.on !== undefined) seg.on = patch.on;
   if (patch.bri !== undefined) seg.bri = patch.bri;
+  if (patch.rev !== undefined) seg.rev = patch.rev;
   return { seg };
 }
 
@@ -217,6 +224,8 @@ export async function applyControlPatch(
         }
         segPatch = built.seg;
       }
+      const rev = patch.segRev?.[target.controllerId];
+      if (typeof rev === 'boolean') segPatch = { ...(segPatch ?? {}), rev };
 
       try {
         await writeTarget(controller.host, target, patch, segPatch);
