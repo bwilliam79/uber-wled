@@ -161,9 +161,11 @@ export function ScheduleManager() {
     setSnapshot(snapshots);
     setDraft(nextDraft);
     setRevertError(null);
+    // Preview is reverted on approve or discard, so it must not be recorded
+    // as the controller's active look.
     await applyControl(
       targets,
-      themeToPatch(theme, { on: true })
+      themeToPatch(theme, { on: true }, { track: false })
     );
   }
 
