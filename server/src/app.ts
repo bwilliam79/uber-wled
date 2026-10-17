@@ -10,6 +10,7 @@ import { createGroupsRouter } from './groups/routes.js';
 import { createSyncGroupsRouter } from './sync/routes.js';
 import { createThemesRouter } from './themes/routes.js';
 import { createControlRouter } from './control/routes.js';
+import { createShortcutsRouter } from './shortcuts/routes.js';
 import { createSchedulesRouter } from './schedules/routes.js';
 import { createLooksRouter } from './looks/routes.js';
 import { createCalendarRouter } from './calendar/routes.js';
@@ -38,6 +39,7 @@ export function createApp(db: Database.Database) {
   app.use('/api/sync-groups', createSyncGroupsRouter(db));
   app.use('/api/themes', createThemesRouter(db));
   app.use('/api/control', createControlRouter(db));
+  app.use('/api/shortcuts', createShortcutsRouter(db));
   app.use('/api/schedules', createSchedulesRouter(db));
   app.use('/api/looks', createLooksRouter(db));
   app.use('/api/calendar-events', createCalendarRouter(db));

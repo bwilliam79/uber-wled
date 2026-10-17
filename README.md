@@ -338,6 +338,66 @@ themes/device-preset lists, nightlight, transition) so nothing is lost.
   target is written in isolation with one retry; results surface as a toast
   with expandable per-target details.
 
+## Siri / iOS Shortcuts
+
+`POST /api/shortcuts/apply` applies a saved theme or turns lights off, for the
+Shortcuts app (and so for Siri). There is no separate login on this route.
+Use it on the LAN only: the phone must reach the server's own address (the
+same host and port as the web app, port `8081` by default). Do not forward
+that port to the internet.
+
+There is no GET form of this endpoint. Applying a theme or turning lights
+off changes the devices, and a state-changing GET is unsafe: link previews
+and prefetch could trigger it.
+
+| Field | Meaning |
+|---|---|
+| `theme` | Theme id or name. Required when `action` is `theme`. Ignored for `off`. |
+| `action` | `"theme"` (default) or `"off"`. |
+| `group` | Room id or name. Exactly one of `group` or `controllers`. |
+| `controllers` | Non-empty array of controller ids or names. Exactly one of `group` or `controllers`. |
+| `dryRun` | `true` returns the resolved patch and does not call a device or record a look. |
+
+A value matches an exact id first, otherwise one trimmed case-insensitive
+name. No match is `404` `{ "error": "Unknown theme \"X\"" }` (same wording
+for a group or a controller). More than one name match is `400`
+`{ "error": "Ambiguous controller name \"X\" (2 matches)" }`.
+
+A theme apply is the same patch the app builds for that theme, including
+each controller's saved direction. The response is
+`{ "ok", "message", "results" }`. `message` is a short sentence that counts
+distinct controllers: `LSU Wipe on 2 controllers`, `Lights off on 2 controllers`,
+or `LSU Wipe on 1 of 2 controllers` when some of them fail. `?format=text`
+(or `Accept: text/plain`) responds with that sentence alone, so Shortcuts
+can speak it.
+
+Applying a theme records a manual look, same as Control. Applying the
+ambient schedule's theme (Dim White) or sending `"action": "off"` clears
+that hold on the controllers that actually changed.
+
+```bash
+curl -s -X POST http://192.0.2.23:8081/api/shortcuts/apply \
+  -H 'Content-Type: application/json' \
+  -d '{"theme":"Dim White","group":"Shelves"}'
+```
+
+```bash
+curl -s -X POST 'http://192.0.2.23:8081/api/shortcuts/apply?format=text' \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"off","controllers":["Cabinet","Shelf"]}'
+```
+
+Build the shortcut:
+
+1. Open the Shortcuts app, tap **+**, then **Add Action**.
+2. Choose **Get Contents of URL**.
+3. URL: `http://192.0.2.23:8081/api/shortcuts/apply?format=text` (your server's LAN address).
+4. Method: **POST**.
+5. Request Body: **JSON**.
+6. Add a field `theme` (Text) `Dim White`, and a field `group` (Text) `Shelves`. To hit specific controllers instead of a room, add `controllers` (Array of Text) and leave `group` out.
+7. Add **Speak Text** or **Show Result**, and pass it the Contents of URL.
+8. Name the shortcut, for example **Shelves Dim White**, so "Hey Siri, Shelves Dim White" runs it.
+
 ## Live streaming
 
 While the Devices section or the Control surface is open, the client subscribes to
