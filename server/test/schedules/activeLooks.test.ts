@@ -489,3 +489,118 @@ describe('SchedulerEngine per-controller fan-out', () => {
     expect(looks.get(shelfR.id)?.themeId).toBe(lsu.id);
   });
 });
+
+describe('SchedulerEngine holiday / game / schedule precedence', () => {
+  function setup() {
+    const db = createDb(':memory:');
+    const controllers = createControllerRepository(db);
+    const shelf = controllers.add({ name: 'Shelf L', host: '10.0.0.11', source: 'manual' });
+    const cabinet = controllers.add({ name: 'Cabinet', host: '10.0.0.13', source: 'manual' });
+    const themes = createThemeRepository(db);
+    const dim = themes.add({ name: 'Dim White', effect: 0, palette: 0, colors: [[255, 255, 240]], brightness: 40 });
+    const lsu = themes.add({ name: 'LSU Wipe', effect: 55, palette: 6, colors: [[70, 29, 124]], brightness: 180 });
+    const holiday = themes.add({ name: 'Halloween', effect: 9, palette: 3, colors: [[255, 80, 0]], brightness: 200 });
+    const looks = createActiveLookRepository(db);
+    const applyFn = vi.fn(async (members: { controllerId: string; wledSegId: number | null }[]) =>
+      members.map((m) => ({ ...m, ok: true }))
+    );
+    return { db, shelf, cabinet, dim, lsu, holiday, looks, applyFn };
+  }
+
+  it('calendar ON skips a live manual hold and a live game hold; unheld members still run', async () => {
+    const { db, shelf, cabinet, lsu, holiday, looks, applyFn } = setup();
+    looks.set({
+      controllerId: shelf.id, themeId: lsu.id, source: 'manual', sourceId: null,
+      appliedAt: new Date(2026, 9, 31, 8, 0, 0).toISOString(), expiresAt: null
+    });
+    looks.set({
+      controllerId: cabinet.id, themeId: lsu.id, source: 'game', sourceId: 'espn-1',
+      appliedAt: new Date(2026, 9, 31, 8, 0, 0).toISOString(), expiresAt: null
+    });
+    createCalendarRepository(db).add({
+      name: 'Halloween', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 10, day: 31 },
+      recursYearly: true, enabled: true, groupId: null,
+      controllers: [
+        { controllerId: shelf.id, wledSegId: null },
+        { controllerId: cabinet.id, wledSegId: null }
+      ],
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'theme', actionPayload: { themeId: holiday.id }
+    });
+    await new SchedulerEngine(db, applyFn).checkAndFireDueSchedules(new Date(2026, 9, 31, 18, 0, 0));
+    expect(applyFn).not.toHaveBeenCalled();
+    expect(looks.get(shelf.id)?.source).toBe('manual');
+    expect(looks.get(cabinet.id)?.source).toBe('game');
+  });
+
+  it('calendar ON applies to idle members while a sibling stays on a live game hold', async () => {
+    const { db, shelf, cabinet, lsu, holiday, looks, applyFn } = setup();
+    looks.set({
+      controllerId: shelf.id, themeId: lsu.id, source: 'game', sourceId: 'espn-1',
+      appliedAt: new Date(2026, 9, 31, 8, 0, 0).toISOString(), expiresAt: null
+    });
+    createCalendarRepository(db).add({
+      name: 'Halloween', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 10, day: 31 },
+      recursYearly: true, enabled: true, groupId: null,
+      controllers: [
+        { controllerId: shelf.id, wledSegId: null },
+        { controllerId: cabinet.id, wledSegId: null }
+      ],
+      triggerTime: { type: 'fixed', time: '18:00' },
+      actionType: 'theme', actionPayload: { themeId: holiday.id }
+    });
+    await new SchedulerEngine(db, applyFn).checkAndFireDueSchedules(new Date(2026, 9, 31, 18, 0, 0));
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: cabinet.id, wledSegId: null }],
+      { type: 'theme', themeId: holiday.id }
+    );
+    expect(looks.get(shelf.id)?.source).toBe('game');
+    expect(looks.get(cabinet.id)?.source).toBe('calendar');
+  });
+
+  it('Dim White skips a controller holding a game look', async () => {
+    const { db, cabinet, dim, lsu, looks, applyFn } = setup();
+    looks.set({
+      controllerId: cabinet.id, themeId: lsu.id, source: 'game', sourceId: 'espn-1',
+      appliedAt: new Date(2026, 9, 31, 8, 0, 0).toISOString(), expiresAt: null
+    });
+    createScheduleRepository(db).add(scheduleInput({
+      actionPayload: { themeId: dim.id },
+      controllers: [{ controllerId: cabinet.id, wledSegId: null }]
+    }));
+    await new SchedulerEngine(db, applyFn).checkAndFireDueSchedules(new Date(2026, 9, 31, 10, 0, 0));
+    expect(applyFn).not.toHaveBeenCalled();
+    expect(looks.get(cabinet.id)?.source).toBe('game');
+  });
+
+  it('same-tick sunset: holiday fires before Dim White and wins', async () => {
+    const { db, cabinet, dim, holiday, looks, applyFn } = setup();
+    createSettingsRepository(db).update({ homeLatitude: LAT, homeLongitude: LON });
+    const { holidaySunset } = sunBoundary(new Date(2026, 9, 31, 12, 0, 0));
+    const members = [{ controllerId: cabinet.id, wledSegId: null }];
+    createCalendarRepository(db).add({
+      name: 'Halloween', category: 'holiday',
+      dateRule: { kind: 'fixed', month: holidaySunset.getMonth() + 1, day: holidaySunset.getDate() },
+      recursYearly: true, enabled: true, groupId: null,
+      controllers: members,
+      triggerTime: { type: 'sunset', offsetMinutes: 0 },
+      actionType: 'theme', actionPayload: { themeId: holiday.id }
+    });
+    const schedule = createScheduleRepository(db).add(scheduleInput({
+      name: 'Dim White',
+      triggerType: 'sunset', cronExpr: null, offsetMinutes: 0,
+      latitude: LAT, longitude: LON,
+      actionPayload: { themeId: dim.id },
+      controllers: members
+    }));
+    expect(sameMinute(nextTriggerDate(schedule, holidaySunset), holidaySunset)).toBe(true);
+    await new SchedulerEngine(db, applyFn).checkAndFireDueSchedules(holidaySunset);
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn).toHaveBeenCalledWith(members, { type: 'theme', themeId: holiday.id });
+    expect(looks.get(cabinet.id)?.source).toBe('calendar');
+    expect(looks.get(cabinet.id)?.themeId).toBe(holiday.id);
+  });
+});
