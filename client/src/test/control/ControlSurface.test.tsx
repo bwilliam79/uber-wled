@@ -148,7 +148,7 @@ describe('ControlSurface', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Apply theme Sunset' }));
     expect(applyControl).toHaveBeenCalledWith(
       [TWO_TARGETS[0]],
-      { bri: 180, seg: { fxId: 2, palId: 5, col: [[255, 100, 0]], sx: 128, ix: 128 } }
+      { themeId: 't1', bri: 180, seg: { fxId: 2, palId: 5, col: [[255, 100, 0]], sx: 128, ix: 128 } }
     );
   });
 

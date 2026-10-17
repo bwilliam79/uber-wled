@@ -33,6 +33,10 @@ export interface ControlPatch {
    *  only — on exactly the segments the rest of `seg` targets. Controllers
    *  not listed keep their current rev. */
   segRev?: Record<string, boolean>;
+  /** Which saved theme this patch came from. Metadata for active-look
+   *  tracking only — writeTarget builds the device body field by field and
+   *  never forwards themeId. */
+  themeId?: string;
 }
 
 export interface ApplyResult {
