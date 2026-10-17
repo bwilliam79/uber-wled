@@ -7,10 +7,18 @@ const theme = { id: 't', name: 'LSU Wipe', effect: 55, palette: 0, brightness: 1
 describe('themeToPatch', () => {
   it('builds the theme patch without segRev when no directions are stored', () => {
     expect(themeToPatch(theme, { on: true })).toEqual({
-      on: true, bri: 140, seg: { fxId: 55, palId: 0, col: theme.colors, sx: 242, ix: 128 }
+      on: true, themeId: 't', bri: 140, seg: { fxId: 55, palId: 0, col: theme.colors, sx: 242, ix: 128 }
     });
     expect(themeToPatch({ ...theme, directions: null })).not.toHaveProperty('segRev');
     expect(themeToPatch({ ...theme, directions: {} })).not.toHaveProperty('segRev');
+  });
+
+  it('omits themeId when track is false (schedule preview is reverted)', () => {
+    const patch = themeToPatch(theme, { on: true, themeId: 'stale' }, { track: false });
+    expect(patch).toEqual({
+      on: true, bri: 140, seg: { fxId: 55, palId: 0, col: theme.colors, sx: 242, ix: 128 }
+    });
+    expect(patch).not.toHaveProperty('themeId');
   });
 
   it('adds a controllerId → rev map when directions are stored', () => {

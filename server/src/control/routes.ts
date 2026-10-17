@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
 import { applyControlPatch, GroupNotFoundError, type Target, type ControlPatch } from './applyV2.js';
+import { trackManualApply } from '../looks/applyTracking.js';
 
 export function createControlRouter(db: Database.Database): Router {
   const router = Router();
@@ -12,6 +13,7 @@ export function createControlRouter(db: Database.Database): Router {
     }
     try {
       const results = await applyControlPatch(db, targets, patch);
+      trackManualApply(db, patch, results);
       res.json({ results });
     } catch (err) {
       if (err instanceof GroupNotFoundError) {

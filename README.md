@@ -134,9 +134,12 @@ Devices:
    a **trigger** (fixed time, or sunrise/sunset ± a minute offset), an **action**
    (apply a theme, or turn off), an optional **paired "Turn off at"** trigger
    (so "on at sunset / off at sunrise" is one entry), and a target — a Room
-   group or specific controllers. Specific-date entries **override** the weekly
-   schedules on that day. Every row edits in place (recurring via the schedule
-   form; dated via the calendar-event form, which also handles computed holiday
+   group or specific controllers. Specific-date entries **hold** the controllers
+   they target that day (other controllers on the same schedule still run). A
+   theme applied by hand is kept until the lights are turned off or the ambient
+   theme is put back — see **Active looks / ambient schedules** below. Every row
+   edits in place (recurring via the schedule form; dated via the calendar-event
+   form, which also handles computed holiday
    rules like "4th Thursday of November"). Sunset/sunrise use the home location
    from Settings; creating a theme entry previews it live against the real
    lights and reverts exactly on approve or discard.
@@ -187,6 +190,103 @@ Devices:
    buttons for sharing or partial transfer — theme import appends under
    fresh ids; schedule import appends and skips any row whose referenced
    room/controller doesn't exist on the target instance.
+
+## Active looks / ambient schedules
+
+An ambient schedule (the everyday sunset-on / sunrise-off look, "Dim White"
+in the live install) must not paint over a game or holiday that is already
+on a controller. The hold is tracked per controller in
+`controller_active_look` — not per segment, and not all-or-nothing across
+the schedule. The cabinet can take Dim White while the shelves keep LSU.
+
+A controller is **idle** (the schedule may act on it) when any of these is
+true:
+
+- nothing is tracked for it
+- the tracked theme is this schedule's own theme
+- the tracked source is `schedule` (ambient schedules may replace each other)
+- `expires_at` has passed
+- the status poller has seen it reachable with `state.on === false` and
+  `polled_at` at or after `applied_at` — switched off from WLED's own app
+  or the device button, which releases the hold
+
+Otherwise it is **held**. A manual game theme and an unexpired calendar
+holiday are holds. Date-based calendar events are a separate per-controller
+hold (action-less events are used this way too): a schedule ON looks at
+today's enabled events; an overnight OFF also keeps yesterday's, so a
+Halloween look is not killed at sunrise on Nov 1.
+
+**Dim White** is not a special theme name. It is whatever theme id appears
+on a theme-action schedule (`actionPayload.themeId`). Applying that theme
+by hand clears the hold, as does turning the controller off from this app
+(`patch.on === false`). Any other theme apply records `source: "manual"`.
+Brightness-only and other patches leave tracking unchanged. The client sends
+`themeId` on theme applies (`themeToPatch`); a schedule preview passes
+`{ track: false }` because it is reverted. `themeId` is metadata only and
+is never written to the device.
+
+A **calendar** theme apply records `source: "calendar"` with `source_id` of
+the event and `expires_at` of **12:00 local time the next day**. Applied at
+sunset on Oct 31, the holiday survives the night and the next sunrise; the
+ambient schedule resumes at the following sunset, once that expiry has
+passed. Calendar OFF and schedule OFF clear the look, but only on the
+controllers they actually changed.
+
+**Overnight.** An OFF whose approximate minute-of-day is earlier than its ON
+belongs to the previous local day. Approximate times are sunrise ≈ 06:00 +
+offset, sunset ≈ 18:00 + offset, a fixed `HH:MM`, a weekly `timeOfDay`, or
+the cron hour/minute fields — not the real sun calculation, which is
+unchanged. The schedule's day-of-week filter then uses yesterday, and a
+calendar event's OFF fires for events whose date matches yesterday (July 4
+on at sunset, off at sunrise on the morning of July 5 — not the morning of
+July 4).
+
+**Bootstrap** a look that was already on the lights before tracking existed.
+This records state only and does not contact the device:
+
+```
+PUT /api/looks/:controllerId
+{ "themeId": "<id>", "source": "manual" }
+```
+
+`source` defaults to `manual`. `calendar` gets the noon-next-day expiry;
+`schedule` does not. Unknown controller is 404; unknown theme or a bad
+source is 400. `GET /api/looks` lists every row. `DELETE /api/looks/:controllerId`
+clears one and returns 204.
+
+**Preview** the idle decision for a schedule without writing and without
+calling a device:
+
+```
+GET /api/looks/preview/:scheduleId
+```
+
+```json
+{
+  "scheduleId": "...",
+  "scheduleName": "Dim White",
+  "scheduleThemeId": "...",
+  "evaluatedAt": "2026-10-31T23:00:00.000Z",
+  "entries": [
+    {
+      "controllerId": "...",
+      "controllerName": "Cabinet",
+      "wledSegId": null,
+      "wouldAct": true,
+      "look": null,
+      "polledOff": false
+    }
+  ]
+}
+```
+
+Unknown schedule is 404. `wouldAct` is the idle rule above. Date-based
+calendar holds are not folded into the preview; they still apply when the
+schedule actually fires.
+
+**Timezone.** `docker-compose.yml` sets `TZ=America/Chicago`. Sunrise,
+sunset, and which calendar day is "today" use the process-local clock. The
+image would otherwise run UTC and fire those against UTC.
 
 The sidebar also passively checks GitHub for a newer **uber-wled** release
 (the app itself, not device firmware) — the server reads `server/package.json`
