@@ -5,6 +5,7 @@ export interface Invoked {
   status: number;
   body: any;
   text: string;
+  headers: Record<string, string>;
 }
 
 /**
@@ -16,7 +17,8 @@ export function invoke(
   app: express.Express,
   method: string,
   url: string,
-  payload?: unknown
+  payload?: unknown,
+  requestHeaders?: Record<string, string>
 ): Promise<Invoked> {
   const raw = payload === undefined ? null : Buffer.from(JSON.stringify(payload));
   return new Promise((resolve, reject) => {
@@ -30,7 +32,10 @@ export function invoke(
     req.url = url;
     req.headers = {
       'content-type': 'application/json',
-      'content-length': raw ? String(raw.length) : '0'
+      'content-length': raw ? String(raw.length) : '0',
+      ...Object.fromEntries(
+        Object.entries(requestHeaders ?? {}).map(([name, value]) => [name.toLowerCase(), value])
+      )
     };
     req.socket = { remoteAddress: '127.0.0.1' };
 
@@ -82,7 +87,7 @@ export function invoke(
       } else {
         body = undefined;
       }
-      resolve({ status: res.statusCode, body, text });
+      resolve({ status: res.statusCode, body, text, headers });
     };
     res.end = (chunk?: unknown) => {
       finish(chunk);
