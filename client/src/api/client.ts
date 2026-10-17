@@ -492,6 +492,9 @@ export interface ControlPatch {
   /** controllerId → rev, from a theme's directions; merged server-side into
    *  the segment payload for those controllers only. */
   segRev?: Record<string, boolean>;
+  /** Saved theme this patch came from. The server records it as the active
+   *  look; it is not sent on to the device. */
+  themeId?: string;
 }
 
 export interface ApplyResult {

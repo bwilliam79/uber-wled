@@ -58,6 +58,10 @@ export function createScheduleRepository(db: Database.Database) {
     list(): Schedule[] {
       return db.prepare('SELECT * FROM schedules ORDER BY name').all().map(fromRow);
     },
+    get(id: string): Schedule | undefined {
+      const row = db.prepare('SELECT * FROM schedules WHERE id = ?').get(id);
+      return row ? fromRow(row) : undefined;
+    },
     add(input: Omit<Schedule, 'id'>): Schedule {
       const id = randomUUID();
       db.prepare(
