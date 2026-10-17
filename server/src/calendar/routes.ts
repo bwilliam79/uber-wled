@@ -1,7 +1,29 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
+import { payloadThemeId } from '../looks/applyTracking.js';
 import { createCalendarRepository, type CalendarEvent } from './repository.js';
 import { resolveDate } from './dateRules.js';
+
+const PREVIEW_MAX_DAYS = 800;
+
+function parseYmd(value: unknown): Date | null {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+  return date;
+}
+
+function ymd(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
 
 /**
  * Checks whether `candidate` (an enabled event of one category) collides
@@ -45,6 +67,30 @@ export function createCalendarRouter(db: Database.Database): Router {
 
   router.get('/', (_req, res) => {
     res.json(repo.list());
+  });
+
+  router.get('/preview', (req, res) => {
+    const from = parseYmd(req.query.from);
+    const to = parseYmd(req.query.to);
+    if (!from || !to) return res.status(400).json({ error: 'from and to (YYYY-MM-DD) are required' });
+    if (to.getTime() < from.getTime()) return res.status(400).json({ error: 'to must be on or after from' });
+    const days = Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;
+    if (days > PREVIEW_MAX_DAYS) return res.status(400).json({ error: 'range exceeds 800 days' });
+
+    const enabled = repo.list().filter((e) => e.enabled);
+    const out: { date: string; events: { id: string; name: string; themeId: string | null }[] }[] = [];
+    const cursor = new Date(from.getTime());
+    while (cursor.getTime() <= to.getTime()) {
+      const date = ymd(cursor);
+      const events = enabled.flatMap((event) => {
+        const resolved = resolveDate(event.dateRule, cursor.getFullYear());
+        if (!resolved || resolved.month !== cursor.getMonth() + 1 || resolved.day !== cursor.getDate()) return [];
+        return [{ id: event.id, name: event.name, themeId: payloadThemeId(event.actionPayload) }];
+      });
+      if (events.length > 0) out.push({ date, events });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    res.json(out);
   });
 
   router.post('/', (req, res) => {

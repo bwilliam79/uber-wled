@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 
-export type LookSource = 'manual' | 'calendar' | 'schedule';
+export type LookSource = 'manual' | 'calendar' | 'schedule' | 'game';
 
 export interface ActiveLook {
   controllerId: string;

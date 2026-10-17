@@ -121,15 +121,38 @@ export function runMigrations(db: Database.Database): void {
 
     -- Whole-controller record of the look currently on a device, so an ambient
     -- schedule can skip controllers a person (or a holiday) already set.
-    -- source_id is the calendar event or schedule that applied it; expires_at
-    -- is set for calendar looks (noon local the next day) and null otherwise.
+    -- source_id is the calendar event, schedule, or ESPN game that applied it;
+    -- expires_at is set for calendar looks (noon local the next day) and null
+    -- otherwise. manual and game holds never expire.
     CREATE TABLE IF NOT EXISTS controller_active_look (
       controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
       theme_id TEXT NOT NULL,
-      source TEXT NOT NULL CHECK (source IN ('manual','calendar','schedule')),
+      source TEXT NOT NULL CHECK (source IN ('manual','calendar','schedule','game')),
       source_id TEXT,
       applied_at TEXT NOT NULL,
       expires_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS game_triggers (
+      espn_event_id TEXT PRIMARY KEY,
+      sport TEXT NOT NULL CHECK (sport IN ('football','basketball')),
+      teams TEXT NOT NULL,
+      opponent TEXT NOT NULL,
+      start_at TEXT NOT NULL,
+      release_at TEXT NOT NULL,
+      time_valid INTEGER NOT NULL,
+      assignments TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('scheduled','active','released','skipped','cancelled')),
+      early_final INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS game_sync_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      at TEXT NOT NULL,
+      espn_event_id TEXT,
+      change TEXT NOT NULL,
+      detail TEXT
     );
 
     CREATE TABLE IF NOT EXISTS controller_capabilities (
@@ -306,5 +329,49 @@ export function runMigrations(db: Database.Database): void {
       const json = JSON.stringify([{ controllerId: row.target_controller_id, wledSegId: row.target_wled_seg_id }]);
       update.run(json, row.id);
     }
+  }
+
+  // Game-day settings. Idempotent ALTERs so a pre-2.20 settings row picks
+  // them up without rebuilding the table.
+  const settingsColsNow = db.prepare('PRAGMA table_info(settings)').all() as { name: string }[];
+  const settingsColNames = new Set(settingsColsNow.map((c) => c.name));
+  const gameSettingsAlters: { name: string; sql: string }[] = [
+    { name: 'game_day_enabled', sql: 'ALTER TABLE settings ADD COLUMN game_day_enabled INTEGER NOT NULL DEFAULT 0' },
+    { name: 'game_group_id', sql: 'ALTER TABLE settings ADD COLUMN game_group_id TEXT' },
+    { name: 'game_left_controller_id', sql: 'ALTER TABLE settings ADD COLUMN game_left_controller_id TEXT' },
+    { name: 'game_right_controller_id', sql: 'ALTER TABLE settings ADD COLUMN game_right_controller_id TEXT' },
+    { name: 'game_arkansas_theme_id', sql: 'ALTER TABLE settings ADD COLUMN game_arkansas_theme_id TEXT' },
+    { name: 'game_lsu_theme_id', sql: 'ALTER TABLE settings ADD COLUMN game_lsu_theme_id TEXT' }
+  ];
+  for (const col of gameSettingsAlters) {
+    if (!settingsColNames.has(col.name)) db.exec(col.sql);
+  }
+
+  // LookSource gained 'game'. SQLite cannot ALTER a CHECK, so rebuild the
+  // table in a transaction when the existing constraint lacks it. Rerunnable:
+  // after the swap, sqlite_master SQL contains 'game' and this is a no-op.
+  const lookSqlRow = db
+    .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'controller_active_look'`)
+    .get() as { sql: string | null } | undefined;
+  const lookSql = lookSqlRow?.sql ?? '';
+  if (lookSql && !lookSql.includes("'game'")) {
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE controller_active_look_new (
+          controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
+          theme_id TEXT NOT NULL,
+          source TEXT NOT NULL CHECK (source IN ('manual','calendar','schedule','game')),
+          source_id TEXT,
+          applied_at TEXT NOT NULL,
+          expires_at TEXT
+        );
+        INSERT INTO controller_active_look_new
+          (controller_id, theme_id, source, source_id, applied_at, expires_at)
+        SELECT controller_id, theme_id, source, source_id, applied_at, expires_at
+        FROM controller_active_look;
+        DROP TABLE controller_active_look;
+        ALTER TABLE controller_active_look_new RENAME TO controller_active_look;
+      `);
+    })();
   }
 }
