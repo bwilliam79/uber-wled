@@ -1,3 +1,4 @@
+import { themeToPatch } from '../lib/themePatch';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   applyControl,
@@ -222,10 +223,7 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
   };
   const applyTheme = (theme: CustomTheme) => {
     override({ bri: theme.brightness });
-    doApply({
-      bri: theme.brightness,
-      seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
-    });
+    doApply(themeToPatch(theme));
   };
   const applyDevicePreset = (preset: DevicePreset) => {
     // Device preset ids are device-local, so the surface gates preset apply

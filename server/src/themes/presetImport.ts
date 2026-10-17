@@ -29,7 +29,9 @@ export interface RawPreset {
   seg?: RawPresetSegment[];
 }
 
-export type ThemeShape = Omit<CustomTheme, 'id'>;
+// Device presets carry no per-controller theme direction, so imports never set it
+// (an overwrite keeps the target theme's stored directions).
+export type ThemeShape = Omit<CustomTheme, 'id' | 'directions'>;
 
 export interface SkippedPreset {
   presetId: number;

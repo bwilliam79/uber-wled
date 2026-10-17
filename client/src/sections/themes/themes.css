@@ -60,3 +60,20 @@
 .color-slot-label { font-size: 0.75rem; color: var(--text-muted); }
 .color-pop { position: absolute; top: 52px; left: 0; z-index: 30; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-card); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
 .color-pop-hex { width: 110px; }
+
+/* Per-controller direction rows in the theme editor */
+.theme-form-directions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.theme-form-direction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+.theme-form-direction-name {
+  font-size: 0.875rem;
+}
