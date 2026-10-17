@@ -220,6 +220,11 @@ export function runMigrations(db: Database.Database): void {
   if (!themeCols.some((c) => c.name === 'intensity')) {
     db.exec('ALTER TABLE themes ADD COLUMN intensity INTEGER NOT NULL DEFAULT 128');
   }
+  // Optional per-controller segment direction (JSON { [controllerId]: { rev } }).
+  // NULL = theme leaves every controller's rev untouched (pre-existing behaviour).
+  if (!themeCols.some((c) => c.name === 'directions')) {
+    db.exec('ALTER TABLE themes ADD COLUMN directions TEXT');
+  }
 
   // schedules.group_id was NOT NULL — SQLite can't relax a column
   // constraint via ALTER, so this rebuilds the table (create new schema,

@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
+import { parseDirections } from '../themes/repository.js';
 
 /**
  * Config backup / restore. Deliberately generic and column-agnostic: it
@@ -104,7 +105,16 @@ export function importThemes(db: Database.Database, payload: unknown): { importe
     throw new BackupFormatError('not an uber-wled themes export');
   }
   const tx = db.transaction((themes: Row[]) => {
-    for (const t of themes) insertRow(db, 'themes', { ...t, id: randomUUID() });
+    for (const t of themes) {
+      // Older exports predate `directions`; malformed values are dropped so a
+      // bad file can't store something the apply path would choke on.
+      const row: Row = { ...t, id: randomUUID() };
+      if ('directions' in row) {
+        const parsed = parseDirections(row.directions);
+        row.directions = parsed ? JSON.stringify(parsed) : null;
+      }
+      insertRow(db, 'themes', row);
+    }
   });
   tx(p.themes);
   return { imported: p.themes.length };

@@ -1,3 +1,4 @@
+import { themeToPatch } from '../../lib/themePatch';
 import { useMemo } from 'react';
 import { applyControl, type Controller, type CustomTheme, type Target } from '../../api/client';
 import { useThemes } from '../../api/queries';
@@ -19,11 +20,7 @@ export function ScenesBar({ controllers }: { controllers: Controller[] }) {
   if (targets.length === 0 || !themes.data || themes.data.length === 0) return null;
 
   function applyScene(theme: CustomTheme) {
-    applyControl(targets, {
-      on: true,
-      bri: theme.brightness,
-      seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
-    })
+    applyControl(targets, themeToPatch(theme, { on: true }))
       .then(() => toast.show({ title: `Applied "${theme.name}" to all devices`, variant: 'success' }))
       .catch(() => toast.show({ title: 'Failed to apply scene', variant: 'error' }));
   }

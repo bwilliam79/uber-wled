@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import { createThemeRepository } from '../themes/repository.js';
+import { createThemeRepository, directionsToSegRev, type ThemeDirections } from '../themes/repository.js';
 import { applyControlPatch, type Target, type ControlPatch, type ApplyResult } from './applyV2.js';
 
 /**
@@ -23,7 +23,7 @@ export interface Member {
 
 export function actionToPatch(
   action: ControlAction,
-  resolveTheme: (id: string) => { effect: number; palette: number; colors: number[][]; brightness: number; speed: number; intensity: number } | undefined
+  resolveTheme: (id: string) => { effect: number; palette: number; colors: number[][]; brightness: number; speed: number; intensity: number; directions?: ThemeDirections | null } | undefined
 ): ControlPatch {
   switch (action.type) {
     case 'power':
@@ -39,9 +39,11 @@ export function actionToPatch(
     case 'theme': {
       const theme = resolveTheme(action.themeId);
       if (!theme) throw new Error(`theme ${action.themeId} not found`);
+      const segRev = directionsToSegRev(theme.directions);
       return {
         bri: theme.brightness,
-        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity }
+        seg: { fxId: theme.effect, palId: theme.palette, col: theme.colors, sx: theme.speed, ix: theme.intensity },
+        ...(segRev ? { segRev } : {})
       };
     }
   }

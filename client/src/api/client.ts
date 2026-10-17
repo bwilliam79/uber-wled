@@ -49,7 +49,12 @@ export interface CustomTheme {
   speed: number;
   /** WLED effect intensity (0–255). */
   intensity: number;
+  /** Optional per-controller segment direction keyed by controller id;
+   *  controllers without an entry keep their current direction. */
+  directions?: ThemeDirections | null;
 }
+
+export type ThemeDirections = Record<string, { rev: boolean }>;
 
 export interface WledPreset {
   id: number;
@@ -371,7 +376,7 @@ export const getServerVersion = async (): Promise<{ version: string }> => {
 };
 
 export const getSegmentsSnapshot = (controllerId: string) =>
-  getJson<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][] }[]>(
+  getJson<{ id: number; start: number; stop: number; len: number; on: boolean; bri: number; fx: number; pal: number; col: number[][]; rev?: boolean }[]>(
     `/api/controllers/${controllerId}/segments`
   );
 
@@ -473,6 +478,7 @@ export interface SegPatch {
   o1?: boolean; o2?: boolean; o3?: boolean;
   cct?: number;
   on?: boolean; bri?: number;
+  rev?: boolean;
 }
 
 export interface ControlPatch {
@@ -483,6 +489,9 @@ export interface ControlPatch {
                                        // client restricts to single-controller selections)
   nl?: { on?: boolean; dur?: number; mode?: 0 | 1 | 2 | 3; tbri?: number };
   seg?: SegPatch;
+  /** controllerId → rev, from a theme's directions; merged server-side into
+   *  the segment payload for those controllers only. */
+  segRev?: Record<string, boolean>;
 }
 
 export interface ApplyResult {
