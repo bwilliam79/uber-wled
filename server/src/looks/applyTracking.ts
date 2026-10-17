@@ -81,6 +81,23 @@ export function trackScheduleThemeOn(
   });
 }
 
+export function trackGameThemeOn(
+  db: Database.Database,
+  members: { controllerId: string }[],
+  result: unknown,
+  espnEventId: string,
+  themeId: string,
+  now: Date
+): void {
+  writeLook(db, successfulControllerIds(members, result), {
+    themeId,
+    source: 'game',
+    sourceId: espnEventId,
+    appliedAt: now.toISOString(),
+    expiresAt: null
+  });
+}
+
 export function trackClear(
   db: Database.Database,
   members: { controllerId: string }[],

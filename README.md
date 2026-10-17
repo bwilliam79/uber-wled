@@ -210,11 +210,12 @@ true:
   `polled_at` at or after `applied_at` — switched off from WLED's own app
   or the device button, which releases the hold
 
-Otherwise it is **held**. A manual game theme and an unexpired calendar
-holiday are holds. Date-based calendar events are a separate per-controller
-hold (action-less events are used this way too): a schedule ON looks at
-today's enabled events; an overnight OFF also keeps yesterday's, so a
-Halloween look is not killed at sunrise on Nov 1.
+Otherwise it is **held**. A manual theme, a game-day look (`source: "game"`),
+and an unexpired calendar holiday are holds. manual and game looks never
+expire (only a polled-off reading releases them). Date-based calendar events
+are a separate per-controller hold (action-less events are used this way too):
+a schedule ON looks at today's enabled events; an overnight OFF also keeps
+yesterday's, so a Halloween look is not killed at sunrise on Nov 1.
 
 **Dim White** is not a special theme name. It is whatever theme id appears
 on a theme-action schedule (`actionPayload.themeId`). Applying that theme
@@ -305,6 +306,66 @@ The footer version is baked in from `client/package.json` at build time;
 `/api/version` and the GitHub check read `server/package.json`. **Bump both
 files to the same version** on every release — the Docker build fails if they
 drift.
+
+## Game day & holidays
+
+Per controller, a live look is **manual > game > calendar (holiday) > schedule
+(Dim White)**. The scheduler tick fires calendar ON, then game-day
+activate/release, then ambient schedules, all in the same serial queue so a
+holiday at sunset wins over Dim White at the same minute.
+
+- **Calendar ON** applies only to members that are *not* under a live `manual`
+  or `game` look (live = not polled-off). Skipped members stay as they are.
+  `manual` / `game` never expire.
+- **Game start.** When `gameDayEnabled` is on, a `scheduled` trigger whose
+  window contains now (`start_at <= now < release_at`) applies each assignment
+  `{controllerId: themeId}` as a whole-controller theme, records
+  `source: "game"` / `source_id` = ESPN event id, and becomes `active`. A live
+  manual hold on that controller is left alone.
+- **Game release.** At `release_at`, or when ESPN reports the game `post`
+  (early final, polled every 10 minutes during an active window), controllers
+  still showing this game look are cleared, then `resolveResume` decides what
+  to put back: (a) a themed calendar event in its sunset→sunrise window
+  (event date today and now ≥ today's sunset at the home lat/lon, or event
+  date yesterday and now < today's sunrise) → that theme as `calendar`; else
+  (b) night-time and an enabled theme schedule targets the controller → that
+  theme as `schedule`; else (c) power off.
+
+**Shelves.** One team in the window → every controller in `gameGroupId` gets
+that team's theme. Arkansas and LSU in the same game, or their windows
+overlapping → split: left controller = LSU theme, right controller = Arkansas
+theme (`gameLeftControllerId` / `gameRightControllerId`).
+
+**ESPN sync.** Team ids Arkansas `8`, LSU `99`. Football
+`…/football/college-football/teams/{id}/schedule`; basketball
+`…/basketball/mens-college-basketball/teams/{id}/schedule?seasontype=2`.
+Events are merged by id (a rivalry is one trigger with both teams). `post`
+and windows already over are skipped; `timeValid: false` (TBA) does not
+create a trigger (logged `tba` once) and cancels an existing `scheduled`
+row. New → `scheduled` + `created`; kickoff moved → update start/release +
+`moved`. Release is start + 4h football / 3h basketball. Active/released
+rows are not rewritten except early final. Sync runs on startup (if
+enabled), daily at 05:00 local, and every 6h when any trigger starts within
+14 days (a 15-minute timer checks due-by last-sync). Container `TZ` is
+`America/Chicago`.
+
+**Settings** (GET/PATCH `/api/settings`, camelCase): `gameDayEnabled`,
+`gameGroupId`, `gameLeftControllerId`, `gameRightControllerId`,
+`gameArkansasThemeId`, `gameLsuThemeId`.
+
+**Endpoints**
+
+```
+GET  /api/games                  # triggers
+GET  /api/games/log              # last 200 sync log rows
+POST /api/games/sync             # { dryRun?, skipEventIds? }
+GET  /api/games/preview          # sync dry-run, no writes
+GET  /api/calendar-events/preview?from=YYYY-MM-DD&to=YYYY-MM-DD
+```
+
+`skipEventIds` marks those events `skipped`. Preview is read-only (max 800
+days) and lists enabled calendar events as
+`[{ date, events: [{ id, name, themeId }] }]`.
 
 ## The Control surface
 
