@@ -119,6 +119,19 @@ export function runMigrations(db: Database.Database): void {
       polled_at TEXT NOT NULL
     );
 
+    -- Whole-controller record of the look currently on a device, so an ambient
+    -- schedule can skip controllers a person (or a holiday) already set.
+    -- source_id is the calendar event or schedule that applied it; expires_at
+    -- is set for calendar looks (noon local the next day) and null otherwise.
+    CREATE TABLE IF NOT EXISTS controller_active_look (
+      controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
+      theme_id TEXT NOT NULL,
+      source TEXT NOT NULL CHECK (source IN ('manual','calendar','schedule')),
+      source_id TEXT,
+      applied_at TEXT NOT NULL,
+      expires_at TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS controller_capabilities (
       controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
       vid INTEGER NOT NULL,
