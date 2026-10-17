@@ -127,6 +127,29 @@ describe('game trigger engine', () => {
     expect(createGameTriggerRepository(db).get('e-ark')?.status).toBe('active');
   });
 
+  it("a holiday's sunrise OFF skips controllers under a live manual or game hold", async () => {
+    const { db, left, right, cabinet, holiday, lsuTheme, arkTheme, looks, applyFn } = setupFleet();
+    const today = new Date(2026, 10, 1, 12, 0, 0);
+    const sunrise = SunCalc.getTimes(today, LAT, LON).sunrise;
+    const now = new Date(sunrise.getTime() + 10_000);
+    createCalendarRepository(db).add({
+      name: 'Halloween', category: 'holiday',
+      dateRule: { kind: 'fixed', month: 10, day: 31 },
+      recursYearly: true, enabled: true, groupId: null,
+      controllers: [left.id, right.id, cabinet.id].map((controllerId) => ({ controllerId, wledSegId: null })),
+      triggerTime: { type: 'sunset', offsetMinutes: 0 },
+      offTrigger: { type: 'sunrise', offsetMinutes: 0 },
+      actionType: 'theme', actionPayload: { themeId: holiday.id }
+    } as any);
+    looks.set({ controllerId: left.id, themeId: lsuTheme.id, source: 'manual', sourceId: null, appliedAt: now.toISOString(), expiresAt: null });
+    looks.set({ controllerId: right.id, themeId: arkTheme.id, source: 'game', sourceId: 'e-x', appliedAt: now.toISOString(), expiresAt: null });
+    await new SchedulerEngine(db, applyFn).checkAndFireDueSchedules(now);
+    const offCalls = applyFn.mock.calls.filter(([, action]) => (action as { type: string }).type === 'power');
+    expect(offCalls).toEqual([[[{ controllerId: cabinet.id, wledSegId: null }], { type: 'power', on: false }]]);
+    expect(looks.get(left.id)?.source).toBe('manual');
+    expect(looks.get(right.id)?.source).toBe('game');
+  });
+
   it('release resumes an in-window holiday theme', async () => {
     const { db, left, arkTheme, holiday, looks, applyFn } = setupFleet();
     const sunset = SunCalc.getTimes(new Date(2026, 9, 31, 12, 0, 0), LAT, LON).sunset;

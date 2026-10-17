@@ -269,8 +269,11 @@ export class SchedulerEngine {
       const key = `calendar:${event.id}:off`;
       if (this.claimed(key, now)) continue;
       this.lastFired.set(key, now);
-      const result = await this.applyFn(members, { type: 'power', on: false });
-      trackClear(this.db, members, result);
+      // A holiday's own OFF never turns off a live manual or game hold.
+      const offTargets = members.filter((m) => !isLiveManualOrGameHold(this.db, m.controllerId));
+      if (offTargets.length === 0) continue;
+      const result = await this.applyFn(offTargets, { type: 'power', on: false });
+      trackClear(this.db, offTargets, result);
     }
 
     // Game-day holds sit between calendar and schedules: a live game keeps
