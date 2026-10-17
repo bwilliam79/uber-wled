@@ -13,3 +13,7 @@ services:
     environment:
       - PORT=8081
       - DB_PATH=/app/data/uber-wled.db
+      # Schedules, calendar "today", and sunrise/sunset use the process-local
+      # clock. The image defaults to UTC, which would shift those off the
+      # house clock — home timezone is America/Chicago.
+      - TZ=America/Chicago
