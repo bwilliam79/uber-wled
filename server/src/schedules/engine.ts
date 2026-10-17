@@ -1,48 +1,17 @@
 import type Database from 'better-sqlite3';
 import SunCalc from 'suncalc';
-import { createScheduleRepository, type Schedule, type ScheduleControllerTarget } from './repository.js';
+import { createScheduleRepository, type Schedule } from './repository.js';
+import { resolveEntityMembers } from './targets.js';
 import { createCalendarRepository, type CalendarEvent, type TriggerTime } from '../calendar/repository.js';
 import { createSettingsRepository } from '../settings/repository.js';
 import { resolveDate } from '../calendar/dateRules.js';
-import { expandTargets, GroupNotFoundError, type ResolvedTarget, type Target } from '../control/applyV2.js';
-import { isControllerIdle } from '../looks/idle.js';
+import type { ResolvedTarget } from '../control/applyV2.js';
+import { processGameTriggers } from '../games/tick.js';
+import { isControllerIdle, isLiveManualOrGameHold } from '../looks/idle.js';
 import { payloadThemeId, trackCalendarThemeOn, trackClear, trackScheduleThemeOn } from '../looks/applyTracking.js';
 
-/**
- * A schedule/calendar event targets exactly one of a Room group or a list
- * of specific controllers directly (whole-device per entry when its
- * wledSegId is null, one segment when it's set) — same Target union
- * /api/control/apply already uses, just possibly more than one. Empty only
- * if somehow neither is set (shouldn't happen; callers skip it).
- */
-function targetsOf(entity: {
-  groupId: string | null;
-  controllers: ScheduleControllerTarget[] | null;
-}): Target[] {
-  if (entity.controllers && entity.controllers.length > 0) {
-    return entity.controllers.map((c) =>
-      c.wledSegId === null
-        ? { kind: 'controller', controllerId: c.controllerId }
-        : { kind: 'segment', controllerId: c.controllerId, wledSegId: c.wledSegId }
-    );
-  }
-  if (entity.groupId) return [{ kind: 'group', groupId: entity.groupId }];
-  return [];
-}
-
-/** expandTargets throws GroupNotFoundError for a deleted group; treat that
- *  the same as "target no longer resolves to anything", same as the old
- *  code's `if (!group) continue`. */
-export function resolveEntityMembers(db: Database.Database, entity: Parameters<typeof targetsOf>[0]): ResolvedTarget[] {
-  const targets = targetsOf(entity);
-  if (targets.length === 0) return [];
-  try {
-    return expandTargets(db, targets);
-  } catch (err) {
-    if (err instanceof GroupNotFoundError) return [];
-    throw err;
-  }
-}
+export { resolveEntityMembers } from './targets.js';
+export { resolveResume } from '../games/resume.js';
 
 export function nextTriggerDate(schedule: Schedule, now: Date): Date {
   if (schedule.triggerType === 'cron') {
@@ -278,10 +247,14 @@ export class SchedulerEngine {
       // Claim the key BEFORE awaiting applyFn so a concurrent/overlapping
       // invocation sees the claim immediately and doesn't double-fire.
       this.lastFired.set(key, now);
-      const result = await this.applyFn(members, { type: event.actionType, ...(event.actionPayload as object) });
-      if (event.actionType === 'theme') {
-        const themeId = payloadThemeId(event.actionPayload);
-        if (themeId) trackCalendarThemeOn(this.db, members, result, event.id, themeId, now);
+      // manual > game > calendar: skip members a live manual or game look holds.
+      const actionable = members.filter((m) => !isLiveManualOrGameHold(this.db, m.controllerId));
+      if (actionable.length > 0) {
+        const result = await this.applyFn(actionable, { type: event.actionType, ...(event.actionPayload as object) });
+        if (event.actionType === 'theme') {
+          const themeId = payloadThemeId(event.actionPayload);
+          if (themeId) trackCalendarThemeOn(this.db, actionable, result, event.id, themeId, now);
+        }
       }
     }
 
@@ -298,6 +271,12 @@ export class SchedulerEngine {
       this.lastFired.set(key, now);
       const result = await this.applyFn(members, { type: 'power', on: false });
       trackClear(this.db, members, result);
+    }
+
+    // Game-day holds sit between calendar and schedules: a live game keeps
+    // Dim White off the controller; a holiday does not overwrite a game.
+    if (settings.gameDayEnabled) {
+      await processGameTriggers(this.db, now, this.applyFn);
     }
 
     // Date-based holds, per controller. Action-less events count: they exist

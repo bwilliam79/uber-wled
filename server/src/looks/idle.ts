@@ -21,7 +21,8 @@ export function polledOffSince(db: Database.Database, controllerId: string, appl
  * different look on it: no tracked look, the tracked theme is this schedule's
  * own theme, a previous schedule wrote it, the calendar expiry has passed,
  * or the poller has seen it switched off since the look was applied.
- * Otherwise the look is held (a manual game theme, or an unexpired holiday).
+ * Otherwise the look is held (a manual theme, a game-day theme, or an
+ * unexpired holiday). manual and game looks never expire.
  */
 export function isControllerIdle(
   db: Database.Database,
@@ -33,10 +34,33 @@ export function isControllerIdle(
   if (!look) return true;
   if (scheduleThemeId !== null && look.themeId === scheduleThemeId) return true;
   if (look.source === 'schedule') return true;
+  if (look.source === 'manual' || look.source === 'game') {
+    return polledOffSince(db, controllerId, look.appliedAt);
+  }
   if (look.expiresAt) {
     const exp = Date.parse(look.expiresAt);
     if (!Number.isNaN(exp) && exp <= now.getTime()) return true;
   }
   if (polledOffSince(db, controllerId, look.appliedAt)) return true;
   return false;
+}
+
+/** Live = this source and not polled-off. manual/game never expire. */
+export function isLiveHold(
+  db: Database.Database,
+  controllerId: string,
+  sources: ReadonlyArray<'manual' | 'game'>
+): boolean {
+  const look = createActiveLookRepository(db).get(controllerId);
+  if (!look || (look.source !== 'manual' && look.source !== 'game')) return false;
+  if (!sources.includes(look.source)) return false;
+  return !polledOffSince(db, controllerId, look.appliedAt);
+}
+
+export function isLiveManualHold(db: Database.Database, controllerId: string): boolean {
+  return isLiveHold(db, controllerId, ['manual']);
+}
+
+export function isLiveManualOrGameHold(db: Database.Database, controllerId: string): boolean {
+  return isLiveHold(db, controllerId, ['manual', 'game']);
 }

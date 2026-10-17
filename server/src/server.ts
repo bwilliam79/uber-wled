@@ -5,6 +5,7 @@ import { pollAllControllerStatus } from './controllers/statusPoller.js';
 import { SchedulerEngine } from './schedules/engine.js';
 import { applyActionV2, type ControlAction } from './control/actionMap.js';
 import { seedHolidaysIfEmpty } from './calendar/repository.js';
+import { createGameDayScheduler } from './games/scheduler.js';
 import { createSettingsRepository } from './settings/repository.js';
 import { runAutoBackupIfDue, autoBackupDir } from './backup/autoBackup.js';
 
@@ -33,6 +34,9 @@ setInterval(() => pollAllControllerStatus(db), Math.max(1, statusPollIntervalMin
 const scheduler = new SchedulerEngine(db, (members, action) =>
   applyActionV2(db, members, action as ControlAction));
 scheduler.start();
+
+const gameDay = createGameDayScheduler(db);
+gameDay.start();
 
 // Nightly config auto-backup (once per calendar day, kept to the last N),
 // written next to the DB. Runs on startup + hourly so it survives restarts.
