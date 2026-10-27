@@ -15,7 +15,7 @@ describe('DeviceCard', () => {
       onControl={vi.fn()} onOpen={vi.fn()} />);
     expect(screen.getByText('Cabinet Lights')).toBeTruthy();
     // Host and px count now share one mono metadata line ("203.0.113.86 · N px").
-    expect(screen.getByText(/192\.168\.1\.86/)).toBeTruthy();
+    expect(screen.getByText(/203\.0\.113\.86/)).toBeTruthy();
     expect(screen.getByText('Online')).toBeTruthy();
     expect(screen.getByText('42 FPS')).toBeTruthy();
     const powerSwitch = screen.getByRole('switch', { name: 'Power for Cabinet Lights' });
@@ -36,7 +36,7 @@ describe('DeviceCard', () => {
       onControl={vi.fn()} onOpen={vi.fn()} />);
     const badge = screen.getByText('Live');
     expect(badge).toBeTruthy();
-    expect(badge.getAttribute('title')).toMatch(/192\.168\.1\.50/);
+    expect(badge.getAttribute('title')).toMatch(/203\.0\.113\.50/);
   });
 
   it('shows the update chip from the firmware query', async () => {

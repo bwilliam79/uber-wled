@@ -76,9 +76,9 @@ describe('buildLedHardwarePatch', () => {
 });
 
 describe('ip helpers', () => {
-  it('parses dotted quads', () => expect(parseIpv4('203.0.113.50')).toEqual([192, 168, 1, 50]));
+  it('parses dotted quads', () => expect(parseIpv4('203.0.113.50')).toEqual([203, 0, 113, 50]));
   it('rejects malformed and out-of-range strings', () => {
-    expect(parseIpv4('198.51.100')).toBeNull();
+    expect(parseIpv4('203.0.113')).toBeNull();
     expect(parseIpv4('203.0.113.256')).toBeNull();
     expect(parseIpv4('lights.local')).toBeNull();
   });

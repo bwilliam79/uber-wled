@@ -27,8 +27,8 @@ describe('assertValidHost', () => {
 
   it('does not reject private/RFC1918 IP ranges — these are where real WLED controllers live', () => {
     expect(() => assertValidHost('10.0.0.1')).not.toThrow();
-    expect(() => assertValidHost('192.0.2.1')).not.toThrow();
-    expect(() => assertValidHost('172.16.0.1')).not.toThrow();
+    expect(() => assertValidHost('10.0.0.5')).not.toThrow();
+    expect(() => assertValidHost('172.16.3.5')).not.toThrow();
   });
 
   it('rejects values containing a URL scheme', () => {

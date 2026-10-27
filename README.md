@@ -404,7 +404,8 @@ themes/device-preset lists, nightlight, transition) so nothing is lost.
 `POST /api/shortcuts/apply` applies a saved theme or turns lights off, for the
 Shortcuts app (and so for Siri). There is no separate login on this route.
 Use it on the LAN only: the phone must reach the server's own address (the
-same host and port as the web app, port `8081` by default). Do not forward
+same host and port as the web app, port `8081` by default). Replace
+`<server-ip>` in the examples below with that address. Do not forward
 that port to the internet.
 
 There is no GET form of this endpoint. Applying a theme or turning lights
@@ -437,13 +438,13 @@ ambient schedule's theme (Dim White) or sending `"action": "off"` clears
 that hold on the controllers that actually changed.
 
 ```bash
-curl -s -X POST http://192.0.2.23:8081/api/shortcuts/apply \
+curl -s -X POST http://<server-ip>:8081/api/shortcuts/apply \
   -H 'Content-Type: application/json' \
   -d '{"theme":"Dim White","group":"Shelves"}'
 ```
 
 ```bash
-curl -s -X POST 'http://192.0.2.23:8081/api/shortcuts/apply?format=text' \
+curl -s -X POST 'http://<server-ip>:8081/api/shortcuts/apply?format=text' \
   -H 'Content-Type: application/json' \
   -d '{"action":"off","controllers":["Cabinet","Shelf"]}'
 ```
@@ -452,7 +453,7 @@ Build the shortcut:
 
 1. Open the Shortcuts app, tap **+**, then **Add Action**.
 2. Choose **Get Contents of URL**.
-3. URL: `http://192.0.2.23:8081/api/shortcuts/apply?format=text` (your server's LAN address).
+3. URL: `http://<server-ip>:8081/api/shortcuts/apply?format=text` (replace `<server-ip>` with your server's address).
 4. Method: **POST**.
 5. Request Body: **JSON**.
 6. Add a field `theme` (Text) `Dim White`, and a field `group` (Text) `Shelves`. To hit specific controllers instead of a room, add `controllers` (Array of Text) and leave `group` out.
