@@ -61,12 +61,29 @@ describe('resolveDiscoveryCidrs', () => {
 
   it('defaults to inferred /24s when unset, and honors an explicit list or off', () => {
     expect(resolveDiscoveryCidrs(undefined, interfaces)).toEqual(['192.168.0.0/24']);
-    expect(resolveDiscoveryCidrs('192.0.2.0/24, 198.51.100.0/24', interfaces)).toEqual([
-      '192.0.2.0/24',
-      '198.51.100.0/24'
+    expect(resolveDiscoveryCidrs('10.0.0.0/24, 172.16.0.0/24', interfaces)).toEqual([
+      '10.0.0.0/24',
+      '172.16.0.0/24'
     ]);
     expect(resolveDiscoveryCidrs('off', interfaces)).toEqual([]);
     expect(resolveDiscoveryCidrs('  ', interfaces)).toEqual([]);
+  });
+
+  it('rejects DISCOVERY_CIDR entries outside private LAN ranges', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(resolveDiscoveryCidrs(
+        '192.168.0.0/24, 192.0.2.10/32, 203.0.113.0/24, 198.51.100.8',
+        interfaces
+      )).toEqual(['192.168.0.0/24']);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0][0])).toContain('private ranges');
+      expect(String(warn.mock.calls[0][0])).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
+      // A public-only value does not fall through to interface inference.
+      expect(resolveDiscoveryCidrs('203.0.113.0/24', interfaces)).toEqual([]);
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('does no unicast sweep and logs a hint when every interface is virtual', () => {
@@ -108,9 +125,9 @@ describe('selectDiscoveryCidrs', () => {
   it('uses DISCOVERY_CIDR, then inferred /24s, for a real mDNS scan', () => {
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
-      envValue: '198.51.100.0/24',
+      envValue: '10.0.0.0/24',
       interfaces
-    })).toEqual(['198.51.100.0/24']);
+    })).toEqual(['10.0.0.0/24']);
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
       envValue: undefined,

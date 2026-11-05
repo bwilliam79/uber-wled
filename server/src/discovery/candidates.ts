@@ -74,12 +74,22 @@ const VIRTUAL_INTERFACE = /^(docker|br-|br\d|bridge|veth|colima|col\d|lima)/i;
 const MAX_INFERRED_CIDRS = 2;
 const NO_CIDR_HINT =
   'discovery: no unicast sweep. Set DISCOVERY_CIDR to the LAN that holds the WLED controllers.';
+const PUBLIC_CIDR_HINT =
+  'discovery: ignoring DISCOVERY_CIDR entries outside private ranges (10/8, 172.16/12, 192.168/16).';
 
-/** True for RFC1918. Inference never sweeps a public /24. */
+/** True for RFC1918. Discovery never probes a public address. */
 function isPrivateLan(first: number, second: number): boolean {
   if (first === 10) return true;
   if (first === 172 && second >= 16 && second <= 31) return true;
   return first === 192 && second === 168;
+}
+
+function isPrivateCidr(cidr: string): boolean {
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:\/(\d{1,2}))?$/.exec(cidr.trim());
+  if (!match) return false;
+  const octets = [1, 2, 3, 4].map((i) => Number(match[i]));
+  if (octets.some((n) => !Number.isInteger(n) || n > 255)) return false;
+  return isPrivateLan(octets[0], octets[1]);
 }
 
 /**
@@ -115,7 +125,10 @@ export function resolveDiscoveryCidrs(
   if (envValue !== undefined) {
     const trimmed = envValue.trim();
     if (!trimmed || DISABLED_ENV.has(trimmed.toLowerCase())) return [];
-    return trimmed.split(',').map((part) => part.trim()).filter(Boolean);
+    const requested = trimmed.split(',').map((part) => part.trim()).filter(Boolean);
+    const cidrs = requested.filter(isPrivateCidr);
+    if (cidrs.length !== requested.length) console.warn(PUBLIC_CIDR_HINT);
+    return cidrs;
   }
   const cidrs = inferSlash24s(interfaces);
   if (cidrs.length === 0) console.warn(NO_CIDR_HINT);

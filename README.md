@@ -565,7 +565,7 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 56 files / 466 tests
+cd server && npm test   # 56 files / 467 tests
 cd client && npm test   # 80 files / 634 tests
 ```
 
@@ -578,7 +578,7 @@ in **Quick start** at the top.)
 |---|---|---|
 | `PORT` | `8081` | Port the app binds to (host networking — this is the actual port on the machine) |
 | `DB_PATH` | `/app/data/uber-wled.db` (container) | SQLite database file location |
-| `DISCOVERY_CIDR` | up to two private /24s | Comma-separated IPv4 CIDRs (`/24`–`/32`, or a bare address) to unicast-probe for new WLED controllers. Unset: at most two `/24`s from non-internal private addresses (10/8, 172.16/12, 192.168/16), skipping docker, bridge, veth, and colima interfaces. If none qualify, nothing is swept and the log says to set this variable. An empty value or `off` disables the sweep. Compose passes the variable into the container only when it is set. mDNS still runs either way. |
+| `DISCOVERY_CIDR` | up to two private /24s | Comma-separated IPv4 CIDRs (`/24`–`/32`, or a bare address) to unicast-probe for new WLED controllers. Only private ranges are probed (10/8, 172.16/12, 192.168/16); any other entry is ignored. Unset: at most two `/24`s from non-internal private addresses, skipping docker, bridge, veth, and colima interfaces. If none qualify, nothing is swept and the log says to set this variable. An empty value or `off` disables the sweep. Compose passes the variable into the container only when it is set. mDNS still runs either way. |
 
 ## Using the app
 
