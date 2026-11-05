@@ -151,6 +151,31 @@ describe('runDiscoveryCycle', () => {
     expect(list[0]).toMatchObject({ name: 'Deck', host: '192.0.2.10', source: 'manual', stale: false });
   });
 
+  it('joins an in-flight discovery cycle instead of starting a second one', async () => {
+    let started = 0;
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const scan = async () => {
+      started += 1;
+      await gate;
+      return [{ host: '192.0.2.10', name: 'Porch' }];
+    };
+
+    const first = runDiscoveryCycle(db, scan, { cidrs: [] });
+    const second = runDiscoveryCycle(db, scan, { cidrs: [] });
+    try {
+      expect(started).toBe(1);
+      release();
+      await Promise.all([first, second]);
+      expect(started).toBe(1);
+      expect(repo.list()).toHaveLength(1);
+    } finally {
+      release();
+    }
+  });
+
   it('does not probe candidates when mDNS is injected and no CIDR is configured', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);

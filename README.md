@@ -543,7 +543,8 @@ included). Guardrails, because full parity includes footguns:
   The address lookup is opt-in and user-triggered only — it never runs
   automatically or in the background. Discovery's unicast probe is LAN-only:
   `GET /json/info` to addresses in `DISCOVERY_CIDR`, or, when that is unset,
-  each private `/24` on the host. It does not contact the internet.
+  at most two private `/24`s on the host after virtual interfaces are skipped.
+  It does not contact the internet.
 
 ## Local development
 
@@ -564,7 +565,7 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 56 files / 463 tests
+cd server && npm test   # 56 files / 466 tests
 cd client && npm test   # 80 files / 634 tests
 ```
 
@@ -577,7 +578,7 @@ in **Quick start** at the top.)
 |---|---|---|
 | `PORT` | `8081` | Port the app binds to (host networking — this is the actual port on the machine) |
 | `DB_PATH` | `/app/data/uber-wled.db` (container) | SQLite database file location |
-| `DISCOVERY_CIDR` | inferred private /24s | Comma-separated IPv4 CIDRs (`/24`–`/32`, or a bare address) to unicast-probe for new WLED controllers. Unset: the `/24` of each non-internal private IPv4 address on the host (10/8, 172.16/12, 192.168/16). Public addresses are not scanned unless you set this. `off` disables the unicast scan. mDNS still runs either way. |
+| `DISCOVERY_CIDR` | up to two private /24s | Comma-separated IPv4 CIDRs (`/24`–`/32`, or a bare address) to unicast-probe for new WLED controllers. Unset: at most two `/24`s from non-internal private addresses (10/8, 172.16/12, 192.168/16), skipping docker, bridge, veth, and colima interfaces. If none qualify, nothing is swept and the log says to set this variable. An empty value or `off` disables the sweep. Compose passes the variable into the container only when it is set. mDNS still runs either way. |
 
 ## Using the app
 
@@ -585,11 +586,15 @@ in **Quick start** at the top.)
    Settings), or add one manually by name + IP/hostname from **Settings →
    Add a controller**. Each cycle browses mDNS (`_wled._tcp`, IPv4 preferred)
    and also unicast-probes `DISCOVERY_CIDR`. When that variable is unset, the
-   probe list is the `/24` of each non-internal private IPv4 address on the
-   host running the process (10/8, 172.16/12, 192.168/16) — on Colima, that
-   host is the Linux VM, which may not be the Mac's LAN. Set `DISCOVERY_CIDR`
-   to the LAN that actually holds the lights (a documentation-range example:
-   `192.0.2.0/24`) or to `off` to keep mDNS only. A candidate is added only when `GET /json/info` looks like WLED
+   probe list is at most two private `/24`s on the host (10/8, 172.16/12,
+   192.168/16), and docker, bridge, veth, and colima interfaces are skipped.
+   If nothing qualifies, the cycle does not sweep and logs a hint to set
+   `DISCOVERY_CIDR`. On Colima that is the usual case: the VM's own bridge is
+   not the Mac's LAN. Set the variable to the LAN that holds the lights
+   (see `.env.example`; a placeholder is `192.168.x.0/24`) or to `off` to keep
+   mDNS only. An empty value also means off, so Compose forwards the variable
+   only when it is set on the host. The interval and **Re-scan now** share one
+   in-flight cycle. A candidate is added only when `GET /json/info` looks like WLED
    (`brand` is `WLED`, or the body has a name, version, and `leds` object).
    The scan uses 32 concurrent probes and an 800ms timeout per host, and it
    ignores prefixes wider than `/24`. Controllers the app already knows are

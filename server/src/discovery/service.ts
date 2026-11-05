@@ -18,6 +18,8 @@ export interface DiscoveryCycleOptions {
   concurrency?: number;
 }
 
+let inFlight: Promise<void> | null = null;
+
 async function probeHttpReachable(host: string, timeoutMs = 2000): Promise<boolean> {
   try {
     const res = await fetch(`http://${host}/json/info`, {
@@ -29,9 +31,24 @@ async function probeHttpReachable(host: string, timeoutMs = 2000): Promise<boole
   }
 }
 
-export async function runDiscoveryCycle(
+export function runDiscoveryCycle(
   db: Database.Database,
   scan: () => Promise<{ host: string; name: string }[]> = scanOnce,
+  options?: DiscoveryCycleOptions
+): Promise<void> {
+  // The interval timer and POST /rescan share this process. A second call
+  // waits for the cycle already running instead of probing the LAN twice.
+  if (inFlight) return inFlight;
+  const cycle = executeDiscoveryCycle(db, scan, options).finally(() => {
+    inFlight = null;
+  });
+  inFlight = cycle;
+  return cycle;
+}
+
+async function executeDiscoveryCycle(
+  db: Database.Database,
+  scan: () => Promise<{ host: string; name: string }[]>,
   options?: DiscoveryCycleOptions
 ): Promise<void> {
   const repo = createControllerRepository(db);

@@ -27,7 +27,7 @@ describe('expandCidr', () => {
 });
 
 describe('inferSlash24s', () => {
-  it('uses each private IPv4 /24 and skips public, loopback, link-local, and IPv6', () => {
+  it('keeps the first two private /24s and skips public, loopback, link-local, and IPv6', () => {
     // RFC1918 examples only — not a real network.
     const cidrs = inferSlash24s({
       eth0: [v4('192.168.0.15'), v4('192.168.0.40'), { address: '2001:db8::1', family: 'IPv6', internal: false }],
@@ -37,7 +37,22 @@ describe('inferSlash24s', () => {
       docs: [v4('192.0.2.15'), v4('198.51.100.8')],
       linklocal: [v4('169.254.1.10')]
     });
-    expect(cidrs).toEqual(['192.168.0.0/24', '10.1.2.0/24', '172.16.5.0/24']);
+    expect(cidrs).toEqual(['192.168.0.0/24', '10.1.2.0/24']);
+  });
+
+  it('skips docker, bridge, veth, and colima interfaces and keeps at most two /24s', () => {
+    const cidrs = inferSlash24s({
+      docker0: [v4('172.17.0.1')],
+      'br-7f3a': [v4('172.18.0.1')],
+      bridge0: [v4('172.19.0.1')],
+      veth0abc: [v4('10.9.0.1')],
+      col0: [v4('10.8.0.1')],
+      colima: [v4('10.7.0.1')],
+      eth0: [v4('192.168.0.15')],
+      eth1: [v4('10.0.0.8')],
+      eth2: [v4('172.16.0.9')]
+    });
+    expect(cidrs).toEqual(['192.168.0.0/24', '10.0.0.0/24']);
   });
 });
 
@@ -52,6 +67,24 @@ describe('resolveDiscoveryCidrs', () => {
     ]);
     expect(resolveDiscoveryCidrs('off', interfaces)).toEqual([]);
     expect(resolveDiscoveryCidrs('  ', interfaces)).toEqual([]);
+  });
+
+  it('does no unicast sweep and logs a hint when every interface is virtual', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      expect(resolveDiscoveryCidrs(undefined, {
+        docker0: [v4('172.17.0.1')],
+        col0: [v4('10.8.0.1')],
+        veth0abc: [v4('10.9.0.1')]
+      })).toEqual([]);
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(warn.mock.calls[0][0]).toContain('DISCOVERY_CIDR');
+      expect(String(warn.mock.calls[0][0])).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
+      expect(resolveDiscoveryCidrs('off', { docker0: [v4('172.17.0.1')] })).toEqual([]);
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

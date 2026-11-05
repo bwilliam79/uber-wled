@@ -69,6 +69,12 @@ export function expandCidr(cidr: string): string[] {
   return hosts;
 }
 
+/** Docker, bridge, veth, and Colima/Lima interfaces are not the house LAN. */
+const VIRTUAL_INTERFACE = /^(docker|br-|br\d|bridge|veth|colima|col\d|lima)/i;
+const MAX_INFERRED_CIDRS = 2;
+const NO_CIDR_HINT =
+  'discovery: no unicast sweep. Set DISCOVERY_CIDR to the LAN that holds the WLED controllers.';
+
 /** True for RFC1918. Inference never sweeps a public /24. */
 function isPrivateLan(first: number, second: number): boolean {
   if (first === 10) return true;
@@ -76,10 +82,15 @@ function isPrivateLan(first: number, second: number): boolean {
   return first === 192 && second === 168;
 }
 
-/** /24 of each non-internal private IPv4 interface. */
+/**
+ * Up to two /24s from non-internal private IPv4 interfaces, skipping
+ * docker/bridge/veth/colima-style names.
+ */
 export function inferSlash24s(interfaces: NodeJS.Dict<readonly InterfaceAddress[]>): string[] {
-  const cidrs = new Set<string>();
-  for (const entries of Object.values(interfaces)) {
+  const cidrs: string[] = [];
+  const seen = new Set<string>();
+  for (const [name, entries] of Object.entries(interfaces)) {
+    if (VIRTUAL_INTERFACE.test(name)) continue;
     for (const entry of entries ?? []) {
       const isV4 = entry.family === 'IPv4' || entry.family === 4;
       if (!isV4 || entry.internal) continue;
@@ -87,10 +98,14 @@ export function inferSlash24s(interfaces: NodeJS.Dict<readonly InterfaceAddress[
       if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) continue;
       const [a, b, c] = parts;
       if (!isPrivateLan(a, b)) continue;
-      cidrs.add(`${a}.${b}.${c}.0/24`);
+      const cidr = `${a}.${b}.${c}.0/24`;
+      if (seen.has(cidr)) continue;
+      seen.add(cidr);
+      cidrs.push(cidr);
+      if (cidrs.length >= MAX_INFERRED_CIDRS) return cidrs;
     }
   }
-  return [...cidrs];
+  return cidrs;
 }
 
 export function resolveDiscoveryCidrs(
@@ -102,7 +117,9 @@ export function resolveDiscoveryCidrs(
     if (!trimmed || DISABLED_ENV.has(trimmed.toLowerCase())) return [];
     return trimmed.split(',').map((part) => part.trim()).filter(Boolean);
   }
-  return inferSlash24s(interfaces);
+  const cidrs = inferSlash24s(interfaces);
+  if (cidrs.length === 0) console.warn(NO_CIDR_HINT);
+  return cidrs;
 }
 
 export function selectDiscoveryCidrs(input: {
