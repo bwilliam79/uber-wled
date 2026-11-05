@@ -422,7 +422,13 @@ describe('syncGames diff', () => {
   it('GET /api/games, /log, /preview and POST /sync use invoke and honor dryRun', async () => {
     const { db } = setupFleet();
     const app = createApp(db);
-    const live = espnEvent({ id: 'route-1', date: '2026-11-01T17:00:00.000Z', teams: [ARK, BAMA] });
+    // The route clocks sync with `new Date()`. A fixed 2026-11-01 kickoff
+    // falls before "now" once that release window (start + 4h) has passed.
+    const live = espnEvent({
+      id: 'route-1',
+      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      teams: [ARK, BAMA]
+    });
     const fetchFn = scheduleFetch({ football: { arkansas: [live] }, basketball: {} });
     vi.stubGlobal('fetch', fetchFn);
 

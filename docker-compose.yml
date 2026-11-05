@@ -13,6 +13,9 @@ services:
     environment:
       - PORT=8081
       - DB_PATH=/app/data/uber-wled.db
+      # Pass the host value through only when it is set. An empty assignment
+      # would disable inference (`DISCOVERY_CIDR=` means off). See .env.example.
+      - DISCOVERY_CIDR
       # Schedules, calendar "today", and sunrise/sunset use the process-local
       # clock. The image defaults to UTC, which would shift those off the
       # house clock — home timezone is America/Chicago.
