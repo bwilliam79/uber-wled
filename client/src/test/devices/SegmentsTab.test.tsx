@@ -47,7 +47,8 @@ describe('SegmentsTab', () => {
 
   it('applies live toggles (reverse) as single-field PUTs', async () => {
     const { fn } = renderTab({ 'PUT /api/controllers/c1/segments/1': SEGMENTS });
-    await screen.findByTestId('segment-1');
+    const seg1 = await screen.findByTestId('segment-1');
+    fireEvent.click(within(seg1).getByRole('button', { name: 'Show segment 1 editor' }));
     fireEvent.click(screen.getByRole('switch', { name: 'Segment 1 reverse' }));
     await waitFor(() => {
       const call = fn.mock.calls.find(([url]) => String(url).endsWith('/segments/1'));
@@ -58,6 +59,7 @@ describe('SegmentsTab', () => {
   it('deletes a segment only after modal confirmation', async () => {
     const { fn } = renderTab({ 'DELETE /api/controllers/c1/segments/1': [SEGMENTS[0]] });
     const seg1 = await screen.findByTestId('segment-1');
+    fireEvent.click(within(seg1).getByRole('button', { name: 'Show segment 1 editor' }));
     fireEvent.click(within(seg1).getByRole('button', { name: 'Delete' }));
     await screen.findByText(/Delete segment 1\?/);
     fireEvent.click(screen.getByRole('button', { name: 'Delete segment' }));

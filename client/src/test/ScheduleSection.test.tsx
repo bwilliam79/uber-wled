@@ -44,7 +44,9 @@ describe('ScheduleSection (unified list)', () => {
     stub();
     renderWithQuery(<ScheduleSection />);
     expect(await screen.findByText('Halloween')).toBeTruthy();
-    expect(screen.getByText(/Oct 31 · Spooky · Group Front/)).toBeTruthy();
+    expect(screen.getByText('Oct 31')).toBeTruthy();
+    expect(screen.getByText('Spooky')).toBeTruthy();
+    expect(screen.getByText('Group Front')).toBeTruthy();
   });
 
   it('shows the dashed "New schedule" add row', async () => {

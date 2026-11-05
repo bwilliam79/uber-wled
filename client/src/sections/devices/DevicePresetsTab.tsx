@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import { Field } from '../../components/ui/Field';
 import { Modal } from '../../components/ui/Modal';
+import { MoreMenu } from '../../components/ui/MoreMenu';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { Toggle } from '../../components/ui/Toggle';
 import { useToast } from '../../components/ui/Toast';
@@ -20,6 +21,7 @@ export function DevicePresetsTab({ controllerId }: { controllerId: string }) {
   const toast = useToast();
   const [deleteTarget, setDeleteTarget] = useState<DevicePreset | null>(null);
   const [busy, setBusy] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [name, setName] = useState('');
   const [includeBrightness, setIncludeBrightness] = useState(true);
   const [saveSegmentBounds, setSaveSegmentBounds] = useState(false);
@@ -79,6 +81,7 @@ export function DevicePresetsTab({ controllerId }: { controllerId: string }) {
     <div className="presets-tab-device">
       <Card>
         <h3>Device presets</h3>
+        <p className="field-hint">These live on this controller. Themes in the library are separate.</p>
         {list.length === 0 && <p className="empty-state">No presets saved on this device yet.</p>}
         <ul className="device-preset-list">
           {list.map((preset) => (
@@ -88,13 +91,16 @@ export function DevicePresetsTab({ controllerId }: { controllerId: string }) {
               {preset.isPlaylist && <Chip variant="accent">Playlist</Chip>}
               <Button size="sm" onClick={() => applyPreset(preset)}
                 aria-label={`Apply preset ${preset.name}`}>Apply</Button>
-              <Button size="sm" variant="danger" onClick={() => setDeleteTarget(preset)}
-                aria-label={`Delete preset ${preset.name}`}>Delete</Button>
+              <MoreMenu label="More" name={`More actions for ${preset.name}`}>
+                <Button size="sm" variant="danger" onClick={() => setDeleteTarget(preset)}
+                  aria-label={`Delete preset ${preset.name}`}>Delete</Button>
+              </MoreMenu>
             </li>
           ))}
         </ul>
       </Card>
-      <Card>
+      <Button variant="primary" onClick={() => setEditorOpen(true)}>Save current state…</Button>
+      {editorOpen && <Card>
         <h3>Save current state as preset</h3>
         <Field label="Preset name" htmlFor="preset-save-name">
           <input id="preset-save-name" className="input" value={name}
@@ -107,7 +113,7 @@ export function DevicePresetsTab({ controllerId }: { controllerId: string }) {
         <Button variant="primary" onClick={saveCurrent} disabled={busy || name.trim() === ''}>
           Save preset
         </Button>
-      </Card>
+      </Card>}
       <Modal open={deleteTarget !== null} onClose={() => setDeleteTarget(null)} title="Delete preset"
         footer={
           <>

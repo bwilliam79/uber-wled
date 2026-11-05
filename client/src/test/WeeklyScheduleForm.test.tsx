@@ -23,7 +23,7 @@ describe('WeeklyScheduleForm v2', () => {
     fireEvent.click(screen.getByLabelText('Mon'));
     fireEvent.click(screen.getByLabelText('Fri'));
     fireEvent.change(screen.getByLabelText('time of day'), { target: { value: '20:30' } });
-    fireEvent.click(screen.getByText('Preview'));
+    fireEvent.click(screen.getByText('Preview on lights'));
     expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({
       name: 'Evenings', daysOfWeek: [1, 5],
       triggerType: 'weekly', timeOfDay: '20:30', offsetMinutes: 0,
@@ -44,7 +44,7 @@ describe('WeeklyScheduleForm v2', () => {
     fireEvent.click(screen.getByLabelText('Mon'));
     // "Turn off at" defaults to "Don't turn off"; switch it to Sunrise.
     fireEvent.change(screen.getByLabelText('Turn off at'), { target: { value: 'sunrise' } });
-    fireEvent.click(screen.getByText('Preview'));
+    fireEvent.click(screen.getByText('Preview on lights'));
     expect(onPreview).toHaveBeenCalledWith(
       expect.objectContaining({ offTrigger: { type: 'sunrise', offsetMinutes: 0 } })
     );
@@ -62,7 +62,7 @@ describe('WeeklyScheduleForm v2', () => {
     fireEvent.click(screen.getByLabelText('Mon'));
     fireEvent.click(screen.getByRole('radio', { name: 'Controller(s)' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'tv-lights' }));
-    fireEvent.click(screen.getByText('Preview'));
+    fireEvent.click(screen.getByText('Preview on lights'));
     expect(onPreview).toHaveBeenCalledWith(expect.objectContaining({
       target: {
         groupId: null,
@@ -79,8 +79,8 @@ describe('WeeklyScheduleForm v2', () => {
         onPreview={() => {}} onApprove={onApprove} onDiscard={() => {}} previewing={true}
       />
     );
-    expect(screen.queryByText('Preview')).toBeNull();
-    fireEvent.click(screen.getByText('Approve'));
+    expect(screen.queryByText('Preview on lights')).toBeNull();
+    fireEvent.click(screen.getByText('Save schedule'));
     expect(onApprove).toHaveBeenCalled();
   });
 });

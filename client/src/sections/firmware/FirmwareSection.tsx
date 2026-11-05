@@ -8,6 +8,7 @@ import { cachedDeviceName } from '../../lib/deviceNames';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
+import { ResultPanel } from '../../components/ui/ResultPanel';
 import { useToast } from '../../components/ui/Toast';
 import { GearIcon } from '../../components/icons';
 import './firmware.css';
@@ -34,6 +35,22 @@ function FirmwareRow({
   // update-available-but-unpinned controller has no direct action here —
   // the gear icon routes to the detail page's one-time picker instead.
   const canUpdateDirectly = !!status.data?.updateAvailable && !!status.data.pinnedAssetPattern;
+  const unpinned = !!status.data && !status.data.unreachable && !status.data.pinnedAssetPattern;
+  const statusLabel = updating
+    ? 'Updating'
+    : updateError
+      ? 'Failed'
+      : status.data?.unreachable
+        ? 'Offline'
+        : unpinned && status.data?.updateAvailable
+          ? 'Set up update'
+          : status.data?.updateAvailable
+            ? 'Update available'
+            : status.data
+              ? 'Current'
+              : status.isPending
+                ? 'Checking'
+                : 'Firmware status unavailable';
 
   async function handleUpdate() {
     setUpdating(true);
@@ -66,9 +83,15 @@ function FirmwareRow({
             {status.data.isPrerelease && ' (pre-release)'}
           </span>
         )}
+        <span className="firmware-row-status">{statusLabel}</span>
         {updateError && <span className="firmware-row-error" role="alert">{updateError}</span>}
       </div>
       <div className="firmware-row-actions">
+        {unpinned && (
+          <Button variant="secondary" size="sm" onClick={() => onOpenDeviceUpdate(controller.id)}>
+            Choose firmware
+          </Button>
+        )}
         {canUpdateDirectly && (
           <Button variant="primary" size="sm" disabled={updating || disableUpdate} onClick={handleUpdate}>
             {updating ? 'Updating…' : 'Update'}
@@ -100,6 +123,7 @@ export function FirmwareSection({
   const queryClient = useQueryClient();
   const toast = useToast();
   const [updatingAll, setUpdatingAll] = useState(false);
+  const [batch, setBatch] = useState<{ name: string; ok: boolean; error?: string }[] | null>(null);
 
   // Same requirement as a single row's direct Update button: only a pinned,
   // update-available controller can actually be pushed without visiting its
@@ -125,6 +149,7 @@ export function FirmwareSection({
           }
         })
       );
+      setBatch(results);
       const failed = results.filter((r) => !r.ok);
       if (failed.length === 0) {
         toast.show({
@@ -149,10 +174,24 @@ export function FirmwareSection({
         <h2>Firmware</h2>
         {updatableControllers.length > 0 && (
           <Button variant="primary" disabled={updatingAll} onClick={handleUpdateAll}>
-            {updatingAll ? 'Updating…' : `Update All (${updatableControllers.length})`}
+            {updatingAll ? 'Updating…' : `Update eligible (${updatableControllers.length})`}
           </Button>
         )}
       </div>
+      {controllers.data && controllers.data.length > 0 && updatableControllers.length < controllers.data.length && (
+        <p className="firmware-skipped">
+          Skipped {controllers.data.length - updatableControllers.length} — not pinned, already current, or offline.
+        </p>
+      )}
+      {batch && (
+        <ResultPanel title="Batch results" onDismiss={() => setBatch(null)}>
+          <ul>
+            {batch.map((row) => (
+              <li key={row.name}>{row.name}: {row.ok ? 'Updated' : `Failed — ${row.error ?? 'update failed'}`}</li>
+            ))}
+          </ul>
+        </ResultPanel>
+      )}
       <Card>
         {controllers.isError && (
           <div className="error-banner" role="alert">Failed to load controllers.</div>

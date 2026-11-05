@@ -7,13 +7,13 @@ import {
 } from '../../api/client';
 import { useSettings } from '../../api/queries';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
 import { Field } from '../../components/ui/Field';
 import { Toggle } from '../../components/ui/Toggle';
 import { Modal } from '../../components/ui/Modal';
 import { ImportButton } from '../../components/ImportButton';
 import { useToast } from '../../components/ui/Toast';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
+import { registerUnsavedGuard } from '../../lib/unsavedGuard';
 import { AddControllerCard } from './AddControllerCard';
 import './settings.css';
 
@@ -28,11 +28,41 @@ function coordDisplayPrecision(value: number): number {
   return Number(value.toFixed(6));
 }
 
+type CategoryId = 'controllers' | 'location' | 'polling' | 'firmware' | 'schedule' | 'backup';
+
+const CATEGORIES: { id: CategoryId; label: string }[] = [
+  { id: 'controllers', label: 'Controllers' },
+  { id: 'location', label: 'Home location' },
+  { id: 'polling', label: 'Polling & discovery' },
+  { id: 'firmware', label: 'Firmware defaults' },
+  { id: 'schedule', label: 'Schedule defaults' },
+  { id: 'backup', label: 'Backup & restore' }
+];
+
+const CATEGORY_KEYS: Record<CategoryId, (keyof Settings)[]> = {
+  controllers: [],
+  location: ['homeLatitude', 'homeLongitude'],
+  polling: ['discoveryRescanIntervalMinutes', 'controllerStatusPollIntervalMinutes', 'livePollIntervalSeconds'],
+  firmware: ['includePrereleaseFirmware'],
+  schedule: ['scheduleImportDisableOnDeviceDefault'],
+  backup: []
+};
+
+function categoryDirty(id: CategoryId, draft: Settings, saved: Settings): boolean {
+  return CATEGORY_KEYS[id].some((key) => draft[key] !== saved[key]);
+}
+
+function anyDirty(draft: Settings, saved: Settings): boolean {
+  return (Object.keys(CATEGORY_KEYS) as CategoryId[]).some((id) => categoryDirty(id, draft, saved));
+}
+
 export function SettingsSection() {
   const settings = useSettings();
   const queryClient = useQueryClient();
   const toast = useToast();
   const [draft, setDraft] = useState<Settings | null>(null);
+  const [category, setCategory] = useState<CategoryId>('controllers');
+  const [savedNote, setSavedNote] = useState<string | null>(null);
   const [rescanMessage, setRescanMessage] = useState<string | null>(null);
   const [rescanError, setRescanError] = useState<string | null>(null);
 
@@ -41,11 +71,24 @@ export function SettingsSection() {
   const [addressError, setAddressError] = useState<string | null>(null);
   const [addressCandidates, setAddressCandidates] = useState<GeocodeMatch[] | null>(null);
 
-  // Restore replaces the entire config, so it's gated behind a confirm.
   const [restoreFile, setRestoreFile] = useState<File | null>(null);
   const [restoring, setRestoring] = useState(false);
   const autoBackups = useQuery({ queryKey: ['auto-backups'], queryFn: listAutoBackups });
   const [restoreAutoName, setRestoreAutoName] = useState<string | null>(null);
+
+  const dirty = !!(draft && settings.data && anyDirty(draft, settings.data));
+
+  useEffect(() => registerUnsavedGuard(() => dirty), [dirty]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const onLeave = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onLeave);
+    return () => window.removeEventListener('beforeunload', onLeave);
+  }, [dirty]);
 
   async function performRestore() {
     if (!restoreFile) return;
@@ -53,9 +96,8 @@ export function SettingsSection() {
     try {
       const data = await readJsonFile(restoreFile);
       const result = await restoreBackupFile(data);
-      // Everything changed underneath us — refetch all app data.
       await queryClient.invalidateQueries();
-      setDraft(null); // re-seed the settings draft from the restored values
+      setDraft(null);
       const total = Object.values(result.restored).reduce((a, b) => a + b, 0);
       toast.show({ title: `Configuration restored (${total} records)`, variant: 'success' });
     } catch (err) {
@@ -88,20 +130,31 @@ export function SettingsSection() {
   }, [settings.data, draft]);
 
   const save = useMutation({
-    mutationFn: (next: Settings) => updateSettings(next),
-    onSuccess: (saved) => {
+    mutationFn: (body: Partial<Settings>) => updateSettings(body),
+    onSuccess: (saved, body) => {
       queryClient.setQueryData(['settings'], saved);
-      setDraft(saved);
+      setDraft((prev) => {
+        if (!prev) return saved;
+        const next = { ...prev };
+        for (const key of Object.keys(body) as (keyof Settings)[]) next[key] = saved[key];
+        return next;
+      });
+      setSavedNote('Saved');
     }
   });
 
   function patch<K extends keyof Settings>(key: K, value: Settings[K]) {
+    setSavedNote(null);
     setDraft((prev) => (prev ? { ...prev, [key]: value } : prev));
   }
 
   function applyCoords(latitude: number, longitude: number) {
-    patch('homeLatitude', coordDisplayPrecision(latitude));
-    patch('homeLongitude', coordDisplayPrecision(longitude));
+    setDraft((prev) => prev ? {
+      ...prev,
+      homeLatitude: coordDisplayPrecision(latitude),
+      homeLongitude: coordDisplayPrecision(longitude)
+    } : prev);
+    setSavedNote(null);
   }
 
   function applyAddressCandidate(match: GeocodeMatch) {
@@ -143,6 +196,27 @@ export function SettingsSection() {
     }
   }
 
+  function saveCategory() {
+    if (!draft) return;
+    const body: Partial<Settings> = {};
+    for (const key of CATEGORY_KEYS[category]) body[key] = draft[key];
+    if (category === 'polling' && body.livePollIntervalSeconds !== undefined) {
+      body.livePollIntervalSeconds = clampLivePoll(body.livePollIntervalSeconds);
+    }
+    save.mutate(body);
+  }
+
+  function discardCategory() {
+    if (!settings.data) return;
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev };
+      for (const key of CATEGORY_KEYS[category]) next[key] = settings.data![key];
+      return next;
+    });
+    setSavedNote(null);
+  }
+
   if (settings.isError) {
     return (
       <section className="section settings-section">
@@ -151,223 +225,298 @@ export function SettingsSection() {
       </section>
     );
   }
-  if (!draft) {
+  if (!draft || !settings.data) {
     return (
       <section className="section settings-section">
         <h2>Settings</h2>
-        <p className="empty-state">Loading…</p>
+        <p className="empty-state" role="status">Loading…</p>
       </section>
     );
   }
 
+  const paneDirty = categoryDirty(category, draft, settings.data);
+  const savable = CATEGORY_KEYS[category].length > 0;
+  const activeLabel = CATEGORIES.find((item) => item.id === category)?.label ?? 'Settings';
+  const backups = Array.isArray(autoBackups.data) ? autoBackups.data : [];
+  const latestBackup = backups[0];
+  const olderBackups = backups.slice(1);
+
   return (
     <section className="section settings-section">
-      <h2>Settings</h2>
+      <header className="settings-header">
+        <div>
+          <h2>Settings</h2>
+          <p className="settings-lede">One category at a time. Other unsaved drafts stay put until you save or discard them.</p>
+        </div>
+        {dirty && <p className="settings-dirty" role="status">Unsaved changes</p>}
+      </header>
       {save.isError && (
         <div className="error-banner" role="alert">Failed to save settings.</div>
       )}
 
-      <div className="settings-grid">
-        <AddControllerCard />
-        <Card className="settings-group">
-          <h3 className="settings-group-title">Home location</h3>
-          <p className="settings-group-hint">Used for sunrise/sunset schedule triggers.</p>
+      <div className="settings-layout">
+        <div className="settings-nav" role="tablist" aria-label="Settings categories">
+          {CATEGORIES.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={`settings-tab-${item.id}`}
+              className="settings-nav-btn"
+              aria-selected={category === item.id}
+              aria-controls={`settings-panel-${item.id}`}
+              onClick={() => { setCategory(item.id); setSavedNote(null); }}
+            >
+              <span>{item.label}</span>
+              {categoryDirty(item.id, draft, settings.data) && <span className="settings-nav-dirty">Unsaved</span>}
+            </button>
+          ))}
+        </div>
 
-          <div className="settings-field-pair">
-            <Field label="Latitude" htmlFor="settings-lat">
-              <input
-                id="settings-lat" className="input" type="number" step="any"
-                value={draft.homeLatitude ?? ''}
-                onChange={(e) =>
-                  patch('homeLatitude', e.target.value === '' ? null : Number(e.target.value))
-                }
-              />
-            </Field>
-            <Field label="Longitude" htmlFor="settings-lon">
-              <input
-                id="settings-lon" className="input" type="number" step="any"
-                value={draft.homeLongitude ?? ''}
-                onChange={(e) =>
-                  patch('homeLongitude', e.target.value === '' ? null : Number(e.target.value))
-                }
-              />
-            </Field>
-          </div>
-
-          <Field
-            label="Look up an address"
-            htmlFor="settings-address-lookup"
-            hint="Sends this query to OpenStreetMap's Nominatim geocoding service over the internet — the only outbound call this app makes besides checking for firmware updates."
+        <label className="settings-category-select">
+          Category
+          <select
+            aria-label="Settings category"
+            value={category}
+            onChange={(event) => { setCategory(event.target.value as CategoryId); setSavedNote(null); }}
           >
-            <div className="settings-address-row">
-              <input
-                id="settings-address-lookup"
-                className="input"
-                type="text"
-                placeholder="Search address…"
-                value={addressQuery}
-                onChange={(e) => setAddressQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleFindAddress();
-                  }
-                }}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={addressLoading || addressQuery.trim() === ''}
-                onClick={handleFindAddress}
-              >
-                {addressLoading ? 'Finding…' : 'Find'}
-              </Button>
-            </div>
-          </Field>
-          {addressError && <div className="error-banner" role="alert">{addressError}</div>}
-          {addressCandidates && addressCandidates.length > 1 && (
-            <ul className="settings-address-candidates">
-              {addressCandidates.map((match, i) => (
-                <li key={`${match.latitude},${match.longitude},${i}`}>
-                  <button
-                    type="button"
-                    className="settings-address-candidate"
-                    onClick={() => applyAddressCandidate(match)}
-                  >
-                    {match.displayName}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+            {CATEGORIES.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </label>
 
-        <Card className="settings-group">
-          <h3 className="settings-group-title">Polling &amp; discovery</h3>
-          <p className="settings-group-hint">How often the server reads from your controllers.</p>
-
-          <Field label="Discovery re-scan interval (minutes)" htmlFor="settings-interval">
-            <input
-              id="settings-interval" aria-label="Discovery re-scan interval (minutes)"
-              className="input" type="number" min={1}
-              value={draft.discoveryRescanIntervalMinutes}
-              onChange={(e) => patch('discoveryRescanIntervalMinutes', Number(e.target.value))}
-            />
-          </Field>
-
-          <Field
-            label="Controller status poll interval (minutes)"
-            htmlFor="settings-status-poll-interval"
-            hint="How often each controller's current state (power, brightness, effect, segments) is read and cached"
-          >
-            <input
-              id="settings-status-poll-interval"
-              aria-label="Controller status poll interval (minutes)"
-              className="input" type="number" min={1}
-              value={draft.controllerStatusPollIntervalMinutes}
-              onChange={(e) => patch('controllerStatusPollIntervalMinutes', Number(e.target.value))}
-            />
-          </Field>
-
-          <Field
-            label="Live poll interval (seconds)"
-            htmlFor="settings-live-poll"
-            hint="How often watched controllers are polled while Home, Layout, or a Control panel is open (1–30 s)"
-          >
-            <input
-              id="settings-live-poll" aria-label="Live poll interval (seconds)"
-              className="input" type="number" min={1} max={30}
-              value={draft.livePollIntervalSeconds}
-              onChange={(e) => patch('livePollIntervalSeconds', Number(e.target.value))}
-            />
-          </Field>
-        </Card>
-
-        <Card className="settings-group">
-          <h3 className="settings-group-title">Firmware &amp; schedules</h3>
-          <p className="settings-group-hint">Defaults for firmware updates and WLED schedule import.</p>
-
-          <div className="settings-toggle-row">
-            <Toggle
-              checked={draft.includePrereleaseFirmware}
-              onChange={(c) => patch('includePrereleaseFirmware', c)}
-              label="Include pre-release firmware builds"
-              showLabel={false}
-            />
-            <span>Include pre-release firmware builds</span>
-          </div>
-
-          <div className="settings-toggle-row">
-            <Toggle
-              checked={draft.scheduleImportDisableOnDeviceDefault}
-              onChange={(c) => patch('scheduleImportDisableOnDeviceDefault', c)}
-              label="Default disable on device for schedule import"
-              showLabel={false}
-            />
-            <span>Default "disable on device" when importing WLED schedules</span>
-          </div>
-        </Card>
-
-        <Card className="settings-group">
-          <h3 className="settings-group-title">Backup &amp; restore</h3>
-          <p className="settings-group-hint">
-            Download a full snapshot of your uber-wled configuration (controllers, rooms, sync groups,
-            themes, schedules, calendar events, layout, and settings), or restore one after a rebuild.
-          </p>
-          <div className="settings-backup-actions">
-            <Button variant="secondary" onClick={() => triggerDownload(BACKUP_URL)}>
-              Back up configuration
-            </Button>
-            <ImportButton label="Restore from backup…" onFile={setRestoreFile} disabled={restoring} />
-          </div>
-          <p className="settings-group-hint">
-            Restoring <strong>replaces everything</strong> currently in this instance with the backup's contents.
-          </p>
-          <div className="settings-autobackups">
-            <h4 className="settings-autobackups-title">Automatic backups</h4>
-            <p className="settings-group-hint">
-              A snapshot is saved on the server once a day (last {(autoBackups.data?.length ?? 0)} kept).
-            </p>
-            {autoBackups.data && autoBackups.data.length > 0 ? (
-              <ul className="settings-autobackup-list">
-                {autoBackups.data.map((b) => (
-                  <li key={b.name} className="settings-autobackup-row">
-                    <span className="settings-autobackup-date ui-mono">{b.name.replace(/^uber-wled-backup-|\.json$/g, '')}</span>
-                    <span className="settings-autobackup-size">{Math.max(1, Math.round(b.size / 1024))} KB</span>
-                    <a className="settings-autobackup-dl" href={autoBackupUrl(b.name)} download>Download</a>
-                    <button
-                      type="button" className="settings-autobackup-restore"
-                      onClick={() => setRestoreAutoName(b.name)} disabled={restoring}
-                    >
-                      Restore
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="empty-state">No automatic backups yet — the first is written within the hour.</p>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <div className="settings-actions">
-        <Button
-          variant="primary"
-          disabled={save.isPending}
-          onClick={() =>
-            save.mutate({
-              ...draft,
-              livePollIntervalSeconds: clampLivePoll(draft.livePollIntervalSeconds)
-            })
-          }
+        <div
+          className="settings-pane"
+          role="tabpanel"
+          id={`settings-panel-${category}`}
+          aria-labelledby={`settings-tab-${category}`}
         >
-          {save.isPending ? 'Saving…' : 'Save settings'}
-        </Button>
-        <Button variant="secondary" onClick={handleRescan}>Re-scan now</Button>
-        {rescanMessage && <p className="settings-note">{rescanMessage}</p>}
-        {rescanError && <div className="error-banner" role="alert">{rescanError}</div>}
+          <h3 className="settings-pane-title">{activeLabel}</h3>
+
+          {category === 'controllers' && (
+            <>
+              <p className="settings-group-hint">
+                Discovery adds controllers on the network. Use the form when a controller needs a manual host.
+              </p>
+              <AddControllerCard />
+            </>
+          )}
+
+          {category === 'location' && (
+            <>
+              <p className="settings-group-hint">Used for sunrise and sunset schedule triggers.</p>
+              <div className="settings-field-pair">
+                <Field label="Latitude" htmlFor="settings-lat">
+                  <input
+                    id="settings-lat" className="input" type="number" step="any"
+                    value={draft.homeLatitude ?? ''}
+                    onChange={(e) =>
+                      patch('homeLatitude', e.target.value === '' ? null : Number(e.target.value))
+                    }
+                  />
+                </Field>
+                <Field label="Longitude" htmlFor="settings-lon">
+                  <input
+                    id="settings-lon" className="input" type="number" step="any"
+                    value={draft.homeLongitude ?? ''}
+                    onChange={(e) =>
+                      patch('homeLongitude', e.target.value === '' ? null : Number(e.target.value))
+                    }
+                  />
+                </Field>
+              </div>
+              <Field
+                label="Look up an address"
+                htmlFor="settings-address-lookup"
+                hint="Sends this query to OpenStreetMap's Nominatim geocoding service over the internet — the only outbound call this app makes besides checking for firmware updates. Nothing is sent until you choose Find."
+              >
+                <div className="settings-address-row">
+                  <input
+                    id="settings-address-lookup"
+                    className="input"
+                    type="text"
+                    placeholder="Search address…"
+                    value={addressQuery}
+                    onChange={(e) => setAddressQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleFindAddress();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={addressLoading || addressQuery.trim() === ''}
+                    onClick={handleFindAddress}
+                  >
+                    {addressLoading ? 'Finding…' : 'Find'}
+                  </Button>
+                </div>
+              </Field>
+              {addressError && <div className="error-banner" role="alert">{addressError}</div>}
+              {addressCandidates && addressCandidates.length > 1 && (
+                <ul className="settings-address-candidates">
+                  {addressCandidates.map((match, i) => (
+                    <li key={`${match.latitude},${match.longitude},${i}`}>
+                      <button
+                        type="button"
+                        className="settings-address-candidate"
+                        onClick={() => applyAddressCandidate(match)}
+                      >
+                        {match.displayName}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+
+          {category === 'polling' && (
+            <>
+              <p className="settings-group-hint">How often the server reads from your controllers.</p>
+              <Field label="Discovery re-scan interval (minutes)" htmlFor="settings-interval">
+                <input
+                  id="settings-interval" aria-label="Discovery re-scan interval (minutes)"
+                  className="input" type="number" min={1}
+                  value={draft.discoveryRescanIntervalMinutes}
+                  onChange={(e) => patch('discoveryRescanIntervalMinutes', Number(e.target.value))}
+                />
+              </Field>
+              <Field
+                label="Controller status poll interval (minutes)"
+                htmlFor="settings-status-poll-interval"
+                hint="How often each controller's current state (power, brightness, effect, segments) is read and cached"
+              >
+                <input
+                  id="settings-status-poll-interval"
+                  aria-label="Controller status poll interval (minutes)"
+                  className="input" type="number" min={1}
+                  value={draft.controllerStatusPollIntervalMinutes}
+                  onChange={(e) => patch('controllerStatusPollIntervalMinutes', Number(e.target.value))}
+                />
+              </Field>
+              <Field
+                label="Live poll interval (seconds)"
+                htmlFor="settings-live-poll"
+                hint="How often watched controllers are polled while a Control panel is open (1–30 s)"
+              >
+                <input
+                  id="settings-live-poll" aria-label="Live poll interval (seconds)"
+                  className="input" type="number" min={1} max={30}
+                  value={draft.livePollIntervalSeconds}
+                  onChange={(e) => patch('livePollIntervalSeconds', Number(e.target.value))}
+                />
+              </Field>
+              <hr className="settings-divider" />
+              <div className="settings-rescan">
+                <Button variant="secondary" onClick={handleRescan}>Re-scan now</Button>
+                <p className="settings-group-hint">Re-scan runs immediately and is not part of Save changes.</p>
+                {rescanMessage && <p className="settings-note" role="status">{rescanMessage}</p>}
+                {rescanError && <div className="error-banner" role="alert">{rescanError}</div>}
+              </div>
+            </>
+          )}
+
+          {category === 'firmware' && (
+            <div className="settings-toggle-row">
+              <Toggle
+                checked={draft.includePrereleaseFirmware}
+                onChange={(c) => patch('includePrereleaseFirmware', c)}
+                label="Include pre-release firmware builds"
+                showLabel={false}
+              />
+              <span>Include pre-release firmware builds</span>
+            </div>
+          )}
+
+          {category === 'schedule' && (
+            <div className="settings-toggle-row">
+              <Toggle
+                checked={draft.scheduleImportDisableOnDeviceDefault}
+                onChange={(c) => patch('scheduleImportDisableOnDeviceDefault', c)}
+                label="Default disable on device for schedule import"
+                showLabel={false}
+              />
+              <span>Default "disable on device" when importing WLED schedules</span>
+            </div>
+          )}
+
+          {category === 'backup' && (
+            <>
+              <p className="settings-group-hint">
+                Download a full snapshot of controllers, rooms, sync groups, themes, schedules, calendar events, layout, and settings.
+              </p>
+              <Button variant="primary" onClick={() => triggerDownload(BACKUP_URL)}>
+                Download backup
+              </Button>
+              {latestBackup ? (
+                <p className="settings-group-hint">
+                  Latest automatic snapshot: <span className="ui-mono">{latestBackup.name.replace(/^uber-wled-backup-|\.json$/g, '')}</span>
+                  {' '}({Math.max(1, Math.round(latestBackup.size / 1024))} KB). {backups.length} kept.
+                </p>
+              ) : (
+                <p className="empty-state">No automatic backups yet — the first is written within the hour.</p>
+              )}
+              {olderBackups.length > 0 && (
+                <details className="settings-backup-all">
+                  <summary>Show all backups</summary>
+                  <ul className="settings-autobackup-list">
+                    {olderBackups.map((b) => (
+                      <li key={b.name} className="settings-autobackup-row">
+                        <span className="settings-autobackup-date ui-mono">{b.name.replace(/^uber-wled-backup-|\.json$/g, '')}</span>
+                        <span className="settings-autobackup-size">{Math.max(1, Math.round(b.size / 1024))} KB</span>
+                        <a className="settings-autobackup-dl" href={autoBackupUrl(b.name)} download>Download</a>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+              {latestBackup && (
+                <div className="settings-autobackup-row">
+                  <a className="settings-autobackup-dl" href={autoBackupUrl(latestBackup.name)} download>Download latest</a>
+                </div>
+              )}
+              <div className="settings-danger">
+                <h4>Restore</h4>
+                <p className="settings-group-hint">
+                  Restoring replaces everything currently in this instance. There is no undo.
+                </p>
+                <ImportButton label="Restore from backup…" onFile={setRestoreFile} disabled={restoring} />
+                {backups.length > 0 && (
+                  <ul className="settings-autobackup-list">
+                    {backups.map((b) => (
+                      <li key={`restore-${b.name}`} className="settings-autobackup-row">
+                        <span className="settings-autobackup-date ui-mono">{b.name.replace(/^uber-wled-backup-|\.json$/g, '')}</span>
+                        <button
+                          type="button" className="settings-autobackup-restore"
+                          onClick={() => setRestoreAutoName(b.name)} disabled={restoring}
+                        >
+                          Restore
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
+
+          {savable && (
+            <div className="settings-savebar">
+              <Button variant="primary" disabled={!paneDirty || save.isPending} onClick={saveCategory}>
+                {save.isPending ? 'Saving…' : 'Save changes'}
+              </Button>
+              <Button variant="secondary" disabled={!paneDirty || save.isPending} onClick={discardCategory}>
+                Discard
+              </Button>
+              {savedNote && !paneDirty && <p className="settings-note" role="status">{savedNote}</p>}
+            </div>
+          )}
+        </div>
       </div>
 
       <Modal

@@ -58,16 +58,21 @@ export function MasterBar({
       </div>
       <div className="master-bar-spacer" />
 
-      <div className="master-bar-status" title={`${onCount} controller(s) on`}>
-        <span className={`master-bar-status-dot${statusActive ? ' pulse' : ''}`} />
-        <span className="master-bar-status-text">{statusText}</span>
-      </div>
-      {offlineCount > 0 && (
-        <div className="master-bar-offline" title={`${offlineCount} controller(s) offline`}>
-          <span className="master-bar-offline-dot" />
-          <span>{offlineCount} offline</span>
+      <details className="fleet-status" open>
+        <summary className="fleet-status-summary">Fleet status</summary>
+        <div className="fleet-status-body">
+          <div className="master-bar-status" title={`${onCount} controller(s) on`}>
+            <span className={`master-bar-status-dot${statusActive ? ' pulse' : ''}`} />
+            <span className="master-bar-status-text">{statusText}</span>
+          </div>
+          {offlineCount > 0 && (
+            <div className="master-bar-offline" title={`${offlineCount} controller(s) offline`}>
+              <span className="master-bar-offline-dot" />
+              <span>{offlineCount} offline</span>
+            </div>
+          )}
         </div>
-      )}
+      </details>
 
       <div className="theme-toggle" role="group" aria-label="Theme">
         <button

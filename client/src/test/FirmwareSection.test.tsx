@@ -39,7 +39,7 @@ function stub({
       return Promise.resolve({
         ok: true,
         json: async () => [
-          { id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern }
+          { id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern }
         ]
       });
     }
@@ -57,7 +57,7 @@ describe('FirmwareSection v2', () => {
     await waitFor(() => expect(screen.getByText('Porch')).toBeTruthy());
     expect(screen.getByText('Installed: 0.14.0')).toBeTruthy();
     expect(screen.getByText('Update available (v0.15.0)')).toBeTruthy();
-    expect(screen.queryByText('10.0.0.50')).toBeNull();
+    expect(screen.queryByText('192.0.2.50')).toBeNull();
     expect(screen.queryByText(/Hardware:/)).toBeNull();
 
     fireEvent.click(screen.getByLabelText('Firmware settings for Porch'));
@@ -122,7 +122,7 @@ describe('FirmwareSection v2', () => {
       if (url === '/api/controllers') {
         return Promise.resolve({
           ok: true,
-          json: async () => [{ id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' }]
+          json: async () => [{ id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' }]
         });
       }
       return Promise.resolve({ ok: true, json: async () => [] });
@@ -174,9 +174,9 @@ describe('FirmwareSection v2', () => {
         return Promise.resolve({
           ok: true,
           json: async () => [
-            { id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
-            { id: 'c2', name: 'Bar', host: '10.0.0.51', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
-            { id: 'c3', name: 'Shelves', host: '10.0.0.52', source: 'manual', stale: false, pinnedAssetPattern: null }
+            { id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
+            { id: 'c2', name: 'Bar', host: '192.0.2.51', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
+            { id: 'c3', name: 'Shelves', host: '192.0.2.52', source: 'manual', stale: false, pinnedAssetPattern: null }
           ]
         });
       }
@@ -185,9 +185,9 @@ describe('FirmwareSection v2', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     renderFirmware(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Update All (2)' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Update eligible (2)' })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Update All (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Update eligible (2)' }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith('/api/controllers/c1/firmware/update', expect.objectContaining({ method: 'POST' }))

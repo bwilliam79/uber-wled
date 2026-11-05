@@ -15,6 +15,7 @@ function renderTab(routes: Record<string, unknown> = {}, onRemoved = vi.fn()) {
 describe('InfoTab', () => {
   it('renders the probed facts grid', () => {
     renderTab();
+    fireEvent.click(screen.getByRole('button', { name: 'Diagnostics' }));
     expect(screen.getByText('32d 7h')).toBeTruthy(); // uptime 2791487 s
     expect(screen.getByText('98% (4/4 bars), channel 6')).toBeTruthy();
     expect(screen.getByText('118 KiB')).toBeTruthy(); // freeheap 120876

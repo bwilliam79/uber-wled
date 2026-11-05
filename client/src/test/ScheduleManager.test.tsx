@@ -15,7 +15,7 @@ function stub() {
     if (url === '/api/controllers') {
       return Promise.resolve({
         ok: true,
-        json: async () => [{ id: 'c1', name: 'Cabinet', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null }]
+        json: async () => [{ id: 'c1', name: 'Cabinet', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: null }]
       });
     }
     if (url === '/api/groups') {
@@ -54,7 +54,7 @@ async function openFormAndPreview(fetchMock: ReturnType<typeof stub>) {
   fireEvent.click(openBtn);
   fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Evenings' } });
   fireEvent.click(screen.getByLabelText('Mon'));
-  fireEvent.click(screen.getByText('Preview'));
+  fireEvent.click(screen.getByText('Preview on lights'));
   await waitFor(() =>
     expect(fetchMock.mock.calls.some(([u]) => u === '/api/control/apply')).toBe(true)
   );
@@ -76,7 +76,7 @@ describe('ScheduleManager v2', () => {
     const fetchMock = stub();
     renderWithQuery(<ScheduleManager />);
     await openFormAndPreview(fetchMock);
-    fireEvent.click(screen.getByText('Discard'));
+    fireEvent.click(screen.getByText('Cancel preview'));
     await waitFor(() => {
       const applies = fetchMock.mock.calls.filter(([u]) => u === '/api/control/apply');
       expect(applies).toHaveLength(2);
@@ -91,7 +91,7 @@ describe('ScheduleManager v2', () => {
     const fetchMock = stub();
     renderWithQuery(<ScheduleManager />);
     await openFormAndPreview(fetchMock);
-    fireEvent.click(screen.getByText('Approve'));
+    fireEvent.click(screen.getByText('Save schedule'));
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(([u, i]) => u === '/api/schedules' && (i as RequestInit)?.method === 'POST')
@@ -117,7 +117,7 @@ describe('ScheduleManager v2', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Direct' } });
     fireEvent.click(screen.getByLabelText('Mon'));
     fireEvent.click(screen.getByRole('radio', { name: 'Controller(s)' }));
-    fireEvent.click(screen.getByText('Preview'));
+    fireEvent.click(screen.getByText('Preview on lights'));
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([u]) => u === '/api/control/apply')).toBe(true)
     );
@@ -148,7 +148,7 @@ describe('ScheduleManager v2', () => {
         if (url === '/api/controllers') {
           return Promise.resolve({
             ok: true,
-            json: async () => [{ id: 'c1', name: 'Cabinet', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null }]
+            json: async () => [{ id: 'c1', name: 'Cabinet', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: null }]
           });
         }
         if (url === '/api/groups') {
@@ -178,7 +178,9 @@ describe('ScheduleManager v2', () => {
       renderWithQuery(<ScheduleManager />);
       await screen.findByText('Evening glow');
       // Row sub-line is "{days} · {theme} · {target}".
-      expect(screen.getByText(/Mon Wed · Spooky · Group Front/)).toBeTruthy();
+      expect(screen.getByText('Mon Wed')).toBeTruthy();
+      expect(screen.getByText('Spooky')).toBeTruthy();
+      expect(screen.getByText('Group Front')).toBeTruthy();
     });
 
     it('Edit pre-fills the form and PATCHes (not POST) on Save, skipping the preview dance entirely', async () => {

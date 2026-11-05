@@ -111,7 +111,8 @@ export function DevicesSection() {
       {tab === 'controllers' && (
         !controllers.isLoading && !controllers.isError && list.length === 0 ? (
           <p className="empty-state">
-            No controllers yet — discovery adds them automatically, or add one in Settings.
+            No controllers yet — discovery adds them automatically, or{' '}
+            <a href="#/settings">Add a controller</a>.
           </p>
         ) : (
           <div className="devices-grid">

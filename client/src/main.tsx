@@ -11,6 +11,9 @@ import '@fontsource/ibm-plex-mono/600.css'
 import './index.css'
 import App from './App.tsx'
 import { createQueryClient } from './api/queryClient'
+import { installDevFixtures } from './dev/fixtures'
+
+installDevFixtures()
 import { ToastProvider } from './components/ui'
 import { ThemeProvider } from './theme/ThemeProvider'
 

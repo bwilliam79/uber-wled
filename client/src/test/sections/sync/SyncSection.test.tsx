@@ -174,6 +174,7 @@ describe('SyncSection', () => {
     });
     renderSync();
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Front porch' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     const nameInput = screen.getByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Renamed' } });
@@ -190,6 +191,7 @@ describe('SyncSection', () => {
     stubFetchRoutes({ 'GET /api/controllers': CONTROLLERS, 'GET /api/sync-groups': [activeGroup] });
     renderSync();
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Front porch' }));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(screen.getByText('Deactivate this sync group to change its members.')).toBeTruthy();
     expect((screen.getByRole('checkbox', { name: /Cabinet/ }) as HTMLInputElement).disabled).toBe(true);
@@ -203,6 +205,7 @@ describe('SyncSection', () => {
     });
     renderSync();
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
+    fireEvent.click(screen.getByRole('button', { name: 'More actions for Front porch' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete Front porch' }));
     const dialog = screen.getByRole('dialog', { name: 'Delete sync group' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
