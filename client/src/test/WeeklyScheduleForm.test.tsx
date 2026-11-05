@@ -83,4 +83,15 @@ describe('WeeklyScheduleForm v2', () => {
     fireEvent.click(screen.getByText('Save schedule'));
     expect(onApprove).toHaveBeenCalled();
   });
+
+  it('names the server timezone in the When hint', () => {
+    render(
+      <WeeklyScheduleForm
+        groups={groups} controllers={controllers} live={live} themes={themes}
+        onPreview={() => {}} onApprove={() => {}} onDiscard={() => {}} previewing={false}
+        timeZone="UTC"
+      />
+    );
+    expect(screen.getByText(/server timezone \(UTC\)/)).toBeTruthy();
+  });
 });

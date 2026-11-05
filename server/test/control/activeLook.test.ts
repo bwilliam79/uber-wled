@@ -29,8 +29,8 @@ describe('control apply active-look tracking', () => {
   let controllerB: string;
   let gameId: string;
   let dimId: string;
-  const HOST_A = '10.0.0.50';
-  const HOST_B = '10.0.0.51';
+  const HOST_A = '192.0.2.50';
+  const HOST_B = '198.51.100.51';
 
   beforeEach(() => {
     db = createDb(':memory:');

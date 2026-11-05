@@ -33,7 +33,7 @@ function FirmwareRow({
 
   // Pinning is required before the server will push an update at all, so an
   // update-available-but-unpinned controller has no direct action here —
-  // the gear icon routes to the detail page's one-time picker instead.
+  // the settings button routes to the detail page's one-time picker instead.
   const canUpdateDirectly = !!status.data?.updateAvailable && !!status.data.pinnedAssetPattern;
   const unpinned = !!status.data && !status.data.unreachable && !status.data.pinnedAssetPattern;
   const statusLabel = updating
@@ -123,7 +123,7 @@ export function FirmwareSection({
   const queryClient = useQueryClient();
   const toast = useToast();
   const [updatingAll, setUpdatingAll] = useState(false);
-  const [batch, setBatch] = useState<{ name: string; ok: boolean; error?: string }[] | null>(null);
+  const [batch, setBatch] = useState<{ id: string; name: string; ok: boolean; error?: string }[] | null>(null);
 
   // Same requirement as a single row's direct Update button: only a pinned,
   // update-available controller can actually be pushed without visiting its
@@ -141,9 +141,9 @@ export function FirmwareSection({
           const name = live.get(c.id)?.info?.name || cachedDeviceName(c.id) || c.name;
           try {
             const result = await pushFirmwareUpdate(c.id);
-            return { name, ok: result.ok, error: result.error };
+            return { id: c.id, name, ok: result.ok, error: result.error };
           } catch (err: any) {
-            return { name, ok: false, error: err.message };
+            return { id: c.id, name, ok: false, error: err.message };
           } finally {
             queryClient.invalidateQueries({ queryKey: ['firmware', c.id] });
           }
@@ -187,7 +187,7 @@ export function FirmwareSection({
         <ResultPanel title="Batch results" onDismiss={() => setBatch(null)}>
           <ul>
             {batch.map((row) => (
-              <li key={row.name}>{row.name}: {row.ok ? 'Updated' : `Failed — ${row.error ?? 'update failed'}`}</li>
+              <li key={row.id}>{row.name}: {row.ok ? 'Updated' : `Failed — ${row.error ?? 'update failed'}`}</li>
             ))}
           </ul>
         </ResultPanel>

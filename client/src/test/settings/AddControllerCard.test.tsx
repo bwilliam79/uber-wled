@@ -9,13 +9,13 @@ describe('AddControllerCard', () => {
   it('POSTs the name + host to /api/controllers', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ id: 'c3', name: 'Attic', host: '10.0.0.60', source: 'manual', stale: false, pinnedAssetPattern: null })
+      json: async () => ({ id: 'c3', name: 'Attic', host: '192.0.2.60', source: 'manual', stale: false, pinnedAssetPattern: null })
     });
     vi.stubGlobal('fetch', fetchMock);
     renderWithQuery(<AddControllerCard />);
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Attic' } });
-    fireEvent.change(screen.getByLabelText('Host or IP'), { target: { value: '10.0.0.60' } });
+    fireEvent.change(screen.getByLabelText('Host or IP'), { target: { value: '192.0.2.60' } });
     fireEvent.click(screen.getByRole('button', { name: 'Add controller' }));
 
     await waitFor(() => {
@@ -23,7 +23,7 @@ describe('AddControllerCard', () => {
         ([url, init]) => String(url) === '/api/controllers' && (init as RequestInit)?.method === 'POST'
       );
       expect(call).toBeTruthy();
-      expect(JSON.parse((call![1] as RequestInit).body as string)).toEqual({ name: 'Attic', host: '10.0.0.60' });
+      expect(JSON.parse((call![1] as RequestInit).body as string)).toEqual({ name: 'Attic', host: '192.0.2.60' });
     });
   });
 
@@ -33,7 +33,7 @@ describe('AddControllerCard', () => {
     expect(btn.disabled).toBe(true);
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Attic' } });
     expect(btn.disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText('Host or IP'), { target: { value: '10.0.0.60' } });
+    fireEvent.change(screen.getByLabelText('Host or IP'), { target: { value: '192.0.2.60' } });
     expect(btn.disabled).toBe(false);
   });
 });

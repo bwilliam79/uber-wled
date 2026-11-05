@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { pushOtaUpdate } from '../../src/firmware/otaPush.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 afterEach(() => vi.unstubAllGlobals());
 

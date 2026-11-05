@@ -5,7 +5,7 @@ import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createSegmentsRouter } from '../../src/segments/routes.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 function stubFetchOnce(expected: { url: string; method?: string; body?: unknown }, responseBody: unknown) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {

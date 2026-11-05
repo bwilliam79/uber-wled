@@ -41,7 +41,7 @@ describe('capability service', () => {
     db = createDb(':memory:');
     capsRepo = createCapabilitiesRepository(db);
     const added = createControllerRepository(db)
-      .add({ name: 'Cabinet Lights', host: '10.0.0.50', source: 'manual' });
+      .add({ name: 'Cabinet Lights', host: '192.0.2.50', source: 'manual' });
     controller = { id: added.id, host: added.host };
   });
 

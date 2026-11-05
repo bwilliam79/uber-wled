@@ -151,8 +151,8 @@ Devices:
    groups" below for how this actually works on the wire.
 5. **Firmware** — fleet view of installed vs. latest stable version
    (pre-releases opt-in via Settings) per controller, with a one-click
-   Update button (and an "Update All" button fleet-wide) once a device is
-   pinned and a newer release exists, plus a gear icon into that device's
+   Update button (and an "Update eligible (N)" button fleet-wide) once a device is
+   pinned and a newer release exists, plus a settings button into that device's
    own Update tab for first-time setup or re-pinning; detected hardware
    architecture and the asset picker itself live there rather than
    cluttering the fleet list. First update per controller requires a

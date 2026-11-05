@@ -49,7 +49,7 @@ describe('DevicePresetsTab', () => {
   it('deletes a preset only after modal confirmation', async () => {
     const { fn } = renderTab({ 'DELETE /api/controllers/c1/presets/2': {} });
     fireEvent.click(await screen.findByRole('button', { name: 'More actions for Party loop' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete preset Party loop' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete preset Party loop' }));
     await screen.findByText(/Delete “Party loop” \(id 2\)/);
     fireEvent.click(screen.getByRole('button', { name: 'Delete preset' }));
     await waitFor(() => expect(fn).toHaveBeenCalledWith(

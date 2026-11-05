@@ -31,13 +31,13 @@ describe('inferSlash24s', () => {
     // RFC1918 examples only — not a real network.
     const cidrs = inferSlash24s({
       eth0: [v4('192.168.4.15'), v4('192.168.4.40'), { address: '2001:db8::1', family: 'IPv6', internal: false }],
-      eth1: [v4('10.10.10.8')],
+      eth1: [v4('172.16.10.8')],
       eth2: [v4('172.16.3.9'), v4('172.32.0.9')],
       lo: [v4('127.0.0.1', true)],
       docs: [v4('192.0.2.15'), v4('198.51.100.8')],
       linklocal: [v4('169.254.1.10')]
     });
-    expect(cidrs).toEqual(['192.168.4.0/24', '10.10.10.0/24']);
+    expect(cidrs).toEqual(['192.168.4.0/24', '172.16.10.0/24']);
   });
 
   it('skips docker, bridge, veth, and colima interfaces and keeps at most two /24s', () => {
@@ -45,14 +45,14 @@ describe('inferSlash24s', () => {
       docker0: [v4('172.17.0.1')],
       'br-7f3a': [v4('172.18.0.1')],
       bridge0: [v4('172.18.0.19')],
-      veth0abc: [v4('10.64.0.9')],
-      col0: [v4('10.64.0.8')],
-      colima: [v4('10.64.0.7')],
+      veth0abc: [v4('192.0.2.9')],
+      col0: [v4('198.51.100.8')],
+      colima: [v4('203.0.113.7')],
       eth0: [v4('192.168.4.15')],
-      eth1: [v4('10.0.0.8')],
+      eth1: [v4('172.16.4.8')],
       eth2: [v4('172.16.3.19')]
     });
-    expect(cidrs).toEqual(['192.168.4.0/24', '10.0.0.0/24']);
+    expect(cidrs).toEqual(['192.168.4.0/24', '172.16.4.0/24']);
   });
 });
 
@@ -61,8 +61,8 @@ describe('resolveDiscoveryCidrs', () => {
 
   it('defaults to inferred /24s when unset, and honors an explicit list or off', () => {
     expect(resolveDiscoveryCidrs(undefined, interfaces)).toEqual(['192.168.4.0/24']);
-    expect(resolveDiscoveryCidrs('10.0.0.0/24, 172.16.3.0/24', interfaces)).toEqual([
-      '10.0.0.0/24',
+    expect(resolveDiscoveryCidrs('172.16.8.0/24, 172.16.3.0/24', interfaces)).toEqual([
+      '172.16.8.0/24',
       '172.16.3.0/24'
     ]);
     expect(resolveDiscoveryCidrs('off', interfaces)).toEqual([]);
@@ -91,8 +91,8 @@ describe('resolveDiscoveryCidrs', () => {
     try {
       expect(resolveDiscoveryCidrs(undefined, {
         docker0: [v4('172.17.0.1')],
-        col0: [v4('10.64.0.8')],
-        veth0abc: [v4('10.64.0.9')]
+        col0: [v4('192.0.2.8')],
+        veth0abc: [v4('198.51.100.9')]
       })).toEqual([]);
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn.mock.calls[0][0]).toContain('DISCOVERY_CIDR');
@@ -125,9 +125,9 @@ describe('selectDiscoveryCidrs', () => {
   it('uses DISCOVERY_CIDR, then inferred /24s, for a real mDNS scan', () => {
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
-      envValue: '10.0.0.0/24',
+      envValue: '172.16.8.0/24',
       interfaces
-    })).toEqual(['10.0.0.0/24']);
+    })).toEqual(['172.16.8.0/24']);
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
       envValue: undefined,

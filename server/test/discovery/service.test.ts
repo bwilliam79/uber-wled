@@ -17,27 +17,27 @@ describe('runDiscoveryCycle', () => {
   });
 
   it('adds newly discovered controllers', async () => {
-    await runDiscoveryCycle(db, async () => [{ host: '10.0.0.50', name: 'Porch' }]);
+    await runDiscoveryCycle(db, async () => [{ host: '192.0.2.50', name: 'Porch' }]);
     const list = repo.list();
     expect(list).toHaveLength(1);
-    expect(list[0]).toMatchObject({ host: '10.0.0.50', name: 'Porch', source: 'discovered', stale: false });
+    expect(list[0]).toMatchObject({ host: '192.0.2.50', name: 'Porch', source: 'discovered', stale: false });
   });
 
   it('marks a previously discovered controller stale when it disappears', async () => {
-    await runDiscoveryCycle(db, async () => [{ host: '10.0.0.50', name: 'Porch' }]);
+    await runDiscoveryCycle(db, async () => [{ host: '192.0.2.50', name: 'Porch' }]);
     await runDiscoveryCycle(db, async () => []);
     expect(repo.list()[0].stale).toBe(true);
   });
 
   it('un-stales a controller that reappears', async () => {
-    await runDiscoveryCycle(db, async () => [{ host: '10.0.0.50', name: 'Porch' }]);
+    await runDiscoveryCycle(db, async () => [{ host: '192.0.2.50', name: 'Porch' }]);
     await runDiscoveryCycle(db, async () => []);
-    await runDiscoveryCycle(db, async () => [{ host: '10.0.0.50', name: 'Porch' }]);
+    await runDiscoveryCycle(db, async () => [{ host: '192.0.2.50', name: 'Porch' }]);
     expect(repo.list()[0].stale).toBe(false);
   });
 
   it('never removes or stales a manually-added controller', async () => {
-    repo.add({ name: 'Deck', host: '10.0.0.60', source: 'manual' });
+    repo.add({ name: 'Deck', host: '198.51.100.60', source: 'manual' });
     await runDiscoveryCycle(db, async () => []);
     const list = repo.list();
     expect(list).toHaveLength(1);

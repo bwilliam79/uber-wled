@@ -63,8 +63,8 @@ describe('applyActionV2', () => {
   function setup() {
     const db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    const a = controllers.add({ name: 'A', host: '10.0.0.50', source: 'manual' }).id;
-    const b = controllers.add({ name: 'B', host: '10.0.0.51', source: 'manual' }).id;
+    const a = controllers.add({ name: 'A', host: '192.0.2.50', source: 'manual' }).id;
+    const b = controllers.add({ name: 'B', host: '198.51.100.51', source: 'manual' }).id;
     return { db, a, b };
   }
 
@@ -72,8 +72,8 @@ describe('applyActionV2', () => {
     const { db, a, b } = setup();
     const bodies: any[] = [];
     stubFetchByHost({
-      '10.0.0.50': (_url, init) => { bodies.push(JSON.parse(init?.body as string)); return { status: 200, body: okState }; },
-      '10.0.0.51': (_url, init) => { bodies.push(JSON.parse(init?.body as string)); return { status: 200, body: okState }; }
+      '192.0.2.50': (_url, init) => { bodies.push(JSON.parse(init?.body as string)); return { status: 200, body: okState }; },
+      '198.51.100.51': (_url, init) => { bodies.push(JSON.parse(init?.body as string)); return { status: 200, body: okState }; }
     });
 
     const results = await applyActionV2(db, [
@@ -94,7 +94,7 @@ describe('applyActionV2', () => {
     const theme = themes.add({ name: 'Sunset', effect: 2, palette: 5, colors: [[255, 100, 0]], brightness: 180 });
     let captured: any;
     stubFetchByHost({
-      '10.0.0.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
+      '192.0.2.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
     });
 
     const results = await applyActionV2(db, [{ controllerId: a, wledSegId: 1 }],
@@ -113,7 +113,7 @@ describe('applyActionV2', () => {
     const { db, a } = setup();
     let captured: any;
     stubFetchByHost({
-      '10.0.0.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
+      '192.0.2.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
     });
 
     const results = await applyActionV2(db, [{ controllerId: a, wledSegId: null }],
@@ -128,7 +128,7 @@ describe('applyActionV2', () => {
     const { db, a } = setup();
     let captured: any;
     stubFetchByHost({
-      '10.0.0.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
+      '192.0.2.50': (_url, init) => { captured = JSON.parse(init?.body as string); return { status: 200, body: okState }; }
     });
 
     const results = await applyActionV2(db, [{ controllerId: a, wledSegId: 0 }],
@@ -157,8 +157,8 @@ describe('applyActionV2', () => {
   it('isolates one failing member and retries it exactly once (v1 parity via applyControlPatch)', async () => {
     const { db, a, b } = setup();
     const fetchMock = stubFetchByHost({
-      '10.0.0.50': () => ({ status: 200, body: okState }),
-      '10.0.0.51': () => ({ status: 500, body: {} })
+      '192.0.2.50': () => ({ status: 200, body: okState }),
+      '198.51.100.51': () => ({ status: 500, body: {} })
     });
 
     const results = await applyActionV2(db, [
@@ -170,7 +170,7 @@ describe('applyActionV2', () => {
     const failed = results.find((r) => r.controllerId === b)!;
     expect(failed.ok).toBe(false);
     expect(failed.error).toBeTruthy();
-    const hostBCalls = fetchMock.mock.calls.filter(([url]) => new URL(url as string).host === '10.0.0.51');
+    const hostBCalls = fetchMock.mock.calls.filter(([url]) => new URL(url as string).host === '198.51.100.51');
     expect(hostBCalls.length).toBe(2);
   });
 });

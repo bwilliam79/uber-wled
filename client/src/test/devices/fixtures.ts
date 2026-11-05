@@ -66,7 +66,7 @@ export function probedCfg(): Record<string, any> {
 
 export const CONTROLLERS: Controller[] = [
   { id: 'c1', name: 'Cabinet Lights', host: '203.0.113.86', source: 'discovered', stale: false, pinnedAssetPattern: 'ESP32' },
-  { id: 'c2', name: 'Porch', host: '10.0.0.51', source: 'manual', stale: true, pinnedAssetPattern: null }
+  { id: 'c2', name: 'Porch', host: '192.0.2.51', source: 'manual', stale: true, pinnedAssetPattern: null }
 ];
 
 /** /json/info probe subset (uptime 2791487 s = 32d 7h; signal 98; fs in KiB). */

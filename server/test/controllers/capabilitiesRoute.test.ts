@@ -49,7 +49,7 @@ describe('GET /api/controllers/:id/capabilities', () => {
   async function addController(): Promise<string> {
     const post = await request(app)
       .post('/api/controllers')
-      .send({ name: 'Cabinet Lights', host: '10.0.0.50' });
+      .send({ name: 'Cabinet Lights', host: '192.0.2.50' });
     return post.body.id as string;
   }
 

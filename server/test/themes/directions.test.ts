@@ -40,9 +40,9 @@ const BASE = { name: 'Arkansas Scanner', effect: 10, palette: 0, brightness: 140
 function setup() {
   const db = createDb(':memory:');
   const controllers = createControllerRepository(db);
-  const left = controllers.add({ name: 'fp-left', host: '10.0.0.35', source: 'manual' }).id;
-  const right = controllers.add({ name: 'fp-right', host: '10.0.0.130', source: 'manual' }).id;
-  const other = controllers.add({ name: 'tv', host: '10.0.0.40', source: 'manual' }).id;
+  const left = controllers.add({ name: 'fp-left', host: '192.0.2.35', source: 'manual' }).id;
+  const right = controllers.add({ name: 'fp-right', host: '198.51.100.130', source: 'manual' }).id;
+  const other = controllers.add({ name: 'tv', host: '203.0.113.40', source: 'manual' }).id;
   return { db, left, right, other };
 }
 
@@ -163,10 +163,10 @@ describe('apply payload', () => {
     ], { type: 'theme', themeId: theme.id });
 
     const seg = { fx: 10, pal: 0, col: BASE.colors, sx: 235, ix: 120 };
-    expect(posts['10.0.0.35'][0].seg).toEqual([{ id: 0, ...seg, rev: false }, { id: 1, ...seg, rev: false }]);
-    expect(posts['10.0.0.130'][0].seg).toEqual([{ id: 1, ...seg, rev: true }]);
-    expect(posts['10.0.0.40'][0].seg).toEqual([{ id: 0, ...seg }, { id: 1, ...seg }]);
-    expect(posts['10.0.0.40'][0].seg[0]).not.toHaveProperty('rev');
+    expect(posts['192.0.2.35'][0].seg).toEqual([{ id: 0, ...seg, rev: false }, { id: 1, ...seg, rev: false }]);
+    expect(posts['198.51.100.130'][0].seg).toEqual([{ id: 1, ...seg, rev: true }]);
+    expect(posts['203.0.113.40'][0].seg).toEqual([{ id: 0, ...seg }, { id: 1, ...seg }]);
+    expect(posts['203.0.113.40'][0].seg[0]).not.toHaveProperty('rev');
   });
 
   it('a theme without directions never sends rev (unchanged behaviour)', async () => {
@@ -174,7 +174,7 @@ describe('apply payload', () => {
     const posts = stubDevices();
     const theme = createThemeRepository(db).add(BASE);
     await applyActionV2(db, [{ controllerId: left, wledSegId: null }], { type: 'theme', themeId: theme.id });
-    for (const s of posts['10.0.0.35'][0].seg) expect(s).not.toHaveProperty('rev');
+    for (const s of posts['192.0.2.35'][0].seg) expect(s).not.toHaveProperty('rev');
   });
 
   it('applyControlPatch honours segRev through group targets (client/Control path)', async () => {
@@ -185,15 +185,15 @@ describe('apply payload', () => {
     });
     await applyControlPatch(db, [{ kind: 'group', groupId: group.id }],
       { bri: 140, seg: { fxId: 10 }, segRev: { [right]: true } });
-    expect(posts['10.0.0.35'][0].seg).toEqual([{ id: 0, fx: 10 }]);
-    expect(posts['10.0.0.130'][0].seg).toEqual([{ id: 0, fx: 10, rev: true }]);
+    expect(posts['192.0.2.35'][0].seg).toEqual([{ id: 0, fx: 10 }]);
+    expect(posts['198.51.100.130'][0].seg).toEqual([{ id: 0, fx: 10, rev: true }]);
   });
 
   it('a plain seg.rev (snapshot revert) is passed through', async () => {
     const { db, left } = setup();
     const posts = stubDevices();
     await applyControlPatch(db, [{ kind: 'segment', controllerId: left, wledSegId: 0 }], { seg: { rev: true } });
-    expect(posts['10.0.0.35'][0].seg).toEqual([{ id: 0, rev: true }]);
+    expect(posts['192.0.2.35'][0].seg).toEqual([{ id: 0, rev: true }]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Children, cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
 /**
  * Accessible overflow menu. Children stay mounted while closed so file inputs
@@ -23,7 +23,7 @@ export function MoreMenu({
     if (!open) return;
     const menu = rootRef.current?.querySelector<HTMLElement>('[role="menu"]');
     const items = () =>
-      Array.from(menu?.querySelectorAll<HTMLElement>('button, a[href]') ?? []).filter(
+      Array.from(menu?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []).filter(
         (el) => !el.hasAttribute('disabled')
       );
     items()[0]?.focus();
@@ -74,7 +74,9 @@ export function MoreMenu({
         {label}
       </button>
       <div id={menuId} role="menu" hidden={!open} className="ui-more-menu">
-        {children}
+        {Children.map(children, (child) =>
+          isValidElement(child) ? cloneElement(child, { role: 'menuitem' } as { role: 'menuitem' }) : child
+        )}
       </div>
     </div>
   );

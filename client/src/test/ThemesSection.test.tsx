@@ -119,7 +119,7 @@ describe('ThemesSection', () => {
     const fetchMock = stubFetch();
     renderWithQuery(<ThemesSection />);
     fireEvent.click(await screen.findByRole('button', { name: 'More actions for Sunset Party' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Sunset Party' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove Sunset Party' }));
     fireEvent.click(screen.getByRole('button', { name: 'Remove theme' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith('/api/themes/t1', expect.objectContaining({ method: 'DELETE' }))
@@ -142,7 +142,7 @@ describe('ThemesSection', () => {
     renderWithQuery(<ThemesSection />);
 
     fireEvent.click(await screen.findByRole('button', { name: 'More actions for Sunset Party' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit Sunset Party' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Sunset Party' }));
     // Editing opens in a modal, prefilled with the theme being edited.
     const dialog = await screen.findByRole('dialog');
     const nameInput = await within(dialog).findByDisplayValue('Sunset Party');
@@ -163,7 +163,7 @@ describe('ThemesSection', () => {
     // Wait for themes to load so the Export button is enabled (it's disabled at 0 themes).
     await screen.findByText('Sunset Party');
     fireEvent.click(screen.getByRole('button', { name: 'More' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
     expect(triggerDownloadSpy).toHaveBeenCalledWith('/api/backup/themes');
   });
 

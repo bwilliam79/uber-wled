@@ -19,7 +19,7 @@ describe('controllers routes', () => {
   it('POST adds a controller, GET lists it', async () => {
     const post = await request(app)
       .post('/api/controllers')
-      .send({ name: 'Porch', host: '10.0.0.50' });
+      .send({ name: 'Porch', host: '192.0.2.50' });
     expect(post.status).toBe(201);
     expect(post.body.source).toBe('manual');
 
@@ -31,7 +31,7 @@ describe('controllers routes', () => {
   it('DELETE removes a controller', async () => {
     const post = await request(app)
       .post('/api/controllers')
-      .send({ name: 'Porch', host: '10.0.0.50' });
+      .send({ name: 'Porch', host: '192.0.2.50' });
     await request(app).delete(`/api/controllers/${post.body.id}`).expect(204);
     const get = await request(app).get('/api/controllers');
     expect(get.body).toHaveLength(0);
@@ -61,7 +61,7 @@ describe('controllers routes', () => {
   });
 
   it('GET /:id/status returns an unpolled placeholder before the background poller has run', async () => {
-    const post = await request(app).post('/api/controllers').send({ name: 'Porch', host: '10.0.0.50' });
+    const post = await request(app).post('/api/controllers').send({ name: 'Porch', host: '192.0.2.50' });
 
     const res = await request(app).get(`/api/controllers/${post.body.id}/status`);
     expect(res.status).toBe(200);
@@ -69,7 +69,7 @@ describe('controllers routes', () => {
   });
 
   it('GET /:id/status returns the cached snapshot once one exists', async () => {
-    const post = await request(app).post('/api/controllers').send({ name: 'Porch', host: '10.0.0.50' });
+    const post = await request(app).post('/api/controllers').send({ name: 'Porch', host: '192.0.2.50' });
     const info = { name: 'Porch', ver: '0.14.0', leds: { count: 60 }, arch: 'esp32' };
     const state = { on: true, bri: 128, ps: -1, seg: [] };
     createControllerStatusRepository(db).upsert({

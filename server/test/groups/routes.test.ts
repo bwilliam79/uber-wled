@@ -13,8 +13,8 @@ describe('groups routes', () => {
   beforeEach(() => {
     const db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    controllerId1 = controllers.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' }).id;
-    controllerId2 = controllers.add({ name: 'Eaves', host: '10.0.0.51', source: 'manual' }).id;
+    controllerId1 = controllers.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' }).id;
+    controllerId2 = controllers.add({ name: 'Eaves', host: '198.51.100.51', source: 'manual' }).id;
     app = express();
     app.use(express.json());
     app.use('/api/groups', createGroupsRouter(db));

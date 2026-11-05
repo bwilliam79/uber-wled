@@ -61,9 +61,9 @@ describe('SchedulerEngine active looks', () => {
   function setup() {
     const db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    const shelf = controllers.add({ name: 'Shelf L', host: '10.0.0.11', source: 'manual' });
-    const shelfR = controllers.add({ name: 'Shelf R', host: '10.0.0.12', source: 'manual' });
-    const cabinet = controllers.add({ name: 'Cabinet', host: '10.0.0.13', source: 'manual' });
+    const shelf = controllers.add({ name: 'Shelf L', host: '192.0.2.11', source: 'manual' });
+    const shelfR = controllers.add({ name: 'Shelf R', host: '198.51.100.12', source: 'manual' });
+    const cabinet = controllers.add({ name: 'Cabinet', host: '203.0.113.13', source: 'manual' });
     const themes = createThemeRepository(db);
     const dim = themes.add({ name: 'Dim White', effect: 0, palette: 0, colors: [[255, 255, 240]], brightness: 40 });
     const lsu = themes.add({ name: 'LSU Wipe', effect: 55, palette: 6, colors: [[70, 29, 124]], brightness: 180 });
@@ -439,9 +439,9 @@ describe('SchedulerEngine per-controller fan-out', () => {
   it('POSTs Dim White only to the idle cabinet while shelves keep a manual game theme', async () => {
     const db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    const shelfL = controllers.add({ name: 'Shelf L', host: '10.0.0.11', source: 'manual' });
-    const shelfR = controllers.add({ name: 'Shelf R', host: '10.0.0.12', source: 'manual' });
-    const cabinet = controllers.add({ name: 'Cabinet', host: '10.0.0.13', source: 'manual' });
+    const shelfL = controllers.add({ name: 'Shelf L', host: '192.0.2.11', source: 'manual' });
+    const shelfR = controllers.add({ name: 'Shelf R', host: '198.51.100.12', source: 'manual' });
+    const cabinet = controllers.add({ name: 'Cabinet', host: '203.0.113.13', source: 'manual' });
     const dim = createThemeRepository(db).add({
       name: 'Dim White', effect: 0, palette: 0, colors: [[255, 255, 240]], brightness: 40
     });
@@ -464,7 +464,7 @@ describe('SchedulerEngine per-controller fan-out', () => {
     const posts: { host: string; body: Record<string, unknown> }[] = [];
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
       const host = new URL(url).host;
-      if (host !== '10.0.0.13') throw new Error(`unexpected device call to ${host}`);
+      if (host !== '203.0.113.13') throw new Error(`unexpected device call to ${host}`);
       if (init?.body) posts.push({ host, body: JSON.parse(init.body as string) });
       return {
         ok: true, status: 200,
@@ -477,7 +477,7 @@ describe('SchedulerEngine per-controller fan-out', () => {
     await engine.checkAndFireDueSchedules(new Date(2026, 9, 31, 10, 0, 0));
 
     expect(posts).toHaveLength(1);
-    expect(posts[0].host).toBe('10.0.0.13');
+    expect(posts[0].host).toBe('203.0.113.13');
     expect(posts[0].body).not.toHaveProperty('themeId');
     expect(posts[0].body.udpn).toEqual({ nn: true });
     expect(posts[0].body.bri).toBe(40);
@@ -494,8 +494,8 @@ describe('SchedulerEngine holiday / game / schedule precedence', () => {
   function setup() {
     const db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    const shelf = controllers.add({ name: 'Shelf L', host: '10.0.0.11', source: 'manual' });
-    const cabinet = controllers.add({ name: 'Cabinet', host: '10.0.0.13', source: 'manual' });
+    const shelf = controllers.add({ name: 'Shelf L', host: '192.0.2.11', source: 'manual' });
+    const cabinet = controllers.add({ name: 'Cabinet', host: '203.0.113.13', source: 'manual' });
     const themes = createThemeRepository(db);
     const dim = themes.add({ name: 'Dim White', effect: 0, palette: 0, colors: [[255, 255, 240]], brightness: 40 });
     const lsu = themes.add({ name: 'LSU Wipe', effect: 55, palette: 6, colors: [[70, 29, 124]], brightness: 180 });

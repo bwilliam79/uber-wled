@@ -5,7 +5,7 @@ import { PresetImportModal } from '../sections/themes/PresetImportModal';
 afterEach(() => vi.unstubAllGlobals());
 
 const controllers = [
-  { id: 'c1', name: 'Porch', host: '10.0.0.5', source: 'manual' as const, stale: false, pinnedAssetPattern: null }
+  { id: 'c1', name: 'Porch', host: '192.0.2.5', source: 'manual' as const, stale: false, pinnedAssetPattern: null }
 ];
 
 const preview = {

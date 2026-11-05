@@ -90,7 +90,7 @@ describe('schema migrations (phase B additions)', () => {
 
     // The relaxed constraint actually accepts a NULL group_id now.
     db.prepare(
-      "INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')"
+      "INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '192.0.2.5', 'manual')"
     ).run();
     expect(() =>
       db.prepare(
@@ -121,7 +121,7 @@ describe('schema migrations (phase B additions)', () => {
       DROP TABLE schedules;
       ALTER TABLE schedules_old RENAME TO schedules;
     `);
-    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')").run();
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '192.0.2.5', 'manual')").run();
     db.prepare(
       `INSERT INTO schedules (id, name, trigger_type, days_of_week, time_of_day, offset_minutes, target_controller_id, target_wled_seg_id, action_type, action_payload, enabled)
        VALUES ('s1', 'Direct segment', 'weekly', '[1]', '08:00', 0, 'c1', 2, 'power', '{"on":true}', 1)`
@@ -155,7 +155,7 @@ describe('schema migrations (phase B additions)', () => {
       DROP TABLE controllers;
       ALTER TABLE controllers_old RENAME TO controllers;
     `);
-    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')").run();
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '192.0.2.5', 'manual')").run();
     expect(columnNames(db, 'controllers')).not.toContain('pinned_asset_pattern');
 
     runMigrations(db);
@@ -182,7 +182,7 @@ describe('schema migrations (phase B additions)', () => {
         expires_at TEXT
       );
     `);
-    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.5', 'manual')").run();
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '192.0.2.5', 'manual')").run();
     db.prepare(
       `INSERT INTO controller_active_look (controller_id, theme_id, source, source_id, applied_at, expires_at)
        VALUES ('c1', 't1', 'manual', NULL, '2026-10-31T12:00:00.000Z', NULL)`
@@ -202,7 +202,7 @@ describe('schema migrations (phase B additions)', () => {
     const row = db.prepare('SELECT * FROM controller_active_look WHERE controller_id = ?').get('c1') as any;
     expect(row.source).toBe('manual');
     expect(row.theme_id).toBe('t1');
-    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c2', 'Shelf', '10.0.0.6', 'manual')").run();
+    db.prepare("INSERT INTO controllers (id, name, host, source) VALUES ('c2', 'Shelf', '198.51.100.6', 'manual')").run();
     expect(() =>
       db.prepare(
         `INSERT INTO controller_active_look (controller_id, theme_id, source, source_id, applied_at, expires_at)

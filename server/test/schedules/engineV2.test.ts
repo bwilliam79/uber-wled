@@ -30,7 +30,7 @@ describe('SchedulerEngine wired to applyActionV2 (fan-out v2)', () => {
   it('fires a due theme schedule through v2: segment-id targeting + udpn nn', async () => {
     const db = createDb(':memory:');
     const controllerId = createControllerRepository(db)
-      .add({ name: 'Porch', host: '10.0.0.60', source: 'manual' }).id;
+      .add({ name: 'Porch', host: '192.0.2.60', source: 'manual' }).id;
     const groupId = createGroupRepository(db)
       .add({ name: 'Porch', members: [{ controllerId, wledSegId: 1 }] }).id;
     const theme = createThemeRepository(db)
@@ -44,7 +44,7 @@ describe('SchedulerEngine wired to applyActionV2 (fan-out v2)', () => {
 
     let captured: any;
     stubFetchByHost({
-      '10.0.0.60': (_url, init) => {
+      '192.0.2.60': (_url, init) => {
         captured = JSON.parse(init?.body as string);
         return { status: 200, body: okState };
       }
@@ -66,7 +66,7 @@ describe('SchedulerEngine wired to applyActionV2 (fan-out v2)', () => {
   it('fires a due calendar event action through v2 with udpn nn', async () => {
     const db = createDb(':memory:');
     const controllerId = createControllerRepository(db)
-      .add({ name: 'Roof', host: '10.0.0.61', source: 'manual' }).id;
+      .add({ name: 'Roof', host: '198.51.100.61', source: 'manual' }).id;
     const groupId = createGroupRepository(db)
       .add({ name: 'Roofline', members: [{ controllerId, wledSegId: 0 }] }).id;
     createCalendarRepository(db).add({
@@ -79,7 +79,7 @@ describe('SchedulerEngine wired to applyActionV2 (fan-out v2)', () => {
 
     let captured: any;
     stubFetchByHost({
-      '10.0.0.61': (_url, init) => {
+      '198.51.100.61': (_url, init) => {
         captured = JSON.parse(init?.body as string);
         return { status: 200, body: okState };
       }

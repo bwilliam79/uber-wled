@@ -53,7 +53,8 @@ export function WeeklyScheduleForm({
   onSaveDirect,
   onSaved,
   previewing,
-  previewControllerCount = 0
+  previewControllerCount = 0,
+  timeZone
 }: {
   groups: Group[];
   controllers: Controller[];
@@ -74,6 +75,8 @@ export function WeeklyScheduleForm({
   onSaved?: (schedule: Schedule) => void;
   previewing: boolean;
   previewControllerCount?: number;
+  /** IANA zone reported by the server. Shown in the When hint. */
+  timeZone?: string;
 }) {
   // Existing schedules stored as 'cron' predate this form; treat them as fixed.
   const initialTrigger: 'weekly' | 'sunrise' | 'sunset' =
@@ -164,7 +167,9 @@ export function WeeklyScheduleForm({
       </Field>
       <fieldset className="schedule-group">
         <legend>When</legend>
-        <p className="field-hint">Triggers use the server's configured timezone. Preview on lights is optional and does not save the schedule.</p>
+        <p className="field-hint">
+          Triggers use the server timezone{timeZone ? ` (${timeZone})` : ''}. Preview on lights is optional and does not save the schedule.
+        </p>
       {!initialSchedule && (
         <Field label="Repeat" htmlFor="weekly-schedule-repeat">
           <Select

@@ -108,6 +108,23 @@ describe('ScheduleManager v2', () => {
     expect(body.controllers).toBeNull();
   });
 
+  it('saves a new schedule without preview and does not call /api/control/apply', async () => {
+    const fetchMock = stub();
+    renderWithQuery(<ScheduleManager />);
+    const openBtn = await screen.findByRole('button', { name: 'New schedule' });
+    await waitFor(() => expect((openBtn as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(openBtn);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Direct save' } });
+    fireEvent.click(screen.getByLabelText('Mon'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save schedule' }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([u, i]) => u === '/api/schedules' && (i as RequestInit)?.method === 'POST')
+      ).toBe(true)
+    );
+    expect(fetchMock.mock.calls.some(([u]) => u === '/api/control/apply')).toBe(false);
+  });
+
   it('previewing a controller-direct (whole-device) target snapshots every segment and applies via a controller-kind target', async () => {
     const fetchMock = stub();
     renderWithQuery(<ScheduleManager />);
@@ -189,7 +206,7 @@ describe('ScheduleManager v2', () => {
       await screen.findByText('Evening glow');
       fireEvent.click(screen.getByRole('button', { name: 'Edit Evening glow' }));
       expect((screen.getByLabelText('Name') as HTMLInputElement).value).toBe('Evening glow');
-      expect(screen.queryByText('Preview')).toBeNull(); // edit mode: straight to Save, no preview
+      expect(screen.queryByRole('button', { name: 'Preview on lights' })).toBeNull(); // edit mode: straight to Save, no preview
 
       fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Evening glow (later)' } });
       fireEvent.click(screen.getByText('Save'));

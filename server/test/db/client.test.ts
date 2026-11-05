@@ -41,7 +41,7 @@ describe('createDb', () => {
     try {
       const first = createDb(file);
       first.prepare(
-        `INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '10.0.0.1', 'manual')`
+        `INSERT INTO controllers (id, name, host, source) VALUES ('c1', 'Cabinet', '192.0.2.1', 'manual')`
       ).run();
       first.prepare(
         `INSERT INTO controller_active_look

@@ -24,8 +24,8 @@ function renderSync(ui: ReactElement = <SyncSection />) {
 }
 
 const CONTROLLERS = [
-  { id: 'c1', name: 'Cabinet', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null },
-  { id: 'c2', name: 'Porch', host: '10.0.0.51', source: 'manual', stale: false, pinnedAssetPattern: null }
+  { id: 'c1', name: 'Cabinet', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: null },
+  { id: 'c2', name: 'Porch', host: '198.51.100.51', source: 'manual', stale: false, pinnedAssetPattern: null }
 ];
 
 type RouteEntry =
@@ -175,7 +175,7 @@ describe('SyncSection', () => {
     renderSync();
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'More actions for Front porch' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
     const nameInput = screen.getByLabelText('Name');
     fireEvent.change(nameInput, { target: { value: 'Renamed' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
@@ -192,7 +192,7 @@ describe('SyncSection', () => {
     renderSync();
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'More actions for Front porch' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
     expect(screen.getByText('Deactivate this sync group to change its members.')).toBeTruthy();
     expect((screen.getByRole('checkbox', { name: /Cabinet/ }) as HTMLInputElement).disabled).toBe(true);
   });
@@ -206,7 +206,7 @@ describe('SyncSection', () => {
     renderSync();
     await waitFor(() => expect(screen.getByText('Front porch')).toBeTruthy());
     fireEvent.click(screen.getByRole('button', { name: 'More actions for Front porch' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Front porch' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete Front porch' }));
     const dialog = screen.getByRole('dialog', { name: 'Delete sync group' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(screen.getByText('No sync groups yet.')).toBeTruthy());

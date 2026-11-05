@@ -403,6 +403,8 @@ export interface Settings {
   scheduleImportDisableOnDeviceDefault: boolean;
   controllerStatusPollIntervalMinutes: number;
   livePollIntervalSeconds: number;
+  /** IANA zone the server uses for schedule triggers. Computed, not stored. */
+  scheduleTimeZone?: string;
 }
 
 export interface WledSegmentSnapshot {

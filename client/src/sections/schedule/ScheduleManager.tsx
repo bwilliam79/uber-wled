@@ -6,7 +6,7 @@ import {
   addCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
   type CustomTheme, type Schedule, type CalendarEvent, type TriggerTime, type Target
 } from '../../api/client';
-import { useControllers, useGroups, useSchedules, useThemes, useCalendarEvents } from '../../api/queries';
+import { useControllers, useGroups, useSchedules, useSettings, useThemes, useCalendarEvents } from '../../api/queries';
 import { useLiveStatus } from '../../api/live';
 import { resolveDate } from '../../lib/dateRules';
 import { Button } from '../../components/ui/Button';
@@ -104,6 +104,7 @@ export function ScheduleManager() {
   const controllers = useControllers();
   const live = useLiveStatus((controllers.data ?? []).map((c) => c.id));
   const themes = useThemes();
+  const settings = useSettings();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
@@ -447,6 +448,7 @@ export function ScheduleManager() {
           onSaveDirect={handleSaveDirect}
           previewing={draft !== null}
           previewControllerCount={previewControllerCount}
+          timeZone={settings.data?.scheduleTimeZone}
         />
       </Modal>
       <Modal
@@ -471,6 +473,7 @@ export function ScheduleManager() {
             onApprove={() => {}}
             onDiscard={() => {}}
             previewing={false}
+            timeZone={settings.data?.scheduleTimeZone}
           />
         )}
       </Modal>

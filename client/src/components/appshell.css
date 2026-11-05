@@ -242,10 +242,14 @@ a.sidebar-version-update:hover {
   color: var(--m1);
   font-size: 0.8125rem;
 }
-.fleet-status-body { display: flex; align-items: center; gap: 8px; }
+.fleet-status:not([open]) > .fleet-status-body { display: none; }
+.fleet-status[open] > .fleet-status-body { display: flex; align-items: center; gap: 8px; }
 @media (max-width: 899px) {
   .fleet-status { flex-direction: column; align-items: flex-end; }
   .fleet-status-summary { display: inline-flex; }
+}
+@media (min-width: 900px) {
+  .fleet-status > .fleet-status-body { display: flex; align-items: center; gap: 8px; }
 }
 
 .master-bar-status {

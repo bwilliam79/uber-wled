@@ -12,12 +12,12 @@ describe('api client', () => {
   });
 
   it('addController POSTs name and host', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: '1', name: 'Porch', host: '10.0.0.50' }) });
-    await addController('Porch', '10.0.0.50');
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: '1', name: 'Porch', host: '192.0.2.50' }) });
+    await addController('Porch', '192.0.2.50');
     expect(global.fetch).toHaveBeenCalledWith('/api/controllers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Porch', host: '10.0.0.50' })
+      body: JSON.stringify({ name: 'Porch', host: '192.0.2.50' })
     });
   });
 

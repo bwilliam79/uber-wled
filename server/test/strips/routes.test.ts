@@ -5,7 +5,7 @@ import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createStripsRouter } from '../../src/strips/routes.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 function stubFetchState(body: unknown) {
   const fetchMock = vi.fn(async () => ({ ok: true, json: async () => body } as Response));
