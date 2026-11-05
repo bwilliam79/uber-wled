@@ -41,10 +41,12 @@ docker compose up -d --build
 ```
 
 Open `http://localhost:<PORT>` (default `8081`). The container uses
-`network_mode: host` — binding directly to a host port — so it can discover
-WLED devices on your LAN via mDNS. SQLite data persists in `./data/`
-(gitignored, mounted into the container) — nothing personal (controller
-IPs, rooms, schedules) is ever committed to the repo.
+`network_mode: host` — binding directly to a host port — so unicast traffic
+to a known WLED address works. mDNS multicast often does not cross onto a
+Colima VM, so discovery also probes a unicast CIDR (see Configuration) and
+adds a controller when `GET /json/info` answers as WLED. SQLite data persists
+in `./data/` (gitignored, mounted into the container) — nothing personal
+(controller IPs, rooms, schedules) is ever committed to the repo.
 
 **On a home server:** `git clone`/`git pull` into `~/docker/uber-wled/` and
 run `docker compose up -d --build` there; pick a free `PORT` in a local
@@ -528,8 +530,10 @@ included). Guardrails, because full parity includes footguns:
   production. Design system is plain CSS tokens + a small component kit —
   no UI framework; fonts self-hosted (no CDN calls, ever).
 - **Deployment**: one Docker image (multi-stage build), one
-  `docker-compose.yml`. `network_mode: host` so mDNS discovery can see WLED
-  devices on the LAN — the container binds directly to a host port.
+  `docker-compose.yml`. `network_mode: host` so the process shares the host
+  network stack and can unicast to WLED devices — the container binds
+  directly to a host port. mDNS still needs multicast to reach that host;
+  see `DISCOVERY_CIDR` when it does not.
 - **Security posture**: no auth, no HTTPS, no cloud dependency — a
   deliberate LAN-only design relying on the home network's perimeter. The
   only outbound internet calls the server makes are narrow, named
@@ -537,7 +541,9 @@ included). Guardrails, because full parity includes footguns:
   cached — see Firmware) and, only if you click "Look up an address" in
   Settings, a one-off geocoding lookup against OpenStreetMap's Nominatim.
   The address lookup is opt-in and user-triggered only — it never runs
-  automatically or in the background.
+  automatically or in the background. Discovery's unicast probe is LAN-only:
+  `GET /json/info` to addresses in `DISCOVERY_CIDR`, or, when that is unset,
+  each private `/24` on the host. It does not contact the internet.
 
 ## Local development
 
@@ -558,8 +564,8 @@ npm run dev
 Run each test suite from its own directory:
 
 ```bash
-cd server && npm test   # 49 files / 377 tests
-cd client && npm test   # 79 files / 627 tests
+cd server && npm test   # 56 files / 463 tests
+cd client && npm test   # 80 files / 634 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered
@@ -571,13 +577,26 @@ in **Quick start** at the top.)
 |---|---|---|
 | `PORT` | `8081` | Port the app binds to (host networking — this is the actual port on the machine) |
 | `DB_PATH` | `/app/data/uber-wled.db` (container) | SQLite database file location |
+| `DISCOVERY_CIDR` | inferred private /24s | Comma-separated IPv4 CIDRs (`/24`–`/32`, or a bare address) to unicast-probe for new WLED controllers. Unset: the `/24` of each non-internal private IPv4 address on the host (10/8, 172.16/12, 192.168/16). Public addresses are not scanned unless you set this. `off` disables the unicast scan. mDNS still runs either way. |
 
 ## Using the app
 
-1. **Add controllers** — Devices fills itself via mDNS discovery (interval
-   in Settings), or add one manually by name + IP/hostname from **Settings →
-   Add a controller**. Discovery prefers IPv4 from mDNS and also HTTP-probes known hosts (`/json/info`) so Colima/vm bridges that drop multicast still clear stale when the device answers. A stale badge means a discovered controller stopped
-   responding; it's kept, not deleted.
+1. **Add controllers** — Devices fills itself via discovery (interval in
+   Settings), or add one manually by name + IP/hostname from **Settings →
+   Add a controller**. Each cycle browses mDNS (`_wled._tcp`, IPv4 preferred)
+   and also unicast-probes `DISCOVERY_CIDR`. When that variable is unset, the
+   probe list is the `/24` of each non-internal private IPv4 address on the
+   host running the process (10/8, 172.16/12, 192.168/16) — on Colima, that
+   host is the Linux VM, which may not be the Mac's LAN. Set `DISCOVERY_CIDR`
+   to the LAN that actually holds the lights (a documentation-range example:
+   `192.0.2.0/24`) or to `off` to keep mDNS only. A candidate is added only when `GET /json/info` looks like WLED
+   (`brand` is `WLED`, or the body has a name, version, and `leds` object).
+   The scan uses 32 concurrent probes and an 800ms timeout per host, and it
+   ignores prefixes wider than `/24`. Controllers the app already knows are
+   still probed individually, including addresses outside that CIDR, so a
+   device that answers clears its stale flag even when multicast never
+   arrives. A stale badge means a discovered controller stopped responding;
+   it's kept, not deleted.
 2. **Make rooms** — on Devices, hit **Manage rooms**, create a room, pick its
    icon, and check off the controllers that belong to it; cards then group
    under collapsible room headers.

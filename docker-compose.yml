@@ -13,6 +13,10 @@ services:
     environment:
       - PORT=8081
       - DB_PATH=/app/data/uber-wled.db
+      # Unicast discovery CIDR used when mDNS multicast does not reach this
+      # host (typical of Colima). Unset: private /24s on the VM's interfaces.
+      # Set this to the LAN that holds the controllers. Example range only:
+      # - DISCOVERY_CIDR=192.0.2.0/24
       # Schedules, calendar "today", and sunrise/sunset use the process-local
       # clock. The image defaults to UTC, which would shift those off the
       # house clock — home timezone is America/Chicago.
