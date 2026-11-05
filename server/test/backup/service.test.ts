@@ -15,7 +15,7 @@ import {
 
 /** Seed a DB with cross-referencing rows and return the key ids. */
 function seed(db: ReturnType<typeof createDb>) {
-  const controller = createControllerRepository(db).add({ name: 'Cabinet', host: '10.0.0.5', source: 'manual' });
+  const controller = createControllerRepository(db).add({ name: 'Cabinet', host: '192.0.2.5', source: 'manual' });
   const group = createGroupRepository(db).add({
     name: 'Living Room',
     members: [{ controllerId: controller.id, wledSegId: 0 }]

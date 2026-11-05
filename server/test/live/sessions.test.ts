@@ -20,7 +20,7 @@ describe('live session manager', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     db = createDb(':memory:');
-    controllerId = createControllerRepository(db).add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
+    controllerId = createControllerRepository(db).add({ name: 'Cabinet', host: '192.0.2.50', source: 'manual' }).id;
     wled = { getState: vi.fn(async () => STATE), getInfo: vi.fn(async () => INFO) };
   });
 

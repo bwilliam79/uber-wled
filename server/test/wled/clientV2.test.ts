@@ -11,7 +11,7 @@ import {
   setNightlight
 } from '../../src/wled/client.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 /** Routes GET requests by `pathname+search`; throws on any unexpected URL. */
 function stubFetchRoutes(routes: Record<string, unknown>) {

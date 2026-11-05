@@ -19,7 +19,7 @@ describe('backup routes', () => {
 
   beforeEach(() => {
     db = createDb(':memory:');
-    createControllerRepository(db).add({ name: 'Cabinet', host: '10.0.0.5', source: 'manual' });
+    createControllerRepository(db).add({ name: 'Cabinet', host: '192.0.2.5', source: 'manual' });
     createThemeRepository(db).add({ name: 'Christmas', effect: 84, palette: 0, colors: [[220, 0, 0]], brightness: 185 });
     app = buildApp(db);
   });

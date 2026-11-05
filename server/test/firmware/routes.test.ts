@@ -5,7 +5,7 @@ import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createFirmwareRouter } from '../../src/firmware/routes.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 const GITHUB_RESPONSE = [
   {

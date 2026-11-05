@@ -40,6 +40,7 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
 
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const facts: [string, string][] = [
     ['IP address', info?.ip ?? controller.host],
     ['MAC', info?.mac ?? '—'],
@@ -130,13 +131,31 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
       <Card>
         <h3>Device facts</h3>
         <dl className="facts-grid">
-          {facts.map(([label, value]) => (
+          {facts.filter(([label]) => ['IP address', 'Version', 'Architecture', 'LEDs'].includes(label)).map(([label, value]) => (
             <div className="fact" key={label}>
               <dt>{label}</dt>
               <dd>{value}</dd>
             </div>
           ))}
         </dl>
+        <button
+          type="button"
+          className="device-card-details"
+          aria-expanded={diagnosticsOpen}
+          onClick={() => setDiagnosticsOpen((open) => !open)}
+        >
+          Diagnostics
+        </button>
+        {diagnosticsOpen && (
+          <dl className="facts-grid">
+            {facts.filter(([label]) => !['IP address', 'Version', 'Architecture', 'LEDs'].includes(label)).map(([label, value]) => (
+              <div className="fact" key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
       </Card>
       <Card>
         <h3>Actions</h3>
@@ -145,6 +164,8 @@ export function InfoTab({ controller, live, onRemoved }: InfoTabProps) {
           <Button variant="secondary" onClick={handleImportSchedules} disabled={importing}>
             {importing ? 'Importing…' : 'Import schedules'}
           </Button>
+        </div>
+        <div className="info-danger">
           <Button variant="danger" onClick={() => setConfirmReboot(true)}>Reboot</Button>
           <Button variant="danger" onClick={() => setConfirmRemove(true)}>Remove controller</Button>
         </div>

@@ -22,7 +22,7 @@ function stubFetchByHost(
 describe('sync groups routes', () => {
   let app: express.Express;
   let c1: string, c2: string, c3: string;
-  const HOST1 = '10.0.0.50', HOST2 = '10.0.0.51', HOST3 = '10.0.0.52';
+  const HOST1 = '192.0.2.50', HOST2 = '198.51.100.51', HOST3 = '203.0.113.52';
 
   beforeEach(() => {
     const db = createDb(':memory:');

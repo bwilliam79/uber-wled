@@ -14,6 +14,7 @@ import { FirmwareSection } from '../sections/firmware/FirmwareSection';
 import { SettingsSection } from '../sections/settings/SettingsSection';
 import { useFirmwareUpdateAvailable, useAppUpdateStatus, useServerVersion } from '../api/queries';
 import { isNewerVersion } from '../lib/version';
+import { confirmLeaveIfDirty } from '../lib/unsavedGuard';
 import './appshell.css';
 
 const DEFAULT_SECTION: SectionKey = 'devices';
@@ -40,6 +41,8 @@ export function sectionFromHash(): SectionKey {
 
 export function AppShell() {
   const [active, setActive] = useState<SectionKey>(sectionFromHash());
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const firmwareUpdateAvailable = useFirmwareUpdateAvailable();
   const appUpdate = useAppUpdateStatus();
 
@@ -81,12 +84,22 @@ export function AppShell() {
   const staleBundle = typeof deployed === 'string' && isNewerVersion(deployed, __APP_VERSION__);
 
   useEffect(() => {
-    const onHash = () => setActive(sectionFromHash());
+    const onHash = () => {
+      const next = sectionFromHash();
+      const current = activeRef.current;
+      if (next === current) return;
+      if (!confirmLeaveIfDirty()) {
+        window.location.hash = `#/${current}`;
+        return;
+      }
+      setActive(next);
+    };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
   function navigate(s: SectionKey) {
+    if (s !== active && !confirmLeaveIfDirty()) return;
     window.location.hash = `#/${s}`;
     setActive(s);
   }

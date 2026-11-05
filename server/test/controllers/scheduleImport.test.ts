@@ -6,7 +6,7 @@ import { createScheduleRepository } from '../../src/schedules/repository.js';
 import { createSettingsRepository } from '../../src/settings/repository.js';
 import { parseTimerEntry, importSchedules } from '../../src/controllers/scheduleImport.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 const presetName = (macro: number) => (macro === 1 ? 'Porch warm' : `Preset ${macro}`);
 

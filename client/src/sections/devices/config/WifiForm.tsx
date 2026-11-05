@@ -51,6 +51,8 @@ export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
         <input id="cfg-wifi-psk" className="input" type="password" value={password}
           onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
       </Field>
+      <details className="config-disclosure" open>
+        <summary>Static address</summary>
       <div className="config-form-grid">
         <Field label="Static IP (0.0.0.0 = DHCP)" htmlFor="cfg-wifi-ip" error={ipError ?? undefined}>
           <input id="cfg-wifi-ip" className="input" value={staticIp}
@@ -65,7 +67,9 @@ export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
             onChange={(e) => setSubnet(e.target.value)} />
         </Field>
       </div>
-      <h4>AP fallback</h4>
+      </details>
+      <details className="config-disclosure" open>
+        <summary>AP fallback</summary>
       <div className="config-form-grid">
         <Field label="AP SSID" htmlFor="cfg-ap-ssid">
           <input id="cfg-ap-ssid" className="input" value={apSsid}
@@ -81,7 +85,9 @@ export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
         </Field>
       </div>
       <Toggle label="Hide AP SSID" checked={apHide} onChange={setApHide} />
-      <h4>Radio</h4>
+      </details>
+      <details className="config-disclosure" open>
+        <summary>Radio</summary>
       <div className="config-form-grid">
         <Select label="TX power" value={txPower} onChange={setTxPower}
           options={TX_POWER_OPTIONS.map((t) => ({ value: String(t.value), label: t.label }))} />
@@ -89,6 +95,7 @@ export function WifiForm({ cfg, busy, onSave }: ConfigFormProps) {
       <Toggle label="WiFi modem-sleep (saves power, adds latency)" checked={wifiSleep}
         onChange={setWifiSleep} />
       <Toggle label="Force 802.11g-only mode" checked={wifiForceG} onChange={setWifiForceG} />
+      </details>
       <Button variant="primary" disabled={busy || !valid}
         onClick={() =>
           onSave(buildWifiPatch(cfg, {

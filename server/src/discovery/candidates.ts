@@ -12,6 +12,16 @@ const MAX_TIMEOUT_MS = 5_000;
 const MIN_PREFIX = 24;
 const MAX_PREFIX = 32;
 
+/**
+ * RFC 1918 blocks, as octets. Discovery treats only these as a LAN.
+ * Class B's second octet runs from `secondMin` through `secondMax`.
+ */
+export const RFC1918 = {
+  classA: { first: 10 },
+  classB: { first: 172, secondMin: 16, secondMax: 31 },
+  classC: { first: 192, second: 168 },
+} as const;
+
 const DISABLED_ENV = new Set(['off', 'none', 'false', '0']);
 
 export interface InterfaceAddress {
@@ -79,9 +89,13 @@ const PUBLIC_CIDR_HINT =
 
 /** True for RFC1918. Discovery never probes a public address. */
 function isPrivateLan(first: number, second: number): boolean {
-  if (first === 10) return true;
-  if (first === 172 && second >= 16 && second <= 31) return true;
-  return first === 192 && second === 168;
+  if (first === RFC1918.classA.first) return true;
+  if (
+    first === RFC1918.classB.first
+    && second >= RFC1918.classB.secondMin
+    && second <= RFC1918.classB.secondMax
+  ) return true;
+  return first === RFC1918.classC.first && second === RFC1918.classC.second;
 }
 
 function isPrivateCidr(cidr: string): boolean {

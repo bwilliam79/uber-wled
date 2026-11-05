@@ -50,8 +50,11 @@ export function WeeklyScheduleForm({
   onPreview,
   onApprove,
   onDiscard,
+  onSaveDirect,
   onSaved,
-  previewing
+  previewing,
+  previewControllerCount = 0,
+  timeZone
 }: {
   groups: Group[];
   controllers: Controller[];
@@ -67,8 +70,13 @@ export function WeeklyScheduleForm({
   onPreview: (draft: WeeklyScheduleDraft) => void;
   onApprove: () => void;
   onDiscard: () => void;
+  /** Save without touching lights. Omitted in tests that only exercise preview. */
+  onSaveDirect?: (draft: WeeklyScheduleDraft) => void;
   onSaved?: (schedule: Schedule) => void;
   previewing: boolean;
+  previewControllerCount?: number;
+  /** IANA zone reported by the server. Shown in the When hint. */
+  timeZone?: string;
 }) {
   // Existing schedules stored as 'cron' predate this form; treat them as fixed.
   const initialTrigger: 'weekly' | 'sunrise' | 'sunset' =
@@ -157,6 +165,11 @@ export function WeeklyScheduleForm({
           onChange={(e) => setName(e.target.value)} placeholder="Schedule name"
         />
       </Field>
+      <fieldset className="schedule-group">
+        <legend>When</legend>
+        <p className="field-hint">
+          Triggers use the server timezone{timeZone ? ` (${timeZone})` : ''}. Preview on lights is optional and does not save the schedule.
+        </p>
       {!initialSchedule && (
         <Field label="Repeat" htmlFor="weekly-schedule-repeat">
           <Select
@@ -232,14 +245,9 @@ export function WeeklyScheduleForm({
           />
         </Field>
       )}
-      <TargetPicker
-        idPrefix="weekly-schedule"
-        groups={groups}
-        controllers={controllers}
-        live={live}
-        value={target}
-        onChange={setTarget}
-      />
+      </fieldset>
+      <fieldset className="schedule-group">
+        <legend>What</legend>
       <Field label="Action" htmlFor="weekly-schedule-action">
         <Select
           id="weekly-schedule-action" label="action" showLabel={false}
@@ -268,20 +276,38 @@ export function WeeklyScheduleForm({
           />
         </>
       )}
+      </fieldset>
+      <fieldset className="schedule-group">
+        <legend>Where</legend>
+        <TargetPicker
+          idPrefix="weekly-schedule"
+          groups={groups}
+          controllers={controllers}
+          live={live}
+          value={target}
+          onChange={setTarget}
+        />
+      </fieldset>
       <div className="schedule-form-actions">
         {initialSchedule ? (
           <Button variant="primary" onClick={handleSaveEdit}>Save</Button>
         ) : (
           <>
+            {!previewing && onSaveDirect && (
+              <Button variant="primary" onClick={() => onSaveDirect(draft())}>Save schedule</Button>
+            )}
             {!previewing && (
-              <Button variant="primary" onClick={() => onPreview(draft())}>
-                {actionType === 'off' ? 'Create' : 'Preview'}
+              <Button variant={onSaveDirect ? 'secondary' : 'primary'} onClick={() => onPreview(draft())}>
+                Preview on lights
               </Button>
             )}
             {previewing && (
               <>
-                <Button variant="primary" onClick={onApprove}>Approve</Button>
-                <Button variant="secondary" onClick={onDiscard}>Discard</Button>
+                <p role="status">
+                  Preview active on {previewControllerCount} controller{previewControllerCount === 1 ? '' : 's'}. Saving restores the previous look first.
+                </p>
+                <Button variant="primary" onClick={onApprove}>Save schedule</Button>
+                <Button variant="secondary" onClick={onDiscard}>Cancel preview</Button>
               </>
             )}
           </>

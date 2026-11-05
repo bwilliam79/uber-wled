@@ -49,8 +49,8 @@ describe('expandTargets', () => {
   function setup() {
     const db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    const a = controllers.add({ name: 'A', host: '10.0.0.50', source: 'manual' }).id;
-    const b = controllers.add({ name: 'B', host: '10.0.0.51', source: 'manual' }).id;
+    const a = controllers.add({ name: 'A', host: '192.0.2.50', source: 'manual' }).id;
+    const b = controllers.add({ name: 'B', host: '198.51.100.51', source: 'manual' }).id;
     return { db, a, b };
   }
 
@@ -105,7 +105,7 @@ describe('expandTargets', () => {
 describe('buildSegPatch', () => {
   function setup() {
     const db = createDb(':memory:');
-    const id = createControllerRepository(db).add({ name: 'A', host: '10.0.0.50', source: 'manual' }).id;
+    const id = createControllerRepository(db).add({ name: 'A', host: '192.0.2.50', source: 'manual' }).id;
     return { db, id };
   }
 
@@ -192,7 +192,7 @@ const LIVE_STATE = {
 };
 
 describe('applyControlPatch', () => {
-  const HOST = '10.0.0.50';
+  const HOST = '192.0.2.50';
   afterEach(() => vi.unstubAllGlobals());
 
   function setup() {
@@ -276,10 +276,10 @@ describe('applyControlPatch', () => {
 
   it('unresolved effect name fails that target without any device I/O, and other targets continue', async () => {
     const { db, id } = setup();
-    const other = createControllerRepository(db).add({ name: 'B', host: '10.0.0.51', source: 'manual' }).id;
+    const other = createControllerRepository(db).add({ name: 'B', host: '198.51.100.51', source: 'manual' }).id;
     seedCapabilities(db, other); // only controller B has a capability cache
     const fetchMock = stubFetchByHost({
-      '10.0.0.51': (_url, init) => {
+      '198.51.100.51': (_url, init) => {
         expect(JSON.parse(init?.body as string)).toEqual({ udpn: { nn: true }, seg: [{ id: 0, fx: 13 }] });
         return { status: 200, body: LIVE_STATE };
       }
@@ -294,7 +294,7 @@ describe('applyControlPatch', () => {
     );
     expect(results[0]).toEqual({ controllerId: id, wledSegId: 0, ok: false, error: 'effect not found: Theater' });
     expect(results[1]).toEqual({ controllerId: other, wledSegId: 0, ok: true });
-    expect(fetchMock.mock.calls.every(([url]) => new URL(url as string).host === '10.0.0.51')).toBe(true);
+    expect(fetchMock.mock.calls.every(([url]) => new URL(url as string).host === '198.51.100.51')).toBe(true);
   });
 
   it('retries exactly once on write failure, then reports the error', async () => {
@@ -355,7 +355,7 @@ describe('applyControlPatch', () => {
 
   it('does not serialize writes to different hosts — one host stalling never blocks a write to another', async () => {
     const { db, id } = setup();
-    const other = createControllerRepository(db).add({ name: 'Other', host: '10.0.0.51', source: 'manual' }).id;
+    const other = createControllerRepository(db).add({ name: 'Other', host: '198.51.100.51', source: 'manual' }).id;
 
     let releaseFirstHostGet: () => void = () => {};
     const firstHostGetGate = new Promise<void>((resolve) => { releaseFirstHostGet = resolve; });

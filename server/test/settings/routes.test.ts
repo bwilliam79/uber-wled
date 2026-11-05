@@ -32,7 +32,8 @@ describe('settings routes', () => {
       gameLeftControllerId: null,
       gameRightControllerId: null,
       gameArkansasThemeId: null,
-      gameLsuThemeId: null
+      gameLsuThemeId: null,
+      scheduleTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
     });
   });
 

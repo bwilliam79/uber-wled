@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { Controller } from '../api/client';
 import type { LiveStatusEntry } from '../api/live';
 import { useTheme } from '../theme/ThemeProvider';
@@ -49,6 +49,9 @@ export function MasterBar({
   // groups now surface as their own cards on the Devices page, not here.
   const statusText = onCount > 0 ? `${onCount} on` : 'All off';
   const statusActive = onCount > 0;
+  // Start expanded once. Leave `open` uncontrolled so a phone collapse
+  // survives the next live-status render.
+  const fleetStatusSeeded = useRef(false);
 
   return (
     <header className="master-bar">
@@ -58,16 +61,29 @@ export function MasterBar({
       </div>
       <div className="master-bar-spacer" />
 
-      <div className="master-bar-status" title={`${onCount} controller(s) on`}>
-        <span className={`master-bar-status-dot${statusActive ? ' pulse' : ''}`} />
-        <span className="master-bar-status-text">{statusText}</span>
-      </div>
-      {offlineCount > 0 && (
-        <div className="master-bar-offline" title={`${offlineCount} controller(s) offline`}>
-          <span className="master-bar-offline-dot" />
-          <span>{offlineCount} offline</span>
+      <details
+        className="fleet-status"
+        ref={(node) => {
+          if (node && !fleetStatusSeeded.current) {
+            node.open = true;
+            fleetStatusSeeded.current = true;
+          }
+        }}
+      >
+        <summary className="fleet-status-summary">Fleet status</summary>
+        <div className="fleet-status-body">
+          <div className="master-bar-status" title={`${onCount} controller(s) on`}>
+            <span className={`master-bar-status-dot${statusActive ? ' pulse' : ''}`} />
+            <span className="master-bar-status-text">{statusText}</span>
+          </div>
+          {offlineCount > 0 && (
+            <div className="master-bar-offline" title={`${offlineCount} controller(s) offline`}>
+              <span className="master-bar-offline-dot" />
+              <span>{offlineCount} offline</span>
+            </div>
+          )}
         </div>
-      )}
+      </details>
 
       <div className="theme-toggle" role="group" aria-label="Theme">
         <button

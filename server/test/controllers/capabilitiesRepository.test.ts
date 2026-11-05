@@ -27,7 +27,7 @@ describe('capabilities repository', () => {
     db = createDb(':memory:');
     repo = createCapabilitiesRepository(db);
     controllerId = createControllerRepository(db)
-      .add({ name: 'Cabinet Lights', host: '10.0.0.50', source: 'manual' }).id;
+      .add({ name: 'Cabinet Lights', host: '192.0.2.50', source: 'manual' }).id;
   });
 
   it('get returns undefined before any upsert', () => {

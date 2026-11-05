@@ -37,8 +37,8 @@ describe('POST /api/shortcuts/apply', () => {
   let gameId: string;
   let dimId: string;
   let shelvesId: string;
-  const HOST_SHELF = '10.0.0.50';
-  const HOST_CABINET = '10.0.0.51';
+  const HOST_SHELF = '192.0.2.50';
+  const HOST_CABINET = '198.51.100.51';
 
   beforeEach(() => {
     db = createDb(':memory:');
@@ -158,7 +158,7 @@ describe('POST /api/shortcuts/apply', () => {
   });
 
   it('returns 400 when a name matches more than one record, but an exact id still wins', async () => {
-    createControllerRepository(db).add({ name: 'Shelf', host: '10.0.0.52', source: 'manual' });
+    createControllerRepository(db).add({ name: 'Shelf', host: '203.0.113.52', source: 'manual' });
     createThemeRepository(db).add({
       name: 'LSU Wipe', effect: 1, palette: 1, colors: [[0, 0, 0]], brightness: 10
     });

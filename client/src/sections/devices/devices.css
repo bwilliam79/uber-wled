@@ -172,11 +172,35 @@
 }
 
 .fact dt {
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--m1);
+  font-size: 0.8125rem;
 }
+.info-danger { display: flex; gap: var(--space-sm); flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--w8); }
+.device-breadcrumb { display: flex; align-items: center; gap: 8px; color: var(--m1); font-size: 0.8125rem; }
+.device-back, .device-copy-host, .device-card-details {
+  min-height: 44px;
+  background: none;
+  border: 1px solid var(--m1);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  padding: 0 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.config-page-select { display: none; }
+.config-disclosure { border: 1px solid var(--m1); border-radius: var(--radius-control); padding: 8px 12px; margin: 8px 0; }
+.config-disclosure summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+@media (min-width: 900px) {
+  .config-tab { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .config-tab .ui-tabs { flex-direction: column; border-bottom: none; }
+}
+@media (max-width: 899px) {
+  .config-tab .ui-tabs { display: none; }
+  .config-page-select { display: flex; flex-direction: column; gap: 8px; }
+  .config-page-select select { min-height: 44px; font: inherit; }
+  .config-form-grid, .segment-grid { grid-template-columns: 1fr; }
+}
+.cs-scope-banner { margin: 0 0 8px; font-weight: 600; }
 
 .fact dd { margin: 2px 0 0; overflow-wrap: anywhere; }
 

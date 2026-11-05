@@ -1,8 +1,10 @@
 /* Themes section — Phase H. All colors/radii come from design/tokens.css. */
-.themes-section { display: flex; flex-direction: column; gap: 16px; }
-.themes-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); }
+.themes-section { display: flex; flex-direction: column; gap: 16px; max-width: 1200px; }
+.themes-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); flex-wrap: wrap; }
 .themes-header h2 { margin: 0; }
+.themes-lede { margin: 4px 0 0; color: var(--m1); font-size: 0.8125rem; }
 .themes-header-actions { display: flex; align-items: center; gap: 8px; }
+.linkish { background: none; border: none; padding: 0; color: var(--accent-text); font: inherit; cursor: pointer; text-decoration: underline; min-height: 44px; }
 .theme-row-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .theme-form-title { margin: 0 0 4px; font-size: 1rem; }
 .theme-form-actions { display: flex; align-items: center; gap: 8px; }
@@ -22,7 +24,12 @@
    the same remaining width — long names truncate instead of shoving the bar. */
 .theme-row-info { display: flex; flex-direction: column; flex: 0 0 180px; min-width: 0; }
 .theme-row-name { color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.theme-row-meta { color: var(--text-muted); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.theme-row-meta { color: var(--m1); font-size: 0.8125rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 899px) {
+  .theme-row { flex-wrap: wrap; align-items: flex-start; }
+  .theme-row-actions { width: 100%; }
+  .theme-row-actions .ui-btn { min-height: 44px; }
+}
 .theme-row-preview { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
 /* Animated LED preview on a dark housing (glow reads like real light). */
 .theme-row-preview-well { flex: 1; min-width: 60px; height: 26px; border-radius: 8px; background: #000; overflow: hidden; }

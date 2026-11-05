@@ -151,8 +151,8 @@ Devices:
    groups" below for how this actually works on the wire.
 5. **Firmware** — fleet view of installed vs. latest stable version
    (pre-releases opt-in via Settings) per controller, with a one-click
-   Update button (and an "Update All" button fleet-wide) once a device is
-   pinned and a newer release exists, plus a gear icon into that device's
+   Update button (and an "Update eligible (N)" button fleet-wide) once a device is
+   pinned and a newer release exists, plus a settings button into that device's
    own Update tab for first-time setup or re-pinning; detected hardware
    architecture and the asset picker itself live there rather than
    cluttering the fleet list. First update per controller requires a
@@ -546,6 +546,12 @@ included). Guardrails, because full parity includes footguns:
   at most two private `/24`s on the host after virtual interfaces are skipped.
   It does not contact the internet.
 
+## UI refresh (2.22.0)
+
+Settings edits one category at a time. A draft in another category stays until you save or discard it, and leaving Settings with unsaved changes asks first. Themes open as a library; create and edit use the same panel, and Apply to fleet asks before it changes every controller. Schedule rows split trigger, repeat, action, and target, and Preview on lights is optional. Sync and firmware batch results stay in a dismissible panel after the toast. Device cards keep their layout; host and diagnostics sit under Details.
+
+`cd client && npm run dev:fixtures` serves that UI with synthetic controllers only (documentation addresses, no real names or hardware identifiers). The flag is ignored outside the Vite dev server.
+
 ## Local development
 
 Requires Node 20+.
@@ -566,7 +572,7 @@ Run each test suite from its own directory:
 
 ```bash
 cd server && npm test   # 56 files / 467 tests
-cd client && npm test   # 80 files / 634 tests
+cd client && npm test   # 81 files / 637 tests
 ```
 
 (Running the whole app via Docker and deploying to a home server are covered

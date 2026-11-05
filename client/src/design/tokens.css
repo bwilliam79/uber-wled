@@ -25,6 +25,8 @@
   --m3: #63636c;
   --accent: #22C55E;
   --accent-hover: #16a34a;
+  /* Small accent text. Light #16a34a fails AA on the panel; hover green passes. */
+  --accent-text: #22c55e;
 
   /* White-alpha scale — borders, tracks, chip fills, subtle surfaces. */
   --w3: rgba(255,255,255,.03);
@@ -116,6 +118,7 @@
   --m3: #9a9ca4;
   --accent: #16a34a;
   --accent-hover: #15803d;
+  --accent-text: #15803d;
 
   --w3: rgba(0,0,0,.035);
   --w4: rgba(0,0,0,.045);

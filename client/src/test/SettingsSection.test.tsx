@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithQuery } from './renderWithQuery';
 import { SettingsSection } from '../sections/settings/SettingsSection';
+import { confirmLeaveIfDirty } from '../lib/unsavedGuard';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -42,10 +43,11 @@ describe('SettingsSection v2', () => {
   it('round-trips the live poll interval: loads 2, saves the edited value in the PATCH body', async () => {
     const fetchMock = stub();
     renderWithQuery(<SettingsSection />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Polling & discovery/ }));
     const field = (await screen.findByLabelText('Live poll interval (seconds)')) as HTMLInputElement;
     expect(field.value).toBe('2');
     fireEvent.change(field, { target: { value: '7' } });
-    fireEvent.click(screen.getByText('Save settings'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith('/api/settings', expect.objectContaining({ method: 'PATCH' }))
     );
@@ -60,9 +62,10 @@ describe('SettingsSection v2', () => {
   it('clamps the live poll interval to 1–30 on save', async () => {
     const fetchMock = stub();
     renderWithQuery(<SettingsSection />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Polling & discovery/ }));
     const field = await screen.findByLabelText('Live poll interval (seconds)');
     fireEvent.change(field, { target: { value: '45' } });
-    fireEvent.click(screen.getByText('Save settings'));
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([, i]) => (i as RequestInit)?.method === 'PATCH')).toBe(true)
     );
@@ -80,6 +83,7 @@ describe('SettingsSection v2', () => {
   it('runs a re-scan and reports the result', async () => {
     stub();
     renderWithQuery(<SettingsSection />);
+    fireEvent.click(await screen.findByRole('tab', { name: /Polling & discovery/ }));
     fireEvent.click(await screen.findByText('Re-scan now'));
     await waitFor(() => expect(screen.getByText(/Re-scan complete — 2 controller/i)).toBeTruthy());
   });
@@ -88,6 +92,7 @@ describe('SettingsSection v2', () => {
   it('uses a Search address placeholder, never a fake street address', async () => {
     stub();
     renderWithQuery(<SettingsSection />);
+    fireEvent.click(await screen.findByRole('tab', { name: 'Home location' }));
     const input = await screen.findByLabelText('Look up an address') as HTMLInputElement;
     expect(input.placeholder).toMatch(/Search address/);
     expect(input.placeholder).not.toMatch(/123 Main|Anytown/i);
@@ -97,6 +102,7 @@ describe('SettingsSection v2', () => {
     it('auto-applies the single match to the latitude/longitude fields', async () => {
       stub(undefined, [{ displayName: '1 Main St, Anytown, USA', latitude: 40.1234, longitude: -75.5678 }]);
       renderWithQuery(<SettingsSection />);
+      fireEvent.click(await screen.findByRole('tab', { name: 'Home location' }));
 
       fireEvent.change(await screen.findByLabelText('Look up an address'), { target: { value: '1 Main St' } });
       fireEvent.click(screen.getByText('Find'));
@@ -113,6 +119,7 @@ describe('SettingsSection v2', () => {
         { displayName: '1 Main St, Springfield, MA, USA', latitude: 42.1, longitude: -72.5 }
       ]);
       renderWithQuery(<SettingsSection />);
+      fireEvent.click(await screen.findByRole('tab', { name: 'Home location' }));
 
       fireEvent.change(await screen.findByLabelText('Look up an address'), { target: { value: 'Main St' } });
       fireEvent.click(screen.getByText('Find'));
@@ -132,6 +139,7 @@ describe('SettingsSection v2', () => {
     it('shows a clear message when there are no matches', async () => {
       stub(undefined, []);
       renderWithQuery(<SettingsSection />);
+      fireEvent.click(await screen.findByRole('tab', { name: 'Home location' }));
 
       fireEvent.change(await screen.findByLabelText('Look up an address'), { target: { value: 'nowhere at all' } });
       fireEvent.click(screen.getByText('Find'));
@@ -148,10 +156,38 @@ describe('SettingsSection v2', () => {
       vi.stubGlobal('fetch', fetchMock);
 
       renderWithQuery(<SettingsSection />);
+      fireEvent.click(await screen.findByRole('tab', { name: 'Home location' }));
       fireEvent.change(await screen.findByLabelText('Look up an address'), { target: { value: '1 Main St' } });
       fireEvent.click(screen.getByText('Find'));
 
       await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/network down/i));
     });
+  });
+
+  it('saves one category without clearing a dirty draft in another, and warns before leaving', async () => {
+    const fetchMock = stub();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    renderWithQuery(<SettingsSection />);
+
+    fireEvent.click(await screen.findByRole('tab', { name: /Polling & discovery/ }));
+    fireEvent.change(await screen.findByLabelText('Live poll interval (seconds)'), { target: { value: '9' } });
+    fireEvent.click(screen.getByRole('tab', { name: 'Home location' }));
+    fireEvent.change(screen.getByLabelText('Latitude'), { target: { value: '40' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit)?.method === 'PATCH')).toBe(true)
+    );
+    const patch = fetchMock.mock.calls.find(([, init]) => (init as RequestInit)?.method === 'PATCH')!;
+    expect(JSON.parse((patch[1] as RequestInit).body as string)).toEqual({
+      homeLatitude: 40,
+      homeLongitude: null
+    });
+
+    fireEvent.click(screen.getByRole('tab', { name: /Polling & discovery/ }));
+    expect((screen.getByLabelText('Live poll interval (seconds)') as HTMLInputElement).value).toBe('9');
+    expect(confirmLeaveIfDirty()).toBe(false);
+    expect(confirmSpy).toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 });

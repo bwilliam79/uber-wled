@@ -15,8 +15,8 @@ export { resolveResume } from '../games/resume.js';
 
 export function nextTriggerDate(schedule: Schedule, now: Date): Date {
   if (schedule.triggerType === 'cron') {
-    // Compute the next matching minute by scanning forward — node-cron has no
-    // built-in "next date" API, so we roll our own minimal minute-matcher.
+    // Compute the next matching minute by scanning forward. There is no
+    // library "next date" helper here, so this is a minimal minute-matcher.
     const [minute, hour, dom, month, dow] = (schedule.cronExpr ?? '* * * * *').split(' ');
     const matches = (field: string, value: number) => field === '*' || field.split(',').map(Number).includes(value);
     const candidate = new Date(now);

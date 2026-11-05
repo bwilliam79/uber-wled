@@ -5,7 +5,7 @@ import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createThemesRouter } from '../../src/themes/routes.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 function stubFetchOnce(expected: { url: string; method?: string; body?: unknown }, responseBody: unknown) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -151,7 +151,7 @@ describe('themes routes', () => {
   });
 
   it('skips an unreachable controller and falls through to the next one', async () => {
-    const secondHost = '10.0.0.60';
+    const secondHost = '198.51.100.60';
     // "Porch" sorts before "Zeta" (controllers.list() orders by name), so
     // Porch (HOST) is tried first and made to fail here, forcing the fallthrough.
     createControllerRepository(db).add({ name: 'Zeta', host: secondHost, source: 'manual' });

@@ -14,9 +14,10 @@ describe('DeviceCard', () => {
     renderDevices(<DeviceCard controller={CONTROLLERS[0]} live={liveEntry()}
       onControl={vi.fn()} onOpen={vi.fn()} />);
     expect(screen.getByText('Cabinet Lights')).toBeTruthy();
-    // Host and px count now share one mono metadata line ("203.0.113.86 · N px").
-    expect(screen.getByText(/203\.0\.113\.86/)).toBeTruthy();
     expect(screen.getByText('Online')).toBeTruthy();
+    expect(screen.queryByText(/203\.0\.113\.86/)).toBeNull();
+    fireEvent.click(screen.getByText('Details'));
+    expect(screen.getByText(/203\.0\.113\.86/)).toBeTruthy();
     expect(screen.getByText('42 FPS')).toBeTruthy();
     const powerSwitch = screen.getByRole('switch', { name: 'Power for Cabinet Lights' });
     expect(powerSwitch.getAttribute('aria-checked')).toBe('true');
