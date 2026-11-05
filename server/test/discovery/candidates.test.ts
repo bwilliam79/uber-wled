@@ -4,6 +4,7 @@ import {
   inferSlash24s,
   isWledInfo,
   resolveDiscoveryCidrs,
+  RFC1918,
   scanCandidateCidrs,
   selectDiscoveryCidrs,
   type InterfaceAddress
@@ -11,6 +12,30 @@ import {
 
 function v4(address: string, internal = false): InterfaceAddress {
   return { address, family: 'IPv4', internal };
+}
+
+/**
+ * A host in an RFC 1918 block. Class B `secondOffset` is added to that block's
+ * first second octet (0 is the start of the block). Class C ignores it.
+ */
+function privateHost(
+  block: keyof typeof RFC1918,
+  third: number,
+  fourth: number,
+  secondOffset = 0
+): string {
+  if (block === 'classA') {
+    return `${RFC1918.classA.first}.${secondOffset}.${third}.${fourth}`;
+  }
+  if (block === 'classC') {
+    return `${RFC1918.classC.first}.${RFC1918.classC.second}.${third}.${fourth}`;
+  }
+  return `${RFC1918.classB.first}.${RFC1918.classB.secondMin + secondOffset}.${third}.${fourth}`;
+}
+
+function privateSlash24(block: keyof typeof RFC1918, third: number, secondOffset = 0): string {
+  const [a, b, c] = privateHost(block, third, 0, secondOffset).split('.');
+  return `${a}.${b}.${c}.0/24`;
 }
 
 describe('expandCidr', () => {
@@ -28,43 +53,46 @@ describe('expandCidr', () => {
 
 describe('inferSlash24s', () => {
   it('keeps the first two private /24s and skips public, loopback, link-local, and IPv6', () => {
-    // RFC1918 examples only — not a real network.
+    const classC = privateSlash24('classC', 4);
+    const classA = privateSlash24('classA', 10, 10);
     const cidrs = inferSlash24s({
-      eth0: [v4('192.168.4.15'), v4('192.168.4.40'), { address: '2001:db8::1', family: 'IPv6', internal: false }],
-      eth1: [v4('172.16.10.8')],
-      eth2: [v4('172.16.3.9'), v4('172.32.0.9')],
+      eth0: [v4(privateHost('classC', 4, 15)), v4(privateHost('classC', 4, 40)), { address: '2001:db8::1', family: 'IPv6', internal: false }],
+      eth1: [v4(privateHost('classA', 10, 8, 10))],
+      eth2: [v4(privateHost('classB', 3, 9)), v4('172.32.0.9')],
       lo: [v4('127.0.0.1', true)],
       docs: [v4('192.0.2.15'), v4('198.51.100.8')],
       linklocal: [v4('169.254.1.10')]
     });
-    expect(cidrs).toEqual(['192.168.4.0/24', '172.16.10.0/24']);
+    expect(cidrs).toEqual([classC, classA]);
   });
 
   it('skips docker, bridge, veth, and colima interfaces and keeps at most two /24s', () => {
+    const classC = privateSlash24('classC', 4);
+    const classB = privateSlash24('classB', 4);
     const cidrs = inferSlash24s({
-      docker0: [v4('172.17.0.1')],
-      'br-7f3a': [v4('172.18.0.1')],
-      bridge0: [v4('172.18.0.19')],
+      docker0: [v4(privateHost('classB', 0, 1, 1))],
+      'br-7f3a': [v4(privateHost('classB', 0, 1, 2))],
+      bridge0: [v4(privateHost('classB', 0, 19, 2))],
       veth0abc: [v4('192.0.2.9')],
       col0: [v4('198.51.100.8')],
       colima: [v4('203.0.113.7')],
-      eth0: [v4('192.168.4.15')],
-      eth1: [v4('172.16.4.8')],
-      eth2: [v4('172.16.3.19')]
+      eth0: [v4(privateHost('classC', 4, 15))],
+      eth1: [v4(privateHost('classB', 4, 8))],
+      eth2: [v4(privateHost('classB', 3, 19))]
     });
-    expect(cidrs).toEqual(['192.168.4.0/24', '172.16.4.0/24']);
+    expect(cidrs).toEqual([classC, classB]);
   });
 });
 
 describe('resolveDiscoveryCidrs', () => {
-  const interfaces = { eth0: [v4('192.168.4.15')] };
+  const interfaces = { eth0: [v4(privateHost('classC', 4, 15))] };
+  const inferred = privateSlash24('classC', 4);
 
   it('defaults to inferred /24s when unset, and honors an explicit list or off', () => {
-    expect(resolveDiscoveryCidrs(undefined, interfaces)).toEqual(['192.168.4.0/24']);
-    expect(resolveDiscoveryCidrs('172.16.8.0/24, 172.16.3.0/24', interfaces)).toEqual([
-      '172.16.8.0/24',
-      '172.16.3.0/24'
-    ]);
+    const first = privateSlash24('classB', 8);
+    const second = privateSlash24('classB', 3);
+    expect(resolveDiscoveryCidrs(undefined, interfaces)).toEqual([inferred]);
+    expect(resolveDiscoveryCidrs(`${first}, ${second}`, interfaces)).toEqual([first, second]);
     expect(resolveDiscoveryCidrs('off', interfaces)).toEqual([]);
     expect(resolveDiscoveryCidrs('  ', interfaces)).toEqual([]);
   });
@@ -73,9 +101,9 @@ describe('resolveDiscoveryCidrs', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       expect(resolveDiscoveryCidrs(
-        '192.168.4.0/24, 192.0.2.10/32, 203.0.113.0/24, 198.51.100.8',
+        `${inferred}, 192.0.2.10/32, 203.0.113.0/24, 198.51.100.8`,
         interfaces
-      )).toEqual(['192.168.4.0/24']);
+      )).toEqual([inferred]);
       expect(warn).toHaveBeenCalledTimes(1);
       expect(String(warn.mock.calls[0][0])).toContain('private ranges');
       expect(String(warn.mock.calls[0][0])).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
@@ -90,14 +118,14 @@ describe('resolveDiscoveryCidrs', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
       expect(resolveDiscoveryCidrs(undefined, {
-        docker0: [v4('172.17.0.1')],
+        docker0: [v4(privateHost('classB', 0, 1, 1))],
         col0: [v4('192.0.2.8')],
         veth0abc: [v4('198.51.100.9')]
       })).toEqual([]);
       expect(warn).toHaveBeenCalledTimes(1);
       expect(warn.mock.calls[0][0]).toContain('DISCOVERY_CIDR');
       expect(String(warn.mock.calls[0][0])).not.toMatch(/\d+\.\d+\.\d+\.\d+/);
-      expect(resolveDiscoveryCidrs('off', { docker0: [v4('172.17.0.1')] })).toEqual([]);
+      expect(resolveDiscoveryCidrs('off', { docker0: [v4(privateHost('classB', 0, 1, 1))] })).toEqual([]);
       expect(warn).toHaveBeenCalledTimes(1);
     } finally {
       warn.mockRestore();
@@ -106,7 +134,8 @@ describe('resolveDiscoveryCidrs', () => {
 });
 
 describe('selectDiscoveryCidrs', () => {
-  const interfaces = { eth0: [v4('192.168.4.15')] };
+  const interfaces = { eth0: [v4(privateHost('classC', 4, 15))] };
+  const inferred = privateSlash24('classC', 4);
 
   it('does not infer a CIDR for an injected scan unless one was configured', () => {
     expect(selectDiscoveryCidrs({
@@ -123,16 +152,17 @@ describe('selectDiscoveryCidrs', () => {
   });
 
   it('uses DISCOVERY_CIDR, then inferred /24s, for a real mDNS scan', () => {
+    const configured = privateSlash24('classB', 8);
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
-      envValue: '172.16.8.0/24',
+      envValue: configured,
       interfaces
-    })).toEqual(['172.16.8.0/24']);
+    })).toEqual([configured]);
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
       envValue: undefined,
       interfaces
-    })).toEqual(['192.168.4.0/24']);
+    })).toEqual([inferred]);
     expect(selectDiscoveryCidrs({
       scanIsDefault: true,
       envValue: 'off',

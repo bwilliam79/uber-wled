@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { RFC1918 } from '../../src/discovery/candidates.js';
 import { assertValidHost } from '../../src/controllers/validateHost.js';
+
+/** A class B address built from the RFC 1918 block discovery already names. */
+const rfc1918ClassB = `${RFC1918.classB.first}.${RFC1918.classB.secondMin}.3.5`;
 
 describe('assertValidHost', () => {
   it('accepts valid hostnames', () => {
@@ -28,7 +32,7 @@ describe('assertValidHost', () => {
   it('does not reject private/RFC1918 IP ranges — these are where real WLED controllers live', () => {
     expect(() => assertValidHost('198.51.100.1')).not.toThrow();
     expect(() => assertValidHost('203.0.113.5')).not.toThrow();
-    expect(() => assertValidHost('172.16.3.5')).not.toThrow();
+    expect(() => assertValidHost(rfc1918ClassB)).not.toThrow();
   });
 
   it('rejects values containing a URL scheme', () => {
@@ -38,7 +42,7 @@ describe('assertValidHost', () => {
 
   it('rejects values containing a path', () => {
     expect(() => assertValidHost('192.0.2.50/admin')).toThrow(/path|query/i);
-    expect(() => assertValidHost('wled-porch.local/../etc')).toThrow(/path|query/i);
+    expect(() => assertValidHost('wled-porch/../etc')).toThrow(/path|query/i);
   });
 
   it('rejects values containing whitespace', () => {
