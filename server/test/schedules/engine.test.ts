@@ -66,8 +66,8 @@ describe('SchedulerEngine.checkAndFireDueSchedules', () => {
 
   beforeEach(() => {
     db = createDb(':memory:');
-    controllerId = createControllerRepository(db).add({ name: 'Front porch', host: '10.0.0.50', source: 'manual' }).id;
-    controllerId2 = createControllerRepository(db).add({ name: 'Kitchen', host: '10.0.0.51', source: 'manual' }).id;
+    controllerId = createControllerRepository(db).add({ name: 'Front porch', host: '192.0.2.50', source: 'manual' }).id;
+    controllerId2 = createControllerRepository(db).add({ name: 'Kitchen', host: '198.51.100.51', source: 'manual' }).id;
     groupId = createGroupRepository(db).add({
       name: 'Front', members: [{ controllerId, wledSegId: 0 }]
     }).id;
@@ -231,8 +231,8 @@ describe('SchedulerEngine calendar override-for-day', () => {
   beforeEach(() => {
     db = createDb(':memory:');
     const controllers = createControllerRepository(db);
-    porchControllerId = controllers.add({ name: 'Porch', host: '10.0.0.51', source: 'manual' }).id;
-    kitchenControllerId = controllers.add({ name: 'Kitchen', host: '10.0.0.52', source: 'manual' }).id;
+    porchControllerId = controllers.add({ name: 'Porch', host: '198.51.100.51', source: 'manual' }).id;
+    kitchenControllerId = controllers.add({ name: 'Kitchen', host: '203.0.113.52', source: 'manual' }).id;
     const groups = createGroupRepository(db);
     sharedGroupId = groups.add({
       name: 'Porch', members: [{ controllerId: porchControllerId, wledSegId: 0 }]

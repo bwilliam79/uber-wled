@@ -23,10 +23,10 @@ const CONFIG_PAGES = [
   { id: 'identity', label: 'Identity' },
   { id: 'led', label: 'LED & Hardware' },
   { id: 'wifi', label: 'WiFi' },
-  { id: 'sync', label: 'Sync' },
+  { id: 'sync', label: 'Sync interfaces' },
   { id: 'time', label: 'Time' },
-  { id: 'prefs', label: 'LED Prefs' },
-  { id: 'advanced', label: 'Advanced' }
+  { id: 'prefs', label: 'LED preferences' },
+  { id: 'advanced', label: 'Advanced JSON' }
 ];
 
 interface PendingSave {
@@ -99,7 +99,17 @@ export function ConfigTab({ controllerId }: { controllerId: string }) {
 
   return (
     <div className="config-tab">
+      <label className="config-page-select">
+        Config page
+        <select aria-label="Config page" value={page} onChange={(event) => setPage(event.target.value)}>
+          {CONFIG_PAGES.map((item) => (
+            <option key={item.id} value={item.id}>{item.label}</option>
+          ))}
+        </select>
+      </label>
       <Tabs label="Config pages" tabs={CONFIG_PAGES} active={page} onChange={setPage} />
+      <div className="config-tab-body">
+      <p className="field-hint">Save applies to this page only. A diff is shown before anything is written.</p>
       {page === 'identity' && <IdentityForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'led' && <LedHardwareForm cfg={cfg} busy={busy} onSave={requestSave} />}
       {page === 'wifi' && <WifiForm cfg={cfg} busy={busy} onSave={requestSave} />}
@@ -122,6 +132,7 @@ export function ConfigTab({ controllerId }: { controllerId: string }) {
           <Button variant="ghost" onClick={() => setRebootOffer(false)}>Later</Button>
         </div>
       )}
+      </div>
     </div>
   );
 }

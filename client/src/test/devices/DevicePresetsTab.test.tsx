@@ -48,7 +48,8 @@ describe('DevicePresetsTab', () => {
 
   it('deletes a preset only after modal confirmation', async () => {
     const { fn } = renderTab({ 'DELETE /api/controllers/c1/presets/2': {} });
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete preset Party loop' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'More actions for Party loop' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete preset Party loop' }));
     await screen.findByText(/Delete “Party loop” \(id 2\)/);
     fireEvent.click(screen.getByRole('button', { name: 'Delete preset' }));
     await waitFor(() => expect(fn).toHaveBeenCalledWith(
@@ -58,6 +59,7 @@ describe('DevicePresetsTab', () => {
   it('saves the current state with the two flags', async () => {
     const { fn } = renderTab({ 'POST /api/controllers/c1/presets': { id: 3, name: 'Evening warm' } });
     await screen.findByText('Warm evening');
+    fireEvent.click(screen.getByRole('button', { name: 'Save current state…' }));
     fireEvent.change(screen.getByLabelText('Preset name'), { target: { value: 'Evening warm' } });
     fireEvent.click(screen.getByRole('switch', { name: 'Save segment bounds' }));
     fireEvent.click(screen.getByRole('button', { name: 'Save preset' }));
@@ -73,6 +75,7 @@ describe('DevicePresetsTab', () => {
   it('disables Save preset while the name is empty', async () => {
     renderTab();
     await screen.findByText('Warm evening');
+    fireEvent.click(screen.getByRole('button', { name: 'Save current state…' }));
     expect((screen.getByRole('button', { name: 'Save preset' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

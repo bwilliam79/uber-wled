@@ -324,6 +324,9 @@ export function ControlSurface({ targets, open, onClose }: ControlSurfaceProps) 
     <div className="ui-overlay" onClick={onClose}>
       <div className="cs-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Control">
       <div className="control-surface">
+        <p className="cs-scope-banner">
+          Control {controllerIds.length} controller{controllerIds.length === 1 ? '' : 's'} / {expanded.length} segment{expanded.length === 1 ? '' : 's'}
+        </p>
         {/* Header: single-controller identity (or target chips) + power + close */}
         <div className="cs-modal-head">
           {singleName ? (

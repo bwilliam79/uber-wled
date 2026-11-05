@@ -32,6 +32,12 @@
   font-size: 0.875rem;
 }
 
+@media (max-width: 899px) {
+  .ui-btn-sm {
+    min-height: 44px;
+  }
+}
+
 @media (min-width: 900px) {
   .ui-btn {
     padding: 0 14px;
@@ -98,8 +104,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   border-radius: var(--radius-control);
   border: 1px solid transparent;
@@ -528,15 +534,26 @@
   min-height: var(--control-height);
   padding: 0 40px;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--m1);
   border-radius: var(--radius-control);
   color: var(--text);
 }
 
+.ui-search-input,
+.ui-select {
+  border-color: var(--m1);
+}
+
+.ui-search-input:focus-visible,
+.ui-select:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+
 .ui-search-input:focus {
-  border-color: var(--accent);
+  border-color: var(--m1);
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .ui-search-input::placeholder {
@@ -581,17 +598,50 @@
   padding: 0 36px 0 12px;
   appearance: none;
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid var(--m1);
   border-radius: var(--radius-control);
   color: var(--text);
   cursor: pointer;
 }
 
 .ui-select:focus {
-  border-color: var(--accent);
+  border-color: var(--m1);
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-soft);
 }
+
+.ui-more { position: relative; display: inline-flex; }
+.ui-more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 200px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--m1);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+}
+.ui-more-menu[hidden] { display: none !important; }
+.ui-more-menu .ui-btn { justify-content: flex-start; width: 100%; }
+
+.result-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--m1);
+  border-radius: var(--radius-card);
+}
+.result-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.result-panel h3 { margin: 0; font-size: 0.95rem; }
+.result-panel ul { margin: 0; padding-left: 1.1rem; }
+.result-panel li { margin: 4px 0; }
 
 .ui-select-chevron {
   position: absolute;

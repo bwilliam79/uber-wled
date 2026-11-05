@@ -12,31 +12,31 @@ describe('controller repository', () => {
   });
 
   it('adds and lists a manual controller', () => {
-    const created = repo.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' });
+    const created = repo.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' });
     expect(created.id).toBeTruthy();
     expect(repo.list()).toEqual([created]);
   });
 
   it('finds a controller by host', () => {
-    const created = repo.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' });
-    expect(repo.findByHost('10.0.0.50')).toEqual(created);
+    const created = repo.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' });
+    expect(repo.findByHost('192.0.2.50')).toEqual(created);
     expect(repo.findByHost('missing')).toBeUndefined();
   });
 
   it('marks a controller stale', () => {
-    const created = repo.add({ name: 'Porch', host: '10.0.0.50', source: 'discovered' });
+    const created = repo.add({ name: 'Porch', host: '192.0.2.50', source: 'discovered' });
     repo.markStale(created.id, true);
     expect(repo.list()[0].stale).toBe(true);
   });
 
   it('removes a controller', () => {
-    const created = repo.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' });
+    const created = repo.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' });
     repo.remove(created.id);
     expect(repo.list()).toEqual([]);
   });
 
   it('stores and reads a pinned asset pattern, defaulting to null', () => {
-    const created = repo.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' });
+    const created = repo.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' });
     expect(created.pinnedAssetPattern).toBeNull();
 
     repo.setPinnedAssetPattern(created.id, 'ESP02');

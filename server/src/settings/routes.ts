@@ -9,12 +9,17 @@ export function createSettingsRouter(db: Database.Database): Router {
   const router = Router();
   const repo = createSettingsRepository(db);
 
+  function withScheduleZone<T extends object>(body: T) {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return { ...body, scheduleTimeZone: zone || 'UTC' };
+  }
+
   router.get('/', (_req, res) => {
-    res.json(repo.get());
+    res.json(withScheduleZone(repo.get()));
   });
 
   router.patch('/', (req, res) => {
-    res.json(repo.update(req.body));
+    res.json(withScheduleZone(repo.update(req.body)));
   });
 
   router.post('/rescan', async (_req, res) => {

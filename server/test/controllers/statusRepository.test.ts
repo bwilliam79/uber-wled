@@ -13,7 +13,7 @@ describe('controller status repository', () => {
     db = createDb(':memory:');
     controllers = createControllerRepository(db);
     statuses = createControllerStatusRepository(db);
-    controllerId = controllers.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' }).id;
+    controllerId = controllers.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' }).id;
   });
 
   it('returns undefined for a controller that has never been polled', () => {
@@ -48,7 +48,7 @@ describe('controller status repository', () => {
   });
 
   it('lists snapshots for all controllers via getAll', () => {
-    const secondId = controllers.add({ name: 'Deck', host: '10.0.0.51', source: 'manual' }).id;
+    const secondId = controllers.add({ name: 'Deck', host: '198.51.100.51', source: 'manual' }).id;
     statuses.upsert({ controllerId, reachable: true, info: null, state: null, polledAt: '2026-07-04T12:00:00.000Z' });
     statuses.upsert({ controllerId: secondId, reachable: false, info: null, state: null, polledAt: '2026-07-04T12:00:00.000Z' });
 

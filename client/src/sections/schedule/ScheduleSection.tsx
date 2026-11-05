@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { importSchedulesFile, SCHEDULES_EXPORT_URL } from '../../api/client';
 import { Button } from '../../components/ui/Button';
 import { ImportButton } from '../../components/ImportButton';
+import { MoreMenu } from '../../components/ui/MoreMenu';
 import { useToast } from '../../components/ui/Toast';
 import { triggerDownload, readJsonFile } from '../../lib/fileTransfer';
 import { ScheduleManager } from './ScheduleManager';
@@ -32,10 +33,12 @@ export function ScheduleSection() {
       <div className="schedule-header">
         <h2>Schedule</h2>
         <div className="schedule-header-actions">
-          <Button variant="secondary" size="sm" onClick={() => triggerDownload(SCHEDULES_EXPORT_URL)}>
-            Export
-          </Button>
-          <ImportButton label="Import" size="sm" onFile={handleImport} />
+          <MoreMenu label="More">
+            <Button variant="secondary" size="sm" onClick={() => triggerDownload(SCHEDULES_EXPORT_URL)}>
+              Export JSON
+            </Button>
+            <ImportButton label="Import JSON" size="sm" onFile={handleImport} />
+          </MoreMenu>
         </div>
       </div>
       {/* One unified list: recurring schedules and specific-date entries, one

@@ -1,7 +1,60 @@
-/* Settings section — Phase H. */
-/* Grouped panels flow left-to-right on wide screens, collapsing to a single
-   column on narrow ones. auto-fill + minmax keeps each group readable rather
-   than stretching one giant column across an ultrawide display. */
+/* Settings — one category pane. The old card grid is unused. */
+.settings-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.settings-header h2 { margin: 0; }
+.settings-lede { margin: 4px 0 0; color: var(--m1); font-size: 0.8125rem; max-width: 62ch; }
+.settings-dirty { margin: 0; color: var(--warning); font-size: 0.8125rem; }
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 720px);
+  gap: 24px;
+  align-items: start;
+}
+.settings-nav { display: flex; flex-direction: column; gap: 4px; }
+.settings-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  text-align: left;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font: inherit;
+}
+.settings-nav-btn[aria-selected="true"] {
+  background: var(--panel);
+  border-color: var(--m1);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.settings-nav-dirty { color: var(--warning); font-size: 0.8125rem; }
+.settings-category-select { display: none; flex-direction: column; gap: 8px; color: var(--text); font-size: 0.8125rem; }
+.settings-category-select select { min-height: 44px; font: inherit; width: 100%; }
+.settings-pane { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.settings-pane-title { margin: 0; font-size: 1rem; }
+.settings-savebar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.settings-divider { border: 0; border-top: 1px solid var(--w8); margin: 8px 0; width: 100%; }
+.settings-danger {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-card);
+}
+.settings-danger h4 { margin: 0; }
+@media (max-width: 899px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { display: none; }
+  .settings-category-select { display: flex; }
+  .settings-field-pair { flex-direction: column; }
+  .settings-toggle-row { min-height: 44px; }
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -10,7 +63,7 @@
 }
 .settings-group { display: flex; flex-direction: column; gap: 14px; }
 .settings-group-title { margin: 0; font-size: 1rem; }
-.settings-group-hint { margin: -8px 0 0; color: var(--text-muted); font-size: 0.85rem; }
+.settings-group-hint { margin: 0; color: var(--m1); font-size: 0.8125rem; }
 .settings-field-pair { display: flex; gap: 10px; }
 .settings-field-pair > * { flex: 1; min-width: 0; }
 .settings-toggle-row { display: flex; align-items: center; gap: 10px; min-height: 40px; color: var(--text); }
@@ -31,9 +84,10 @@
 }
 .settings-address-candidate {
   width: 100%;
+  min-height: 44px;
   text-align: left;
   background: transparent;
-  border: 1px solid var(--border);
+  border: 1px solid var(--m1);
   border-radius: var(--radius-control);
   padding: 8px 10px;
   color: var(--text);
@@ -48,8 +102,8 @@
 .settings-autobackup-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .settings-autobackup-row { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; }
 .settings-autobackup-date { color: var(--text); }
-.settings-autobackup-size { color: var(--m2); min-width: 52px; }
-.settings-autobackup-dl { margin-left: auto; color: var(--accent); text-decoration: none; }
+.settings-autobackup-size { color: var(--m1); min-width: 52px; }
+.settings-autobackup-dl { margin-left: auto; color: var(--accent-text); text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
 .settings-autobackup-dl:hover { text-decoration: underline; }
 .settings-autobackup-restore {
   background: none; border: 1px solid var(--w10); color: var(--text2);

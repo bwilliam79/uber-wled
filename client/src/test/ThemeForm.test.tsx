@@ -44,7 +44,7 @@ describe('ThemeForm', () => {
     fireEvent.click(screen.getByLabelText('Color 1: #ffffff'));       // open slot 1 popover
     fireEvent.change(screen.getByLabelText('Color 1 hex'), { target: { value: '#ff8800' } });
     fireEvent.change(screen.getByLabelText('Brightness'), { target: { value: '200' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Add theme' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save theme' }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith('/api/themes', expect.objectContaining({ method: 'POST' }))
@@ -101,6 +101,6 @@ describe('ThemeForm', () => {
   it('disables submit until a name is entered', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     renderWithQuery(<ThemeForm capabilities={CAPS} />);
-    expect((screen.getByRole('button', { name: 'Add theme' }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole('button', { name: 'Save theme' }) as HTMLButtonElement).disabled).toBe(true);
   });
 });

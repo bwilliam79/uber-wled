@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '../components/ui/Toast';
 import { FirmwareSection } from '../sections/firmware/FirmwareSection';
@@ -39,7 +39,7 @@ function stub({
       return Promise.resolve({
         ok: true,
         json: async () => [
-          { id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern }
+          { id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern }
         ]
       });
     }
@@ -50,14 +50,14 @@ function stub({
 }
 
 describe('FirmwareSection v2', () => {
-  it('lists controllers with installed/available versions, no host or hardware shown, and a gear icon that opens the device detail page', async () => {
+  it('lists controllers with installed/available versions, no host or hardware shown, and settings that open the device detail page', async () => {
     stub();
     const onOpen = vi.fn();
     renderFirmware(<FirmwareSection onOpenDeviceUpdate={onOpen} />);
     await waitFor(() => expect(screen.getByText('Porch')).toBeTruthy());
     expect(screen.getByText('Installed: 0.14.0')).toBeTruthy();
     expect(screen.getByText('Update available (v0.15.0)')).toBeTruthy();
-    expect(screen.queryByText('10.0.0.50')).toBeNull();
+    expect(screen.queryByText('192.0.2.50')).toBeNull();
     expect(screen.queryByText(/Hardware:/)).toBeNull();
 
     fireEvent.click(screen.getByLabelText('Firmware settings for Porch'));
@@ -68,7 +68,7 @@ describe('FirmwareSection v2', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }));
     renderFirmware(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
     await waitFor(() => expect(screen.getByText('No controllers yet.')).toBeTruthy());
-    expect(screen.queryByRole('button', { name: /Update All/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Update eligible/ })).toBeNull();
   });
 
   it('omits the Available text when no update is available', async () => {
@@ -77,7 +77,7 @@ describe('FirmwareSection v2', () => {
     await waitFor(() => expect(screen.getByText('Installed: 0.14.0')).toBeTruthy());
     expect(screen.queryByText(/Available:/)).toBeNull();
     expect(screen.queryByRole('button', { name: 'Update' })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Update All/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Update eligible/ })).toBeNull();
   });
 
   it('shows a direct Update button when pinned and an update is available, and triggers the push on click', async () => {
@@ -102,7 +102,7 @@ describe('FirmwareSection v2', () => {
     expect(screen.queryByRole('button', { name: 'Update' })).toBeNull();
     expect(screen.getByLabelText('Firmware settings for Porch')).toBeTruthy();
     // Nothing is actionable fleet-wide either, since nothing is pinned yet.
-    expect(screen.queryByRole('button', { name: /Update All/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Update eligible/ })).toBeNull();
   });
 
   it('shows a visible error when the direct update push fails', async () => {
@@ -122,7 +122,7 @@ describe('FirmwareSection v2', () => {
       if (url === '/api/controllers') {
         return Promise.resolve({
           ok: true,
-          json: async () => [{ id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' }]
+          json: async () => [{ id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' }]
         });
       }
       return Promise.resolve({ ok: true, json: async () => [] });
@@ -136,7 +136,7 @@ describe('FirmwareSection v2', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/upload failed: device responded 500/));
   });
 
-  it('shows an "Update All" button counting only pinned, update-available controllers, and pushes updates to all of them on click', async () => {
+  it('shows an "Update eligible" button counting only pinned, update-available controllers, and pushes updates to all of them on click', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === '/api/controllers/c1/firmware/update' || url === '/api/controllers/c2/firmware/update') {
         expect(init?.method).toBe('POST');
@@ -174,9 +174,9 @@ describe('FirmwareSection v2', () => {
         return Promise.resolve({
           ok: true,
           json: async () => [
-            { id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
-            { id: 'c2', name: 'Bar', host: '10.0.0.51', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
-            { id: 'c3', name: 'Shelves', host: '10.0.0.52', source: 'manual', stale: false, pinnedAssetPattern: null }
+            { id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
+            { id: 'c2', name: 'Bar', host: '192.0.2.51', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
+            { id: 'c3', name: 'Shelves', host: '192.0.2.52', source: 'manual', stale: false, pinnedAssetPattern: null }
           ]
         });
       }
@@ -185,9 +185,9 @@ describe('FirmwareSection v2', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     renderFirmware(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Update All (2)' })).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Update eligible (2)' })).toBeTruthy());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Update All (2)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Update eligible (2)' }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith('/api/controllers/c1/firmware/update', expect.objectContaining({ method: 'POST' }))
@@ -196,5 +196,51 @@ describe('FirmwareSection v2', () => {
     expect(fetchMock).not.toHaveBeenCalledWith('/api/controllers/c3/firmware/update', expect.anything());
 
     await waitFor(() => expect(screen.getByRole('status').textContent).toMatch(/Updated 2 controllers/));
+  });
+
+  it('keeps batch results until Dismiss, including after the toast expires', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval'], shouldAdvanceTime: true });
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === '/api/controllers/c1/firmware/update' || url === '/api/controllers/c2/firmware/update') {
+        expect(init?.method).toBe('POST');
+        return Promise.resolve({ ok: true, json: async () => ({ ok: true, installedVersion: '0.15.0' }) });
+      }
+      if (url === '/api/controllers/c1/firmware' || url === '/api/controllers/c2/firmware') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            installedVersion: '0.14.0', latestTag: 'v0.15.0', updateAvailable: true,
+            isPrerelease: false, pinnedAssetPattern: 'ESP32', candidateAssets: [], detectedArch: 'esp32'
+          })
+        });
+      }
+      if (url === '/api/controllers') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            { id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' },
+            { id: 'c2', name: 'Porch', host: '198.51.100.51', source: 'manual', stale: false, pinnedAssetPattern: 'ESP32' }
+          ]
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      renderFirmware(<FirmwareSection onOpenDeviceUpdate={() => {}} />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Update eligible (2)' }));
+      const panel = await screen.findByRole('region', { name: 'Batch results' });
+      expect(within(panel).getAllByText(/^Porch:/)).toHaveLength(2);
+      expect(screen.getByRole('status').textContent).toMatch(/Updated 2 controllers/);
+
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(screen.getByRole('status').textContent ?? '').not.toMatch(/Updated 2 controllers/);
+      expect(screen.getByRole('region', { name: 'Batch results' })).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+      expect(screen.queryByRole('region', { name: 'Batch results' })).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

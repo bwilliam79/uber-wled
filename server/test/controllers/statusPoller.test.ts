@@ -17,7 +17,7 @@ describe('pollAllControllerStatus', () => {
   });
 
   it('caches info and state for a reachable controller', async () => {
-    const id = controllers.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' }).id;
+    const id = controllers.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' }).id;
     const info = { name: 'Porch', ver: '0.14.0', leds: { count: 60 }, arch: 'esp32' };
     const state = { on: true, bri: 128, ps: -1, seg: [] };
 
@@ -30,7 +30,7 @@ describe('pollAllControllerStatus', () => {
   });
 
   it('caches reachable: false with null data when a controller throws (offline)', async () => {
-    const id = controllers.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' }).id;
+    const id = controllers.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' }).id;
 
     await pollAllControllerStatus(db, {
       getInfo: async () => { throw new Error('ECONNREFUSED'); },
@@ -41,18 +41,18 @@ describe('pollAllControllerStatus', () => {
   });
 
   it('polls every controller independently — one offline controller does not block the rest', async () => {
-    const okId = controllers.add({ name: 'Porch', host: '10.0.0.50', source: 'manual' }).id;
-    const offlineId = controllers.add({ name: 'Deck', host: '10.0.0.51', source: 'manual' }).id;
+    const okId = controllers.add({ name: 'Porch', host: '192.0.2.50', source: 'manual' }).id;
+    const offlineId = controllers.add({ name: 'Deck', host: '198.51.100.51', source: 'manual' }).id;
     const info = { name: 'Porch', ver: '0.14.0', leds: { count: 60 }, arch: 'esp32' };
     const state = { on: true, bri: 128, ps: -1, seg: [] };
 
     await pollAllControllerStatus(db, {
       getInfo: async (host: string) => {
-        if (host === '10.0.0.51') throw new Error('ECONNREFUSED');
+        if (host === '198.51.100.51') throw new Error('ECONNREFUSED');
         return info;
       },
       getState: async (host: string) => {
-        if (host === '10.0.0.51') throw new Error('ECONNREFUSED');
+        if (host === '198.51.100.51') throw new Error('ECONNREFUSED');
         return state;
       }
     });
@@ -97,7 +97,7 @@ describe('pollAllControllerStatus capability refresh wiring', () => {
   });
 
   it('populates the capability cache on first sight of a controller with a vid', async () => {
-    const id = controllers.add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
+    const id = controllers.add({ name: 'Cabinet', host: '192.0.2.50', source: 'manual' }).id;
     await pollAllControllerStatus(db, {
       getInfo: async () => info,
       getState: async () => state,
@@ -111,7 +111,7 @@ describe('pollAllControllerStatus capability refresh wiring', () => {
   });
 
   it('does not re-fetch capabilities when the cached vid matches', async () => {
-    controllers.add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' });
+    controllers.add({ name: 'Cabinet', host: '192.0.2.50', source: 'manual' });
     const first = capFetchers();
     await pollAllControllerStatus(db, { getInfo: async () => info, getState: async () => state, ...first });
 
@@ -123,7 +123,7 @@ describe('pollAllControllerStatus capability refresh wiring', () => {
   });
 
   it('re-fetches capabilities when the device vid changes (firmware update)', async () => {
-    const id = controllers.add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
+    const id = controllers.add({ name: 'Cabinet', host: '192.0.2.50', source: 'manual' }).id;
     await pollAllControllerStatus(db, { getInfo: async () => info, getState: async () => state, ...capFetchers() });
 
     const upgraded = { ...info, vid: 2605031 };
@@ -133,7 +133,7 @@ describe('pollAllControllerStatus capability refresh wiring', () => {
   });
 
   it('still records reachable status when the capability refresh itself fails', async () => {
-    const id = controllers.add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
+    const id = controllers.add({ name: 'Cabinet', host: '192.0.2.50', source: 'manual' }).id;
     await pollAllControllerStatus(db, {
       getInfo: async () => info,
       getState: async () => state,
@@ -146,7 +146,7 @@ describe('pollAllControllerStatus capability refresh wiring', () => {
   });
 
   it('does not attempt a refresh when info has no vid (old firmware / legacy mocks)', async () => {
-    const id = controllers.add({ name: 'Old', host: '10.0.0.51', source: 'manual' }).id;
+    const id = controllers.add({ name: 'Old', host: '198.51.100.51', source: 'manual' }).id;
     const fetchers = capFetchers();
     await pollAllControllerStatus(db, {
       getInfo: async () => ({ name: 'Old', ver: '0.9.0', leds: { count: 30 }, arch: 'esp8266' }),

@@ -11,19 +11,20 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Chip } from '../../components/ui/Chip';
 import { Modal } from '../../components/ui/Modal';
+import { MoreMenu } from '../../components/ui/MoreMenu';
+import { ResultPanel } from '../../components/ui/ResultPanel';
 import { useToast } from '../../components/ui/Toast';
 import { SyncGroupModal } from './SyncGroupModal';
 import './sync.css';
 
-function memberNames(
+function memberNameList(
   group: SyncGroup,
   controllers: Controller[],
   live: Map<string, LiveStatusEntry>
-): string {
-  if (group.memberControllerIds.length === 0) return 'No controllers yet';
+): string[] {
+  if (group.memberControllerIds.length === 0) return [];
   return group.memberControllerIds
-    .map((id) => live.get(id)?.info?.name || controllers.find((c) => c.id === id)?.name || id)
-    .join(', ');
+    .map((id) => live.get(id)?.info?.name || controllers.find((c) => c.id === id)?.name || id);
 }
 
 function summarizeResults(results: SyncMemberResult[]): { failed: SyncMemberResult[] } {
@@ -82,6 +83,7 @@ function SyncGroupRow({
   onEdit: (g: SyncGroup) => void;
   onDelete: (g: SyncGroup) => void;
 }) {
+  const names = memberNameList(group, controllers, live);
   const conflictCtrlName = conflict
     ? live.get(conflict.controllerId)?.info?.name
       || controllers.find((c) => c.id === conflict.controllerId)?.name
@@ -100,15 +102,17 @@ function SyncGroupRow({
             ? <Chip variant="success">Active</Chip>
             : <Chip>Inactive</Chip>}
         </div>
-        <span className="sync-group-row-members">{memberNames(group, controllers, live)}</span>
+        <details className="sync-members" open>
+          <summary>{names.length} controller{names.length === 1 ? '' : 's'}</summary>
+          <span className="sync-group-row-members">
+            {names.length === 0 ? 'No controllers yet' : names.map((name) => <span key={name}>{name}</span>)}
+          </span>
+        </details>
         {conflict && (
           <span className="sync-group-row-conflict" role="status">{conflictHint}</span>
         )}
       </div>
       <div className="sync-group-row-actions">
-        <Button variant="secondary" size="sm" disabled={busy} onClick={() => onEdit(group)}>
-          Edit
-        </Button>
         {group.active ? (
           <Button
             variant="secondary" size="sm" disabled={busy}
@@ -128,13 +132,18 @@ function SyncGroupRow({
             Activate
           </Button>
         )}
-        <Button
-          variant="danger" size="sm" disabled={busy}
-          aria-label={`Delete ${group.name}`}
-          onClick={() => onDelete(group)}
-        >
-          Delete
-        </Button>
+        <MoreMenu label="More" name={`More actions for ${group.name}`}>
+          <Button variant="secondary" size="sm" disabled={busy} onClick={() => onEdit(group)}>
+            Edit
+          </Button>
+          <Button
+            variant="danger" size="sm" disabled={busy}
+            aria-label={`Delete ${group.name}`}
+            onClick={() => onDelete(group)}
+          >
+            Delete
+          </Button>
+        </MoreMenu>
       </div>
     </li>
   );
@@ -153,6 +162,7 @@ export function SyncSection() {
   const [editGroup, setEditGroup] = useState<SyncGroup | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<SyncGroup | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [memberResult, setMemberResult] = useState<{ title: string; lines: string[] } | null>(null);
 
   const createActiveElsewhere = useMemo(() => activeElsewhereMap(groups), [groups]);
   const editActiveElsewhere = useMemo(
@@ -170,11 +180,13 @@ export function SyncSection() {
     const { failed } = summarizeResults(results);
     if (failed.length === 0) {
       toast.show({ title: `${groupName} ${action}`, variant: 'success' });
+      setMemberResult(null);
     } else {
-      toast.show({
-        title: `${groupName} ${action} with ${failed.length} controller${failed.length === 1 ? '' : 's'} failing`,
-        description: failed.map((f) => f.error).join('; '),
-        variant: 'error'
+      const title = `${groupName} ${action} with ${failed.length} controller${failed.length === 1 ? '' : 's'} failing`;
+      toast.show({ title, variant: 'error' });
+      setMemberResult({
+        title: 'Member results',
+        lines: failed.map((row) => row.error || `${row.controllerId} failed`)
       });
     }
   }
@@ -243,12 +255,22 @@ export function SyncSection() {
         <h2>Sync</h2>
         <Button variant="primary" onClick={() => setCreateOpen(true)}>New sync group</Button>
       </div>
-      <p className="sync-section-intro">
-        Wire any set of controllers together with WLED's own real-time UDP
-        sync so their effects and colors play in lockstep — managed here
-        instead of each device's own settings page. Create a group, activate
-        it, and pull it apart whenever you want.
-      </p>
+      <p className="sync-section-intro">Keep controllers in sync.</p>
+      <details className="sync-help">
+        <summary>Help</summary>
+        <p>
+          Activating a group uses WLED's real-time UDP sync so member effects and colors
+          play together. Deactivating restores each controller's own sync settings.
+          This is separate from the Sync page inside a controller's config.
+        </p>
+      </details>
+      {memberResult && (
+        <ResultPanel title={memberResult.title} onDismiss={() => setMemberResult(null)}>
+          <ul>
+            {memberResult.lines.map((line) => <li key={line}>{line}</li>)}
+          </ul>
+        </ResultPanel>
+      )}
       <Card>
         {groups.length === 0 && <p className="empty-state">No sync groups yet.</p>}
         {groups.length > 0 && (

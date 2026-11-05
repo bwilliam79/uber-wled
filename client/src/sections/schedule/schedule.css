@@ -24,7 +24,7 @@
 
 .schedule-row-time { width: 74px; text-align: center; flex-shrink: 0; }
 .schedule-row-time-big { font-size: 22px; font-weight: 600; color: var(--text); }
-.schedule-row-time-small { font-size: 12px; color: var(--m2); text-transform: capitalize; }
+.schedule-row-time-small { font-size: 0.8125rem; color: var(--m1); text-transform: capitalize; }
 .schedule-row.disabled .schedule-row-time-big,
 .schedule-row.disabled .schedule-row-time-small { color: var(--m3); }
 
@@ -47,12 +47,12 @@
 .schedule-row.disabled .schedule-row-name { color: var(--m2); }
 .schedule-row-main:hover .schedule-row-name { color: var(--accent); }
 .schedule-row-sub {
-  font-size: 11px;
-  color: var(--m2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--m1);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .schedule-row-remove {
@@ -91,7 +91,18 @@
 .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .schedule-form-actions { display: flex; gap: 8px; }
 .day-toggle-group { display: flex; gap: 4px; flex-wrap: wrap; }
-.day-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 40px; padding: 4px 8px; border: 1px solid var(--border); border-radius: var(--radius-control); color: var(--text-muted); cursor: pointer; user-select: none; }
+.day-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 4px 8px; border: 1px solid var(--m1); border-radius: var(--radius-control); color: var(--text); cursor: pointer; user-select: none; }
+.schedule-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.schedule-filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.schedule-filter { min-height: 36px; padding: 0 12px; border-radius: var(--radius-chip); border: 1px solid var(--m1); background: transparent; color: var(--text); cursor: pointer; font: inherit; }
+.schedule-filter.active { background: var(--accent-soft); }
+.schedule-group { border: 1px solid var(--m1); border-radius: var(--radius-card); padding: 12px 14px; margin: 0 0 12px; display: flex; flex-direction: column; gap: 12px; }
+.schedule-group legend { padding: 0 4px; font-weight: 600; }
+@media (max-width: 899px) {
+  .schedule-row { flex-wrap: wrap; align-items: flex-start; }
+  .schedule-row-time { width: auto; text-align: left; }
+  .schedule-filter { min-height: 44px; }
+}
 .day-toggle input { position: absolute; opacity: 0; pointer-events: none; }
 .day-toggle.active { background: var(--accent-soft); border-color: var(--accent); color: var(--text); }
 .field-label { font-size: 0.8rem; color: var(--text-muted); }

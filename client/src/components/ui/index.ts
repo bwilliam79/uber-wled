@@ -21,6 +21,8 @@ export { SearchInput } from './SearchInput';
 export type { SearchInputProps } from './SearchInput';
 export { Select } from './Select';
 export type { SelectProps, SelectOption } from './Select';
+export { MoreMenu } from './MoreMenu';
+export { ResultPanel } from './ResultPanel';
 export { Modal } from './Modal';
 export type { ModalProps } from './Modal';
 export { ToastProvider, useToast } from './Toast';

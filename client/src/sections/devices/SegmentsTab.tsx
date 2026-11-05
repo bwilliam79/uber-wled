@@ -29,11 +29,13 @@ export interface SegmentRowProps {
   segment: DeviceSegment;
   ledCount: number;
   busy: boolean;
+  expanded: boolean;
+  onToggle: () => void;
   onApply: (segId: number, patch: SegmentUpdate) => void;
   onDelete: (segId: number) => void;
 }
 
-export function SegmentRow({ segment, ledCount, busy, onApply, onDelete }: SegmentRowProps) {
+export function SegmentRow({ segment, ledCount, busy, expanded, onToggle, onApply, onDelete }: SegmentRowProps) {
   const [name, setName] = useState(segment.n ?? '');
   const [start, setStart] = useState(String(segment.start));
   const [stop, setStop] = useState(String(segment.stop));
@@ -62,9 +64,17 @@ export function SegmentRow({ segment, ledCount, busy, onApply, onDelete }: Segme
     <Card className="segment-row" data-testid={`segment-${segment.id}`}>
       <div className="segment-row-header">
         <h3>Segment {segment.id}</h3>
+        <span className="segment-range ui-mono">{segment.start}–{segment.stop}</span>
         <Toggle label={`Segment ${segment.id} power`} checked={segment.on}
           onChange={(on) => onApply(segment.id, { on })} disabled={busy} />
       </div>
+      <Slider label={`Segment ${segment.id} brightness`} value={bri} min={1} max={255}
+        onChange={setBri} onCommit={(v) => onApply(segment.id, { bri: v })} disabled={busy} />
+      <button type="button" aria-expanded={expanded} onClick={onToggle}>
+        {expanded ? 'Hide' : 'Show'} segment {segment.id} editor
+      </button>
+      {expanded && <>
+      <p className="field-hint">Split, merge, and boundary drag on the strip apply immediately. Apply below saves this segment's bounds.</p>
       <div className="segment-grid">
         <Field label="Name" htmlFor={`seg-${segment.id}-name`}>
           <input id={`seg-${segment.id}-name`} className="input" value={name}
@@ -98,12 +108,11 @@ export function SegmentRow({ segment, ledCount, busy, onApply, onDelete }: Segme
         <Toggle label={`Segment ${segment.id} mirror`} checked={segment.mi}
           onChange={(mi) => onApply(segment.id, { mi })} disabled={busy} />
       </div>
-      <Slider label={`Segment ${segment.id} brightness`} value={bri} min={1} max={255}
-        onChange={setBri} onCommit={(v) => onApply(segment.id, { bri: v })} disabled={busy} />
       <div className="segment-row-actions">
         <Button variant="primary" onClick={apply} disabled={busy || boundsError !== null}>Apply</Button>
         <Button variant="danger" onClick={() => onDelete(segment.id)} disabled={busy}>Delete</Button>
       </div>
+      </>}
     </Card>
   );
 }
@@ -189,12 +198,17 @@ export function SegmentsTab({ controllerId, ledCount, maxSeg }: SegmentsTabProps
           effectFor={effectFor}
         />
       )}
-      {list.map((segment) => (
+      {list.map((segment) => {
+        const activeId = selectedId === null ? list[0]?.id ?? null : selectedId;
+        return (
         <SegmentRow key={segment.id} segment={segment} ledCount={ledCount} busy={busy}
+          expanded={segment.id === activeId}
+          onToggle={() => setSelectedId(segment.id === activeId ? -1 : segment.id)}
           onApply={(segId, patch) =>
             run(() => updateControllerSegment(controllerId, segId, patch), 'Segment update failed')}
           onDelete={setDeleteId} />
-      ))}
+        );
+      })}
       <Card className="segment-create" data-testid="segment-create">
         <h3>New segment</h3>
         <div className="segment-grid">

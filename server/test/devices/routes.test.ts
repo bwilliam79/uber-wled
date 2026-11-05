@@ -5,7 +5,7 @@ import { createDb } from '../../src/db/client.js';
 import { createControllerRepository } from '../../src/controllers/repository.js';
 import { createDevicesRouter } from '../../src/devices/routes.js';
 
-const HOST = '10.0.0.50';
+const HOST = '192.0.2.50';
 
 function stubFetchByHost(
   handlers: Record<string, (url: string, init?: RequestInit) => { status: number; body?: unknown }>

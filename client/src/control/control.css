@@ -1,5 +1,14 @@
 /* Control surface — uses Phase C design tokens (design/tokens.css). */
 .control-surface { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+.cs-scope-banner {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 8px 0;
+  background: var(--panel);
+  font-weight: 600;
+}
 
 .cs-header { display: flex; flex-direction: column; gap: 12px; }
 .cs-chips { display: flex; flex-wrap: wrap; gap: 8px; }

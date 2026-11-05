@@ -68,9 +68,9 @@ const FLA = { id: '57', displayName: 'Florida Gators' };
 function setupFleet() {
   const db = createDb(':memory:');
   const controllers = createControllerRepository(db);
-  const left = controllers.add({ name: 'Shelf L', host: '10.0.0.11', source: 'manual' });
-  const right = controllers.add({ name: 'Shelf R', host: '10.0.0.12', source: 'manual' });
-  const cabinet = controllers.add({ name: 'Cabinet', host: '10.0.0.13', source: 'manual' });
+  const left = controllers.add({ name: 'Shelf L', host: '192.0.2.11', source: 'manual' });
+  const right = controllers.add({ name: 'Shelf R', host: '198.51.100.12', source: 'manual' });
+  const cabinet = controllers.add({ name: 'Cabinet', host: '203.0.113.13', source: 'manual' });
   const group = createGroupRepository(db).add({
     name: 'Shelves',
     members: [

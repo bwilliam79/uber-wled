@@ -45,6 +45,7 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
   // Optimistic power/brightness so the control feels instant; the live SSE
   // reconciles it on the next status frame.
   const [override, setOverride] = useState<{ on?: boolean; bri?: number }>({});
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const on = override.on ?? state?.on ?? false;
   const bri = override.bri ?? state?.bri ?? 0;
   const briPct = Math.round((bri / 255) * 100);
@@ -91,11 +92,6 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
         </button>
       </div>
 
-      <p className="device-card-meta ui-mono">
-        {controller.host}
-        {info?.leds.count !== undefined && <> · {info.leds.count} px</>}
-      </p>
-
       <button
         type="button"
         className="device-card-strip-well"
@@ -124,8 +120,10 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
       <div className="device-card-status">
         {offline ? (
           <Chip variant="danger">Offline</Chip>
+        ) : live === undefined ? (
+          <Chip>Checking</Chip>
         ) : (
-          <Chip variant={on ? 'success' : 'default'}>{on ? 'Online' : 'Off'}</Chip>
+          <Chip variant="success">Online</Chip>
         )}
         {!offline && controller.stale && <Chip variant="warning">Stale</Chip>}
         {!offline && info?.live && (
@@ -137,9 +135,6 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
           </Chip>
         )}
         {firmware.data?.updateAvailable && <Chip variant="warning">Update</Chip>}
-        {info?.leds.fps !== undefined && !offline && (
-          <span className="device-card-fps ui-mono">{info.leds.fps} FPS</span>
-        )}
         <button
           type="button"
           className="device-card-open"
@@ -149,6 +144,26 @@ export function DeviceCard({ controller, live, onControl, onOpen }: DeviceCardPr
           Control
         </button>
       </div>
+      <button
+        type="button"
+        className="device-card-details"
+        aria-expanded={detailsOpen}
+        onClick={() => setDetailsOpen((open) => !open)}
+      >
+        Details
+      </button>
+      {detailsOpen && (
+        <div className="device-card-details-body">
+          <p className="device-card-meta ui-mono">
+            {controller.host}
+            {info?.leds.count !== undefined && <> · {info.leds.count} px</>}
+            {info?.ver && <> · {info.ver}</>}
+          </p>
+          {info?.leds.fps !== undefined && !offline && (
+            <p className="device-card-fps ui-mono">{info.leds.fps} FPS</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

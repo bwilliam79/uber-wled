@@ -15,8 +15,8 @@ describe('schedules routes', () => {
   beforeEach(() => {
     const db = createDb(':memory:');
     groupId = createGroupRepository(db).add({ name: 'Front', members: [] }).id;
-    controllerId = createControllerRepository(db).add({ name: 'Cabinet', host: '10.0.0.50', source: 'manual' }).id;
-    controllerId2 = createControllerRepository(db).add({ name: 'Porch', host: '10.0.0.51', source: 'manual' }).id;
+    controllerId = createControllerRepository(db).add({ name: 'Cabinet', host: '192.0.2.50', source: 'manual' }).id;
+    controllerId2 = createControllerRepository(db).add({ name: 'Porch', host: '198.51.100.51', source: 'manual' }).id;
     app = express();
     app.use(express.json());
     app.use('/api/schedules', createSchedulesRouter(db));

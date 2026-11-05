@@ -11,13 +11,15 @@ export function ImportButton({
   onFile,
   variant = 'secondary',
   size,
-  disabled
+  disabled,
+  role
 }: {
   label: string;
   onFile: (file: File) => void;
   variant?: ButtonProps['variant'];
   size?: ButtonProps['size'];
   disabled?: boolean;
+  role?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -33,7 +35,7 @@ export function ImportButton({
           if (file) onFile(file);
         }}
       />
-      <Button variant={variant} size={size} disabled={disabled} onClick={() => inputRef.current?.click()}>
+      <Button role={role} variant={variant} size={size} disabled={disabled} onClick={() => inputRef.current?.click()}>
         {label}
       </Button>
     </>

@@ -193,7 +193,7 @@ describe('AppShell v2', () => {
       if (typeof url === 'string' && url === '/api/controllers') {
         return Promise.resolve({
           ok: true,
-          json: async () => [{ id: 'c1', name: 'Porch', host: '10.0.0.50', source: 'manual', stale: false, pinnedAssetPattern: null }]
+          json: async () => [{ id: 'c1', name: 'Porch', host: '192.0.2.50', source: 'manual', stale: false, pinnedAssetPattern: null }]
         });
       }
       if (typeof url === 'string' && url.endsWith('/firmware')) {

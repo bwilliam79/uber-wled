@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 const CONTROLLERS = [
-  { id: 'c0', name: 'Attic', host: '10.0.0.40', source: 'manual', stale: true, pinnedAssetPattern: null },
+  { id: 'c0', name: 'Attic', host: '198.51.100.40', source: 'manual', stale: true, pinnedAssetPattern: null },
   { id: 'c1', name: 'Cabinet Lights', host: '203.0.113.86', source: 'discovered', stale: false, pinnedAssetPattern: null }
 ];
 const THEMES = [
@@ -75,6 +75,7 @@ describe('ThemesSection', () => {
   it('defaults the source controller to the first reachable one and previews each theme row', async () => {
     stubFetch();
     renderWithQuery(<ThemesSection />);
+    fireEvent.click(await screen.findByRole('button', { name: 'New theme' }));
     await waitFor(() =>
       expect((screen.getByLabelText('Source controller') as HTMLSelectElement).value).toBe('c1')
     );
@@ -108,6 +109,7 @@ describe('ThemesSection', () => {
     liveMap.set('c1', { reachable: true, state: {}, info: { name: 'Cabinet', ver: '16.0.0', leds: { count: 48 }, arch: 'esp32' } });
     stubFetch();
     renderWithQuery(<ThemesSection />);
+    fireEvent.click(await screen.findByRole('button', { name: 'New theme' }));
     await waitFor(() => expect((screen.getByLabelText('Source controller') as HTMLSelectElement).value).toBe('c1'));
     expect(screen.getByRole('option', { name: 'Cabinet' })).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'Cabinet Lights' })).toBeNull();
@@ -116,7 +118,9 @@ describe('ThemesSection', () => {
   it('deletes a theme via DELETE /api/themes/:id', async () => {
     const fetchMock = stubFetch();
     renderWithQuery(<ThemesSection />);
-    fireEvent.click(await screen.findByLabelText('Remove Sunset Party'));
+    fireEvent.click(await screen.findByRole('button', { name: 'More actions for Sunset Party' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove Sunset Party' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Remove theme' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith('/api/themes/t1', expect.objectContaining({ method: 'DELETE' }))
     );
@@ -137,7 +141,8 @@ describe('ThemesSection', () => {
     vi.stubGlobal('fetch', fetchMock);
     renderWithQuery(<ThemesSection />);
 
-    fireEvent.click(await screen.findByLabelText('Edit Sunset Party'));
+    fireEvent.click(await screen.findByRole('button', { name: 'More actions for Sunset Party' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Edit Sunset Party' }));
     // Editing opens in a modal, prefilled with the theme being edited.
     const dialog = await screen.findByRole('dialog');
     const nameInput = await within(dialog).findByDisplayValue('Sunset Party');
@@ -157,7 +162,8 @@ describe('ThemesSection', () => {
     renderWithQuery(<ThemesSection />);
     // Wait for themes to load so the Export button is enabled (it's disabled at 0 themes).
     await screen.findByText('Sunset Party');
-    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Export' }));
     expect(triggerDownloadSpy).toHaveBeenCalledWith('/api/backup/themes');
   });
 
@@ -191,7 +197,10 @@ describe('ThemesSection', () => {
   it('applies a theme to every controller via primary Apply', async () => {
     const fetchMock = stubFetch();
     renderWithQuery(<ThemesSection />);
-    fireEvent.click(await screen.findByLabelText('Apply Sunset Party to all devices'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Apply Sunset Party to fleet' }));
+    expect(screen.getByText(/all 2 controllers/)).toBeTruthy();
+    expect(screen.getByText(/offline and still included/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Apply to 2 controllers' }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         '/api/control/apply',
