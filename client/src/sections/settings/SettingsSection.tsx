@@ -22,6 +22,23 @@ function clampLivePoll(value: number): number {
   return Math.min(30, Math.max(1, Math.round(value)));
 }
 
+/** One key at a time, so a union of Settings fields does not collapse to never. */
+function assignKey<T, K extends keyof T>(target: T, key: K, value: T[K]): void {
+  target[key] = value;
+}
+
+function copySettings(target: Settings, source: Settings, keys: readonly (keyof Settings)[]): void {
+  for (const key of keys) assignKey(target, key, source[key]);
+}
+
+function assignPartialSetting<K extends keyof Settings>(
+  target: Partial<Settings>,
+  key: K,
+  value: Settings[K]
+): void {
+  target[key] = value;
+}
+
 function coordDisplayPrecision(value: number): number {
   // 6 decimal places is ~11cm precision — plenty for sunrise/sunset math,
   // and matches what Nominatim returns.
@@ -133,10 +150,11 @@ export function SettingsSection() {
     mutationFn: (body: Partial<Settings>) => updateSettings(body),
     onSuccess: (saved, body) => {
       queryClient.setQueryData(['settings'], saved);
+      const savedKeys = Object.keys(body) as (keyof Settings)[];
       setDraft((prev) => {
         if (!prev) return saved;
         const next = { ...prev };
-        for (const key of Object.keys(body) as (keyof Settings)[]) next[key] = saved[key];
+        copySettings(next, saved, savedKeys);
         return next;
       });
       setSavedNote('Saved');
@@ -199,7 +217,7 @@ export function SettingsSection() {
   function saveCategory() {
     if (!draft) return;
     const body: Partial<Settings> = {};
-    for (const key of CATEGORY_KEYS[category]) body[key] = draft[key];
+    for (const key of CATEGORY_KEYS[category]) assignPartialSetting(body, key, draft[key]);
     if (category === 'polling' && body.livePollIntervalSeconds !== undefined) {
       body.livePollIntervalSeconds = clampLivePoll(body.livePollIntervalSeconds);
     }
@@ -207,11 +225,12 @@ export function SettingsSection() {
   }
 
   function discardCategory() {
-    if (!settings.data) return;
+    const saved = settings.data;
+    if (!saved) return;
     setDraft((prev) => {
       if (!prev) return prev;
       const next = { ...prev };
-      for (const key of CATEGORY_KEYS[category]) next[key] = settings.data![key];
+      copySettings(next, saved, CATEGORY_KEYS[category]);
       return next;
     });
     setSavedNote(null);

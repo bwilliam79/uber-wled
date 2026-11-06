@@ -546,6 +546,10 @@ included). Guardrails, because full parity includes footguns:
   at most two private `/24`s on the host after virtual interfaces are skipped.
   It does not contact the internet.
 
+## 2.22.1
+
+The image build installs the client and the server with `npm ci`, so the production build uses the lockfile. Settings saves typecheck under TypeScript 6 when a category is copied one field at a time.
+
 ## UI refresh (2.22.0)
 
 Settings edits one category at a time. A draft in another category stays until you save or discard it, and leaving Settings with unsaved changes asks first. Themes open as a library; create and edit use the same panel, and Apply to fleet asks before it changes every controller. Schedule rows split trigger, repeat, action, and target, and Preview on lights is optional. Sync and firmware batch results stay in a dismissible panel after the toast. Device cards keep their layout; host and diagnostics sit under Details.

@@ -1,15 +1,15 @@
 FROM node:20-alpine AS client-build
 WORKDIR /app/client
-COPY client/package.json ./
-RUN npm install
+COPY client/package.json client/package-lock.json ./
+RUN npm ci
 COPY client/ ./
 RUN npm run build
 
 FROM node:20-alpine AS server-build
 RUN apk add --no-cache python3 make g++
 WORKDIR /app/server
-COPY server/package.json ./
-RUN npm install
+COPY server/package.json server/package-lock.json ./
+RUN npm ci
 COPY server/ ./
 RUN npm run build
 
