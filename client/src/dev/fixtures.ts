@@ -105,7 +105,7 @@ export function fixtureJson(url: string, method: string): unknown | undefined {
   if (path === '/api/groups') return GROUPS;
   if (path === '/api/sync-groups') return SYNC_GROUPS;
   if (path === '/api/settings') return SETTINGS;
-  if (path === '/api/version') return { version: '2.22.1' };
+  if (path === '/api/version') return { version: '2.22.2' };
   if (path === '/api/auto-backups') return [];
   const firmwareMatch = path.match(/^\/api\/controllers\/([^/]+)\/firmware$/);
   if (firmwareMatch) return firmware(firmwareMatch[1]);

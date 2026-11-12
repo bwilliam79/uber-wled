@@ -7,6 +7,7 @@ import { createSettingsRepository, type Settings } from '../../src/settings/repo
 import { createActiveLookRepository } from '../../src/looks/repository.js';
 import { createGameTriggerRepository } from '../../src/games/repository.js';
 import { computeAssignments, syncGames } from '../../src/games/sync.js';
+import { applySplitLook } from '../../src/games/splitLook.js';
 import { processGameTriggers } from '../../src/games/tick.js';
 import { ESPN_TEAM_IDS, type FetchLike } from '../../src/games/espn.js';
 
@@ -572,5 +573,327 @@ describe('split night apply and release', () => {
     expect(looks.get(cabinet.id)).toMatchObject({ source: 'manual', themeId: ark.id });
     expect(applyFn).not.toHaveBeenCalled();
     expect(snapshotRows(db)).toBe(0);
+  });
+
+  function pixel(id: number, start: number, stop: number) {
+    return {
+      id,
+      start,
+      stop,
+      len: Math.max(0, stop - start),
+      on: true,
+      bri: 255,
+      fx: 0,
+      pal: 0,
+      col: [[255, 255, 255]],
+      sx: 128,
+      ix: 128
+    };
+  }
+
+  function infoFor(count: number, maxseg?: number) {
+    return {
+      name: 'Cabinet',
+      ver: '16.0.1',
+      leds: maxseg === undefined ? { count } : { count, maxseg },
+      arch: 'esp32'
+    };
+  }
+
+  function themeSeg(
+    theme: { brightness: number; effect: number; palette: number; colors: number[][]; speed: number; intensity: number },
+    id: number,
+    start: number,
+    stop: number,
+    rev = false
+  ) {
+    return {
+      id,
+      start,
+      stop,
+      on: true,
+      bri: theme.brightness,
+      fx: theme.effect,
+      pal: theme.palette,
+      col: theme.colors,
+      sx: theme.speed,
+      ix: theme.intensity,
+      ...(rev ? { rev: true } : {})
+    };
+  }
+
+  const CABINET = [pixel(0, 0, 39), pixel(1, 39, 48)];
+  const PRODUCED = [pixel(0, 0, 19), pixel(1, 19, 39), pixel(2, 39, 43), pixel(3, 43, 48)];
+  const CABINET_BOUNDS = [
+    { id: 0, start: 0, stop: 39 },
+    { id: 1, start: 39, stop: 48 }
+  ];
+
+  function device(options: {
+    segments: ReturnType<typeof pixel>[];
+    count: number;
+    maxseg?: number;
+    failPosts?: number;
+    onFail?: 'produced';
+  }) {
+    const base = fleet();
+    const live = {
+      seg: options.segments.map((segment) => ({ ...segment, col: segment.col.map((channel) => [...channel]) }))
+    };
+    let failuresLeft = options.failPosts ?? 0;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const host = new URL(url).host;
+      if (host !== '203.0.113.23') throw new Error(`unexpected host ${host}`);
+      if (init?.method === 'POST') {
+        const body = JSON.parse(String(init.body));
+        base.posts.push(body);
+        if (failuresLeft > 0) {
+          failuresLeft -= 1;
+          if (options.onFail === 'produced') {
+            live.seg = PRODUCED.map((segment) => ({ ...segment, col: segment.col.map((channel) => [...channel]) }));
+          }
+          return { ok: false, status: 500, json: async () => ({}) } as Response;
+        }
+        return { ok: true, status: 200, json: async () => ({ ...state48(), seg: live.seg }) } as Response;
+      }
+      if (url.endsWith('/json/info')) {
+        return { ok: true, status: 200, json: async () => infoFor(options.count, options.maxseg) } as Response;
+      }
+      if (url.endsWith('/json/state')) {
+        return { ok: true, status: 200, json: async () => ({ ...state48(), seg: live.seg }) } as Response;
+      }
+      throw new Error(`unexpected url ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return {
+      ...base,
+      show(next: ReturnType<typeof pixel>[]) {
+        live.seg = next.map((segment) => ({ ...segment, col: segment.col.map((channel) => [...channel]) }));
+      }
+    };
+  }
+
+  function savedBounds(db: ReturnType<typeof createDb>) {
+    const rows = db.prepare('SELECT espn_event_id, segments FROM game_segment_restore').all() as {
+      espn_event_id: string;
+      segments: string;
+    }[];
+    return rows.map((row) => ({ espnEventId: row.espn_event_id, segments: JSON.parse(row.segments) }));
+  }
+
+  function scheduleSplit(
+    db: ReturnType<typeof createDb>,
+    cabinetId: string,
+    lsuId: string,
+    arkId: string,
+    espnEventId = 'rivalry'
+  ): void {
+    const start = new Date(2026, 9, 31, 12, 0, 0);
+    createGameTriggerRepository(db).upsert({
+      espnEventId,
+      sport: 'football',
+      teams: ['arkansas', 'lsu'],
+      opponent: 'LSU Tigers',
+      startAt: start.toISOString(),
+      releaseAt: new Date(2026, 9, 31, 18, 0, 0).toISOString(),
+      timeValid: true,
+      assignments: { [cabinetId]: { lsu: lsuId, ark: arkId } },
+      status: 'scheduled',
+      updatedAt: start.toISOString()
+    });
+  }
+
+  it('splits each existing segment of a 48-LED cabinet into LSU and Arkansas', async () => {
+    const { db, cabinet, ark, lsu, posts, applyFn } = device({
+      segments: [...CABINET, pixel(6, 0, 0)],
+      count: 48,
+      maxseg: 4
+    });
+    scheduleSplit(db, cabinet.id, lsu.id, ark.id);
+    await processGameTriggers(db, new Date(2026, 9, 31, 13, 0, 0), applyFn);
+
+    expect(posts).toEqual([
+      {
+        on: true,
+        bri: 255,
+        udpn: { nn: true },
+        seg: [
+          themeSeg(lsu, 0, 0, 19, true),
+          themeSeg(ark, 1, 19, 39),
+          themeSeg(lsu, 2, 39, 43, true),
+          themeSeg(ark, 3, 43, 48),
+          { id: 6, stop: 0 }
+        ]
+      }
+    ]);
+    expect(applyFn).not.toHaveBeenCalled();
+  });
+
+  it('restores cabinet bounds 0-39 and 39-48 and removes segments 2 and 3', async () => {
+    const { db, cabinet, ark, lsu, posts, applyFn } = device({
+      segments: CABINET,
+      count: 48,
+      maxseg: 4
+    });
+    scheduleSplit(db, cabinet.id, lsu.id, ark.id);
+    const earlyAt = new Date(2026, 9, 31, 14, 0, 0);
+    await processGameTriggers(db, new Date(2026, 9, 31, 13, 0, 0), applyFn);
+    createGameTriggerRepository(db).setEarlyFinal('rivalry', earlyAt.toISOString());
+    await processGameTriggers(db, earlyAt, applyFn);
+
+    expect(posts[1]).toEqual({
+      udpn: { nn: true },
+      seg: [
+        { id: 2, stop: 0 },
+        { id: 3, stop: 0 },
+        { id: 0, start: 0, stop: 39 },
+        { id: 1, start: 39, stop: 48 }
+      ]
+    });
+    expect(snapshotRows(db)).toBe(0);
+  });
+
+  it('keeps a segment shorter than two LEDs on the LSU theme and splits longer ones', async () => {
+    const { db, cabinet, ark, lsu, posts, applyFn } = device({
+      segments: [pixel(0, 10, 11), pixel(1, 20, 28)],
+      count: 48,
+      maxseg: 16
+    });
+    scheduleSplit(db, cabinet.id, lsu.id, ark.id);
+    await processGameTriggers(db, new Date(2026, 9, 31, 13, 0, 0), applyFn);
+
+    expect(posts[0]).toEqual({
+      on: true,
+      bri: 255,
+      udpn: { nn: true },
+      seg: [
+        themeSeg(lsu, 0, 10, 11, true),
+        themeSeg(lsu, 1, 20, 24, true),
+        themeSeg(ark, 2, 24, 28)
+      ]
+    });
+  });
+
+  it('halves the whole strip when the split would exceed leds.maxseg', async () => {
+    const { db, cabinet, ark, lsu, posts, applyFn } = device({
+      segments: CABINET,
+      count: 48,
+      maxseg: 3
+    });
+    scheduleSplit(db, cabinet.id, lsu.id, ark.id);
+    await processGameTriggers(db, new Date(2026, 9, 31, 13, 0, 0), applyFn);
+
+    expect(posts[0]).toEqual({
+      on: true,
+      bri: 255,
+      udpn: { nn: true },
+      seg: [themeSeg(lsu, 0, 0, 24, true), themeSeg(ark, 1, 24, 48)]
+    });
+  });
+
+  it('halves the whole strip when the controller has no usable segments', async () => {
+    const { db, cabinet, ark, lsu, posts, applyFn } = device({
+      segments: [pixel(0, 0, 0), pixel(2, 4, 4)],
+      count: 48,
+      maxseg: 16
+    });
+    scheduleSplit(db, cabinet.id, lsu.id, ark.id);
+    await processGameTriggers(db, new Date(2026, 9, 31, 13, 0, 0), applyFn);
+
+    expect(posts[0]).toEqual({
+      on: true,
+      bri: 255,
+      udpn: { nn: true },
+      seg: [themeSeg(lsu, 0, 0, 24, true), themeSeg(ark, 1, 24, 48), { id: 2, stop: 0 }]
+    });
+  });
+
+  it('rekey and retry do not record the produced per-segment layout', async () => {
+    const rig = device({
+      segments: CABINET,
+      count: 48,
+      maxseg: 16,
+      failPosts: 1,
+      onFail: 'produced'
+    });
+    const { db, cabinet, ark, lsu, applyFn } = rig;
+    scheduleSplit(db, cabinet.id, lsu.id, ark.id);
+    const repo = createGameTriggerRepository(db);
+
+    await applySplitLook(db, cabinet.id, { lsu: lsu.id, ark: ark.id }, 'rivalry');
+    expect(repo.get('rivalry')?.status).toBe('scheduled');
+    expect(savedBounds(db)).toEqual([{ espnEventId: 'rivalry', segments: CABINET_BOUNDS }]);
+
+    rig.show(PRODUCED);
+    await applySplitLook(db, cabinet.id, { lsu: lsu.id, ark: ark.id }, 'rivalry');
+    expect(savedBounds(db)).toEqual([{ espnEventId: 'rivalry', segments: CABINET_BOUNDS }]);
+    const replay = rig.posts[rig.posts.length - 1] as { seg: { id: number; start?: number; stop: number }[] };
+    expect(replay.seg.filter((segment) => segment.stop > 0).map((segment) => ({
+      id: segment.id,
+      start: segment.start,
+      stop: segment.stop
+    }))).toEqual([
+      { id: 0, start: 0, stop: 19 },
+      { id: 1, start: 19, stop: 39 },
+      { id: 2, start: 39, stop: 43 },
+      { id: 3, start: 43, stop: 48 }
+    ]);
+
+    repo.updateStatus('rivalry', 'active', new Date(2026, 9, 31, 13, 0, 0).toISOString());
+    repo.upsert({
+      espnEventId: 'ark-night',
+      sport: 'football',
+      teams: ['arkansas'],
+      opponent: 'Alabama Crimson Tide',
+      startAt: new Date(2026, 9, 31, 13, 10, 0).toISOString(),
+      releaseAt: new Date(2026, 9, 31, 18, 0, 0).toISOString(),
+      timeValid: true,
+      assignments: { [cabinet.id]: { lsu: lsu.id, ark: ark.id } },
+      status: 'scheduled',
+      updatedAt: new Date(2026, 9, 31, 13, 0, 0).toISOString()
+    });
+    rig.show(PRODUCED);
+    await processGameTriggers(db, new Date(2026, 9, 31, 13, 30, 0), applyFn);
+
+    expect(savedBounds(db)).toEqual([{ espnEventId: 'ark-night', segments: CABINET_BOUNDS }]);
+    expect(repo.get('rivalry')?.status).toBe('active');
+    expect(repo.get('ark-night')?.status).toBe('active');
+  });
+
+  it('a single-theme assignment applies one theme to the whole fireplace controller', async () => {
+    const { db, lsu, posts, applyFn, looks } = fleet();
+    const fireplace = createControllerRepository(db).add({
+      name: 'Fireplace',
+      host: '192.0.2.30',
+      source: 'manual'
+    });
+    const now = new Date(2026, 9, 31, 13, 0, 0);
+    createGameTriggerRepository(db).upsert({
+      espnEventId: 'lsu-home',
+      sport: 'football',
+      teams: ['lsu'],
+      opponent: 'Florida Gators',
+      startAt: new Date(2026, 9, 31, 12, 0, 0).toISOString(),
+      releaseAt: new Date(2026, 9, 31, 18, 0, 0).toISOString(),
+      timeValid: true,
+      assignments: { [fireplace.id]: lsu.id },
+      status: 'scheduled',
+      updatedAt: now.toISOString()
+    });
+
+    await processGameTriggers(db, now, applyFn);
+
+    expect(posts).toEqual([]);
+    expect(applyFn).toHaveBeenCalledTimes(1);
+    expect(applyFn).toHaveBeenCalledWith(
+      [{ controllerId: fireplace.id, wledSegId: null }],
+      { type: 'theme', themeId: lsu.id }
+    );
+    expect(looks.get(fireplace.id)).toMatchObject({
+      source: 'game',
+      sourceId: 'lsu-home',
+      themeId: lsu.id,
+      expiresAt: null
+    });
   });
 });

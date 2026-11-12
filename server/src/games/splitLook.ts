@@ -59,18 +59,115 @@ function rekeySnapshot(db: Database.Database, controllerId: string, espnEventId:
   );
 }
 
-/** The two halves applySplitLook writes: [0, mid) and [mid, count). */
-function isProducedSplitLayout(
-  segments: { id: number; start: number; stop: number }[],
-  count: number
-): boolean {
-  const live = segments.filter((segment) => segment.stop > segment.start);
-  if (live.length !== 2) return false;
+interface Bounds {
+  id: number;
+  start: number;
+  stop: number;
+}
+
+interface PlannedSegment {
+  start: number;
+  stop: number;
+  theme: 'lsu' | 'ark';
+}
+
+function liveSegments(segments: Bounds[]): Bounds[] {
+  return segments.filter((segment) => segment.stop > segment.start).sort((a, b) => a.id - b.id);
+}
+
+/** Split one segment at floor((start + stop) / 2). A 1-LED segment stays LSU. */
+function splitOne(segment: Bounds): PlannedSegment[] {
+  const length = segment.stop - segment.start;
+  if (length < 2) return [{ start: segment.start, stop: segment.stop, theme: 'lsu' }];
+  const mid = Math.floor((segment.start + segment.stop) / 2);
+  return [
+    { start: segment.start, stop: mid, theme: 'lsu' },
+    { start: mid, stop: segment.stop, theme: 'ark' }
+  ];
+}
+
+/** Per-segment plan, or null when nothing on the strip can be split. */
+function planPerSegment(segments: Bounds[]): PlannedSegment[] | null {
+  const usable = liveSegments(segments);
+  if (usable.length === 0) return null;
+  return usable.flatMap(splitOne);
+}
+
+function planWholeStrip(count: number): PlannedSegment[] {
   const mid = Math.floor(count / 2);
-  const first = live.find((segment) => segment.id === 0);
-  const second = live.find((segment) => segment.id === 1);
-  if (!first || !second) return false;
-  return first.start === 0 && first.stop === mid && second.start === mid && second.stop === count;
+  return [
+    { start: 0, stop: mid, theme: 'lsu' },
+    { start: mid, stop: count, theme: 'ark' }
+  ];
+}
+
+function maxSegments(info: { leds?: { maxseg?: number } }): number | undefined {
+  const maxseg = info.leds?.maxseg;
+  if (typeof maxseg !== 'number' || !Number.isInteger(maxseg) || maxseg < 1) return undefined;
+  return maxseg;
+}
+
+function choosePlan(segments: Bounds[], count: number, maxseg: number | undefined): PlannedSegment[] {
+  const perSegment = planPerSegment(segments);
+  if (!perSegment) return planWholeStrip(count);
+  if (maxseg !== undefined && perSegment.length > maxseg) return planWholeStrip(count);
+  return perSegment;
+}
+
+/**
+ * True when these bounds are a layout applySplitLook writes: the whole-strip
+ * halves, or each earlier segment split at its own midpoint (a 1-LED segment
+ * left whole). Ids are 0..n-1, which is how the write numbers them.
+ */
+function isProducedSplitLayout(segments: Bounds[], count: number): boolean {
+  const live = liveSegments(segments);
+  if (live.length === 0) return false;
+  if (live.some((segment, index) => segment.id !== index)) return false;
+  if (live.length === 2 && count >= 2) {
+    const mid = Math.floor(count / 2);
+    const [first, second] = live;
+    if (first.start === 0 && first.stop === mid && second.start === mid && second.stop === count) return true;
+  }
+  let sawPair = false;
+  let index = 0;
+  while (index < live.length) {
+    const current = live[index];
+    const next = live[index + 1];
+    if (next && next.start === current.stop) {
+      const mid = Math.floor((current.start + next.stop) / 2);
+      if (current.stop === mid) {
+        sawPair = true;
+        index += 2;
+        continue;
+      }
+    }
+    if (current.stop - current.start >= 2) return false;
+    index += 1;
+  }
+  return sawPair;
+}
+
+/** Re-apply team themes on a split that is already on the strip, without splitting it again. */
+function planProducedSplit(segments: Bounds[]): PlannedSegment[] {
+  const live = liveSegments(segments);
+  const planned: PlannedSegment[] = [];
+  let index = 0;
+  while (index < live.length) {
+    const current = live[index];
+    const next = live[index + 1];
+    if (next && next.start === current.stop) {
+      const mid = Math.floor((current.start + next.stop) / 2);
+      if (current.stop === mid) {
+        planned.push({ start: current.start, stop: current.stop, theme: 'lsu' });
+        planned.push({ start: next.start, stop: next.stop, theme: 'ark' });
+        index += 2;
+        continue;
+      }
+    }
+    planned.push({ start: current.start, stop: current.stop, theme: 'lsu' });
+    index += 1;
+  }
+  return planned;
 }
 
 function saveSnapshot(
@@ -88,19 +185,9 @@ function saveSnapshot(
   ).run(controllerId, espnEventId, JSON.stringify(segments));
 }
 
-function loadSnapshot(
-  db: Database.Database,
-  controllerId: string,
-  espnEventId: string
-): SavedSegment[] | undefined {
-  const row = db
-    .prepare(
-      'SELECT segments FROM game_segment_restore WHERE controller_id = ? AND espn_event_id = ?'
-    )
-    .get(controllerId, espnEventId) as { segments: string } | undefined;
-  if (!row) return undefined;
+function parseSnapshot(raw: string): SavedSegment[] | undefined {
   try {
-    const value = JSON.parse(row.segments);
+    const value = JSON.parse(raw);
     if (!Array.isArray(value)) return undefined;
     const segments: SavedSegment[] = [];
     for (const entry of value) {
@@ -117,15 +204,40 @@ function loadSnapshot(
   }
 }
 
+function loadSnapshot(
+  db: Database.Database,
+  controllerId: string,
+  espnEventId: string
+): SavedSegment[] | undefined {
+  const row = db
+    .prepare(
+      'SELECT segments FROM game_segment_restore WHERE controller_id = ? AND espn_event_id = ?'
+    )
+    .get(controllerId, espnEventId) as { segments: string } | undefined;
+  if (!row) return undefined;
+  return parseSnapshot(row.segments);
+}
+
+function loadAnySnapshot(db: Database.Database, controllerId: string): SavedSegment[] | undefined {
+  const row = db.prepare('SELECT segments FROM game_segment_restore WHERE controller_id = ?').get(controllerId) as
+    | { segments: string }
+    | undefined;
+  if (!row) return undefined;
+  return parseSnapshot(row.segments);
+}
+
 function deleteSnapshot(db: Database.Database, controllerId: string): void {
   db.prepare('DELETE FROM game_segment_restore WHERE controller_id = ?').run(controllerId);
 }
 
 /**
- * Replace the controller's segments with two halves: [0, mid) LSU and
- * [mid, count) Arkansas. The previous bounds are saved so release can put
- * them back. Retries the device write once. The snapshot from the first
- * attempt is kept so a retry cannot record the already-split layout.
+ * Split each pre-game segment in half: the first half plays LSU and the
+ * second plays Arkansas. A segment shorter than two LEDs keeps LSU across
+ * its whole range. With no usable segments, or when the split would need
+ * more segments than leds.maxseg, the whole strip is halved instead.
+ * The previous bounds are saved so release can put them back. Retries the
+ * device write once. The snapshot from the first attempt is kept so a retry
+ * cannot record the already-split layout.
  */
 export async function applySplitLook(
   db: Database.Database,
@@ -151,15 +263,14 @@ export async function applySplitLook(
       if (typeof count !== 'number' || !Number.isInteger(count) || count < 2) {
         throw new Error('led count too small to split');
       }
-      const mid = Math.floor(count / 2);
+      const bounds = state.seg.map((segment) => ({ id: segment.id, start: segment.start, stop: segment.stop }));
       if (!saved) {
-        const bounds = state.seg.map((segment) => ({ id: segment.id, start: segment.start, stop: segment.stop }));
         const owner = loadSnapshotOwner(db, controllerId);
         const ownerActive =
           !!owner && createGameTriggerRepository(db).get(owner.espnEventId)?.status === 'active';
         // A later overlapping split must not replace the pre-game bounds with
-        // the halves this function just wrote. Keep that row and point it at
-        // the new event. Never store the produced two-segment layout.
+        // the split this function just wrote. Keep that row and point it at
+        // the new event. Never store a produced split layout.
         if (owner && ownerActive) {
           rekeySnapshot(db, controllerId, espnEventId);
         } else if (!isProducedSplitLayout(bounds, count)) {
@@ -167,18 +278,25 @@ export async function applySplitLook(
         }
         saved = true;
       }
+      const stored = loadAnySnapshot(db, controllerId);
+      const source = stored && !isProducedSplitLayout(stored, count) ? stored : undefined;
+      const plan = source
+        ? choosePlan(source, count, maxSegments(info))
+        : isProducedSplitLayout(bounds, count)
+          ? planProducedSplit(bounds)
+          : choosePlan(bounds, count, maxSegments(info));
+      const written = plan.map((piece, id) =>
+        segmentForTheme(piece.theme === 'lsu' ? lsu : ark, controllerId, id, piece.start, piece.stop)
+      );
+      const writtenIds = new Set(written.map((segment) => segment.id));
       const extras = state.seg
-        .filter((segment) => segment.id !== 0 && segment.id !== 1)
+        .filter((segment) => !writtenIds.has(segment.id))
         .map((segment) => ({ id: segment.id, stop: 0 }));
       await setState(controller.host, {
         on: true,
         bri: 255,
         udpn: { nn: true },
-        seg: [
-          segmentForTheme(lsu, controllerId, 0, 0, mid),
-          segmentForTheme(ark, controllerId, 1, mid, count),
-          ...extras
-        ]
+        seg: [...written, ...extras]
       });
     });
   };
@@ -198,9 +316,9 @@ export async function applySplitLook(
 }
 
 /**
- * Put back the segment bounds captured at apply time, then drop the half
- * that was added (WLED deletes a segment when it receives stop 0). No-op
- * when this controller has no snapshot for the event. The extra segment is
+ * Put back the segment bounds captured at apply time, then drop the segments
+ * the split added (WLED deletes a segment when it receives stop 0). No-op
+ * when this controller has no snapshot for the event. Added segments are
  * removed before the original bounds are written so the ranges do not overlap.
  */
 export async function restoreSplitLook(
@@ -216,8 +334,10 @@ export async function restoreSplitLook(
     return;
   }
   const savedIds = new Set(saved.map((segment) => segment.id));
+  const planned = planPerSegment(saved);
+  const producedCount = planned ? planned.length : 2;
   const seg: WledSegmentPatch[] = [
-    ...[0, 1]
+    ...Array.from({ length: producedCount }, (_, id) => id)
       .filter((id) => !savedIds.has(id))
       .map((id) => ({ id, stop: 0 })),
     ...saved.map((segment) => ({ id: segment.id, start: segment.start, stop: segment.stop }))
