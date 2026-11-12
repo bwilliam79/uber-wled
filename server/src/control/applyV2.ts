@@ -167,7 +167,7 @@ export function buildSegPatch(
 // writes to different hosts are unaffected and still run fully in parallel.
 const hostWriteQueues = new Map<string, Promise<unknown>>();
 
-function withHostLock<T>(host: string, fn: () => Promise<T>): Promise<T> {
+export function withHostLock<T>(host: string, fn: () => Promise<T>): Promise<T> {
   const previous = hostWriteQueues.get(host) ?? Promise.resolve();
   const next = previous.then(fn, fn);
   // Swallow rejections in the queue chain itself (they still propagate to

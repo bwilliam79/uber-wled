@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { createGroupRepository } from '../groups/repository.js';
 import { createSettingsRepository, type Settings } from '../settings/repository.js';
+import { cloneAssignments, type GameAssignment } from './assignment.js';
 import {
   createGameSyncLogRepository,
   createGameTriggerRepository,
@@ -57,18 +58,27 @@ export function computeAssignments(
   groupIds: string[],
   teams: GameTeam[],
   split: boolean
-): Record<string, string> {
+): Record<string, GameAssignment> {
   const ark = settings.gameArkansasThemeId;
   const lsu = settings.gameLsuThemeId;
   if (!ark || !lsu) return {};
+  // Split night: left is the whole LSU theme, right is the whole Arkansas
+  // theme, and every other controller in the game group gets both (first
+  // half LSU, second half Arkansas). A single team still paints the group.
   if (split || (teams.includes('arkansas') && teams.includes('lsu'))) {
-    const out: Record<string, string> = {};
-    if (settings.gameLeftControllerId) out[settings.gameLeftControllerId] = lsu;
-    if (settings.gameRightControllerId) out[settings.gameRightControllerId] = ark;
+    const out: Record<string, GameAssignment> = {};
+    const left = settings.gameLeftControllerId;
+    const right = settings.gameRightControllerId;
+    if (left) out[left] = lsu;
+    if (right) out[right] = ark;
+    for (const id of groupIds) {
+      if (id === left || id === right) continue;
+      out[id] = { lsu, ark };
+    }
     return out;
   }
   const themeId = teams[0] === 'lsu' ? lsu : ark;
-  const out: Record<string, string> = {};
+  const out: Record<string, GameAssignment> = {};
   for (const id of groupIds) out[id] = themeId;
   return out;
 }
@@ -114,7 +124,7 @@ async function fetchAllEvents(fetchFn: FetchLike): Promise<ParsedEspnEvent[]> {
 }
 
 function cloneTrigger(t: GameTrigger): GameTrigger {
-  return { ...t, teams: [...t.teams], assignments: { ...t.assignments } };
+  return { ...t, teams: [...t.teams], assignments: cloneAssignments(t.assignments) };
 }
 
 export async function syncGames(

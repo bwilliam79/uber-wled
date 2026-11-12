@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { parseAssignments, type GameAssignment } from './assignment.js';
 
 export type GameSport = 'football' | 'basketball';
 export type GameTeam = 'arkansas' | 'lsu';
@@ -12,7 +13,7 @@ export interface GameTrigger {
   startAt: string;
   releaseAt: string;
   timeValid: boolean;
-  assignments: Record<string, string>;
+  assignments: Record<string, GameAssignment>;
   status: GameTriggerStatus;
   earlyFinal: boolean;
   updatedAt: string;
@@ -26,7 +27,7 @@ export interface GameTriggerInput {
   startAt: string;
   releaseAt: string;
   timeValid: boolean;
-  assignments: Record<string, string>;
+  assignments: Record<string, GameAssignment>;
   status: GameTriggerStatus;
   earlyFinal?: boolean;
   updatedAt: string;
@@ -47,20 +48,6 @@ function parseTeams(raw: string): GameTeam[] {
     return value.filter((t): t is GameTeam => t === 'arkansas' || t === 'lsu');
   } catch {
     return [];
-  }
-}
-
-function parseAssignments(raw: string): Record<string, string> {
-  try {
-    const value = JSON.parse(raw);
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-    const out: Record<string, string> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      if (typeof v === 'string' && v.length > 0) out[k] = v;
-    }
-    return out;
-  } catch {
-    return {};
   }
 }
 

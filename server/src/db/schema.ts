@@ -155,6 +155,15 @@ export function runMigrations(db: Database.Database): void {
       detail TEXT
     );
 
+    -- Segment bounds captured when a split-night look is applied, so release
+    -- can put the strip back before resume. One row per controller. Runtime
+    -- state, same as game_triggers: not part of config backup.
+    CREATE TABLE IF NOT EXISTS game_segment_restore (
+      controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
+      espn_event_id TEXT NOT NULL,
+      segments TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS controller_capabilities (
       controller_id TEXT PRIMARY KEY REFERENCES controllers(id) ON DELETE CASCADE,
       vid INTEGER NOT NULL,

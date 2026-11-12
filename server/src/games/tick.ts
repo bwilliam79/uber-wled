@@ -2,8 +2,10 @@ import type Database from 'better-sqlite3';
 import { trackCalendarThemeOn, trackClear, trackGameThemeOn, trackScheduleThemeOn } from '../looks/applyTracking.js';
 import { createActiveLookRepository } from '../looks/repository.js';
 import { isLiveManualHold } from '../looks/idle.js';
+import { isSplitAssignment } from './assignment.js';
 import { createGameTriggerRepository, type GameTrigger } from './repository.js';
 import { resolveResume } from './resume.js';
+import { applySplitLook, restoreSplitLook } from './splitLook.js';
 
 type ApplyFn = (
   members: { controllerId: string; wledSegId: number | null }[],
@@ -56,6 +58,9 @@ export async function releaseGameTrigger(
   for (const controllerId of Object.keys(trigger.assignments)) {
     const look = looks.get(controllerId);
     if (!look || look.source !== 'game' || look.sourceId !== trigger.espnEventId) continue;
+    // Split controllers saved their previous segment bounds at apply time.
+    // Put that layout back before resume paints a holiday, a night theme, or power off.
+    await restoreSplitLook(db, controllerId, trigger.espnEventId);
     looks.clear(controllerId);
     await applyResume(db, controllerId, now, applyFn);
   }
@@ -68,11 +73,27 @@ async function activateGameTrigger(
   now: Date,
   applyFn: ApplyFn
 ): Promise<void> {
-  for (const [controllerId, themeId] of Object.entries(trigger.assignments)) {
-    if (!themeId || isLiveManualHold(db, controllerId)) continue;
+  for (const [controllerId, assignment] of Object.entries(trigger.assignments)) {
+    if (isLiveManualHold(db, controllerId)) continue;
+    if (isSplitAssignment(assignment)) {
+      const result = await applySplitLook(db, controllerId, assignment, trigger.espnEventId);
+      if (!result.ok) continue;
+      // The active look stores the first-half theme. Hold and skip logic
+      // keys off source "game", same as a single-theme game look.
+      trackGameThemeOn(
+        db,
+        [{ controllerId }],
+        [result],
+        trigger.espnEventId,
+        assignment.lsu,
+        now
+      );
+      continue;
+    }
+    if (!assignment) continue;
     const members = [{ controllerId, wledSegId: null }];
-    const result = await applyFn(members, { type: 'theme', themeId });
-    trackGameThemeOn(db, members, result, trigger.espnEventId, themeId, now);
+    const result = await applyFn(members, { type: 'theme', themeId: assignment });
+    trackGameThemeOn(db, members, result, trigger.espnEventId, assignment, now);
   }
   createGameTriggerRepository(db).updateStatus(trigger.espnEventId, 'active', now.toISOString());
 }

@@ -320,10 +320,13 @@ holiday at sunset wins over Dim White at the same minute.
   or `game` look (live = not polled-off). Skipped members stay as they are.
   `manual` / `game` never expire.
 - **Game start.** When `gameDayEnabled` is on, a `scheduled` trigger whose
-  window contains now (`start_at <= now < release_at`) applies each assignment
-  `{controllerId: themeId}` as a whole-controller theme, records
-  `source: "game"` / `source_id` = ESPN event id, and becomes `active`. A live
-  manual hold on that controller is left alone.
+  window contains now (`start_at <= now < release_at`) applies each assignment,
+  records `source: "game"` / `source_id` = ESPN event id, and becomes `active`.
+  A string value is a whole-controller theme. A split value
+  `{ "lsu": "<themeId>", "ark": "<themeId>" }` divides that controller's own
+  LED range into two segments (see Shelves). The active-look row for a split
+  stores the LSU theme id, which is the first half; hold and skip logic still
+  keys off `source: "game"`. A live manual hold on that controller is left alone.
 - **Game release.** At `release_at`, or when ESPN reports the game `post`
   (early final, polled every 10 minutes during an active window), controllers
   still showing this game look are cleared, then `resolveResume` decides what
@@ -331,12 +334,21 @@ holiday at sunset wins over Dim White at the same minute.
   (event date today and now ≥ today's sunset at the home lat/lon, or event
   date yesterday and now < today's sunrise) → that theme as `calendar`; else
   (b) night-time and an enabled theme schedule targets the controller → that
-  theme as `schedule`; else (c) power off.
+  theme as `schedule`; else (c) power off. A split controller first has its
+  previous segment layout restored (the extra half is deleted, then the saved
+  bounds are written) so resume paints that layout rather than the two halves.
 
 **Shelves.** One team in the window → every controller in `gameGroupId` gets
 that team's theme. Arkansas and LSU in the same game, or their windows
 overlapping → split: left controller = LSU theme, right controller = Arkansas
-theme (`gameLeftControllerId` / `gameRightControllerId`).
+theme (`gameLeftControllerId` / `gameRightControllerId`). Every other
+controller in the game group gets both themes on its own strip. The first
+half of the LEDs, `0 .. floor(count/2)`, plays the LSU theme and the second
+half plays the Arkansas theme, as two WLED segments. With no left or right
+controller set, every controller in the group gets that half-and-half look.
+Assignments stay a JSON object keyed by controller id. Older rows that only
+contain theme id strings load unchanged. Re-sync recomputes assignments and
+updates a `scheduled` trigger when they change.
 
 **ESPN sync.** Team ids Arkansas `8`, LSU `99`. Football
 `…/football/college-football/teams/{id}/schedule`; basketball

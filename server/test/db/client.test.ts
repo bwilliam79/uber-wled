@@ -19,6 +19,7 @@ describe('createDb', () => {
       'controller_capabilities',
       'controller_status',
       'controllers',
+      'game_segment_restore',
       'game_sync_log',
       'game_triggers',
       'group_members',
