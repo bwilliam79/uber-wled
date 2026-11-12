@@ -57,10 +57,12 @@ export async function releaseGameTrigger(
   const looks = createActiveLookRepository(db);
   for (const controllerId of Object.keys(trigger.assignments)) {
     const look = looks.get(controllerId);
-    if (!look || look.source !== 'game' || look.sourceId !== trigger.espnEventId) continue;
-    // Split controllers saved their previous segment bounds at apply time.
-    // Put that layout back before resume paints a holiday, a night theme, or power off.
+    const stillThisGame = !!look && look.source === 'game' && look.sourceId === trigger.espnEventId;
+    // Put saved bounds back even when a manual change replaced the game look,
+    // so the split segments are not left behind. Resume only when this game
+    // still owns the controller.
     await restoreSplitLook(db, controllerId, trigger.espnEventId);
+    if (!stillThisGame) continue;
     looks.clear(controllerId);
     await applyResume(db, controllerId, now, applyFn);
   }

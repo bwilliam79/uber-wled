@@ -424,4 +424,153 @@ describe('split night apply and release', () => {
       { type: 'theme', themeId: ark.id }
     );
   });
+
+  function snapshotRows(db: ReturnType<typeof createDb>): number {
+    return (db.prepare('SELECT COUNT(*) AS n FROM game_segment_restore').get() as { n: number }).n;
+  }
+
+  const originalRestore = {
+    udpn: { nn: true },
+    seg: [
+      { id: 1, stop: 0 },
+      { id: 0, start: 0, stop: 48 }
+    ]
+  };
+
+  function liveFleet() {
+    const base = fleet();
+    let seg = state48().seg.map((segment) => ({ ...segment }));
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const host = new URL(url).host;
+      if (host !== '203.0.113.23') throw new Error(`unexpected host ${host}`);
+      if (init?.method === 'POST') {
+        const body = JSON.parse(String(init.body));
+        base.posts.push(body);
+        if (Array.isArray(body.seg)) {
+          const kept = body.seg.filter(
+            (segment: { start?: number; stop?: number }) =>
+              typeof segment.start === 'number' && typeof segment.stop === 'number' && segment.stop > segment.start
+          );
+          if (kept.length > 0) {
+            seg = kept.map((segment: { id: number; start: number; stop: number }) => ({
+              id: segment.id,
+              start: segment.start,
+              stop: segment.stop,
+              len: segment.stop - segment.start,
+              on: true,
+              bri: 255,
+              fx: 0,
+              pal: 0,
+              col: [[0, 0, 0]],
+              sx: 128,
+              ix: 128
+            }));
+          }
+        }
+        return { ok: true, status: 200, json: async () => ({ ...state48(), seg }) } as Response;
+      }
+      if (url.endsWith('/json/info')) {
+        return { ok: true, status: 200, json: async () => info48() } as Response;
+      }
+      if (url.endsWith('/json/state')) {
+        return { ok: true, status: 200, json: async () => ({ ...state48(), seg }) } as Response;
+      }
+      throw new Error(`unexpected url ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return base;
+  }
+
+  async function overlappingSplit(order: 'a-then-b' | 'b-then-a'): Promise<void> {
+    const { db, cabinet, ark, lsu, posts, applyFn } = liveFleet();
+    const split = { lsu: lsu.id, ark: ark.id };
+    const repo = createGameTriggerRepository(db);
+    repo.upsert({
+      espnEventId: 'lsu-night',
+      sport: 'football',
+      teams: ['lsu'],
+      opponent: 'Florida Gators',
+      startAt: '2026-11-15T00:30:00.000Z',
+      releaseAt: '2026-11-15T04:30:00.000Z',
+      timeValid: true,
+      assignments: { [cabinet.id]: split },
+      status: 'scheduled',
+      updatedAt: '2026-11-14T00:00:00.000Z'
+    });
+    repo.upsert({
+      espnEventId: 'ark-night',
+      sport: 'football',
+      teams: ['arkansas'],
+      opponent: 'Alabama Crimson Tide',
+      startAt: '2026-11-15T00:45:00.000Z',
+      releaseAt: '2026-11-15T04:45:00.000Z',
+      timeValid: true,
+      assignments: { [cabinet.id]: split },
+      status: 'scheduled',
+      updatedAt: '2026-11-14T00:00:00.000Z'
+    });
+
+    await processGameTriggers(db, new Date('2026-11-15T00:31:00.000Z'), applyFn);
+    await processGameTriggers(db, new Date('2026-11-15T00:46:00.000Z'), applyFn);
+    expect(repo.get('lsu-night')?.status).toBe('active');
+    expect(repo.get('ark-night')?.status).toBe('active');
+
+    const first = order === 'a-then-b' ? 'lsu-night' : 'ark-night';
+    const second = order === 'a-then-b' ? 'ark-night' : 'lsu-night';
+    repo.setEarlyFinal(first, '2026-11-15T01:00:00.000Z');
+    await processGameTriggers(db, new Date('2026-11-15T01:00:00.000Z'), applyFn);
+    repo.setEarlyFinal(second, '2026-11-15T01:05:00.000Z');
+    await processGameTriggers(db, new Date('2026-11-15T01:05:00.000Z'), applyFn);
+
+    const restores = posts.filter((body) => {
+      const posted = body as { on?: boolean; seg?: unknown };
+      return posted.on === undefined && Array.isArray(posted.seg);
+    });
+    expect(restores).toEqual([originalRestore]);
+    expect(snapshotRows(db)).toBe(0);
+    expect(repo.get('lsu-night')?.status).toBe('released');
+    expect(repo.get('ark-night')?.status).toBe('released');
+  }
+
+  it('overlapping split games restore the original 48-LED bounds after either release order', async () => {
+    await overlappingSplit('a-then-b');
+    vi.unstubAllGlobals();
+    await overlappingSplit('b-then-a');
+  });
+
+  it('restores saved bounds when the game look was replaced before release', async () => {
+    const { db, cabinet, ark, lsu, posts, applyFn, looks } = fleet();
+    const start = new Date(2026, 9, 31, 12, 0, 0);
+    const activateAt = new Date(2026, 9, 31, 13, 0, 0);
+    const earlyAt = new Date(2026, 9, 31, 14, 0, 0);
+    createGameTriggerRepository(db).upsert({
+      espnEventId: 'rivalry',
+      sport: 'football',
+      teams: ['arkansas', 'lsu'],
+      opponent: 'LSU Tigers',
+      startAt: start.toISOString(),
+      releaseAt: new Date(2026, 9, 31, 18, 0, 0).toISOString(),
+      timeValid: true,
+      assignments: { [cabinet.id]: { lsu: lsu.id, ark: ark.id } },
+      status: 'scheduled',
+      updatedAt: start.toISOString()
+    });
+    await processGameTriggers(db, activateAt, applyFn);
+    looks.set({
+      controllerId: cabinet.id,
+      themeId: ark.id,
+      source: 'manual',
+      sourceId: null,
+      appliedAt: earlyAt.toISOString(),
+      expiresAt: null
+    });
+    createGameTriggerRepository(db).setEarlyFinal('rivalry', earlyAt.toISOString());
+    await processGameTriggers(db, earlyAt, applyFn);
+
+    expect(posts[1]).toEqual(originalRestore);
+    expect(posts).toHaveLength(2);
+    expect(looks.get(cabinet.id)).toMatchObject({ source: 'manual', themeId: ark.id });
+    expect(applyFn).not.toHaveBeenCalled();
+    expect(snapshotRows(db)).toBe(0);
+  });
 });

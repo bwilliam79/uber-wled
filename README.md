@@ -337,6 +337,11 @@ holiday at sunset wins over Dim White at the same minute.
   theme as `schedule`; else (c) power off. A split controller first has its
   previous segment layout restored (the extra half is deleted, then the saved
   bounds are written) so resume paints that layout rather than the two halves.
+  A later overlapping split game keeps those saved bounds and only moves the
+  row to the newer event, so the strip returns to the pre-game layout when the
+  last of those games releases. If the controller is no longer showing this
+  game look at release, the saved bounds are still restored and the current
+  look is left in place.
 
 **Shelves.** One team in the window → every controller in `gameGroupId` gets
 that team's theme. Arkansas and LSU in the same game, or their windows

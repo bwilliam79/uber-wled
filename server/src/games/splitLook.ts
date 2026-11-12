@@ -5,6 +5,7 @@ import { createThemeRepository, type CustomTheme } from '../themes/repository.js
 import { getInfo, getState, setState } from '../wled/client.js';
 import type { WledSegmentPatch } from '../wled/types.js';
 import type { SplitAssignment } from './assignment.js';
+import { createGameTriggerRepository } from './repository.js';
 
 interface SavedSegment {
   id: number;
@@ -39,6 +40,37 @@ function segmentForTheme(
   const rev = theme.directions?.[controllerId]?.rev;
   if (typeof rev === 'boolean') seg.rev = rev;
   return seg;
+}
+
+function loadSnapshotOwner(
+  db: Database.Database,
+  controllerId: string
+): { espnEventId: string } | undefined {
+  const row = db
+    .prepare('SELECT espn_event_id FROM game_segment_restore WHERE controller_id = ?')
+    .get(controllerId) as { espn_event_id: string } | undefined;
+  return row ? { espnEventId: row.espn_event_id } : undefined;
+}
+
+function rekeySnapshot(db: Database.Database, controllerId: string, espnEventId: string): void {
+  db.prepare('UPDATE game_segment_restore SET espn_event_id = ? WHERE controller_id = ?').run(
+    espnEventId,
+    controllerId
+  );
+}
+
+/** The two halves applySplitLook writes: [0, mid) and [mid, count). */
+function isProducedSplitLayout(
+  segments: { id: number; start: number; stop: number }[],
+  count: number
+): boolean {
+  const live = segments.filter((segment) => segment.stop > segment.start);
+  if (live.length !== 2) return false;
+  const mid = Math.floor(count / 2);
+  const first = live.find((segment) => segment.id === 0);
+  const second = live.find((segment) => segment.id === 1);
+  if (!first || !second) return false;
+  return first.start === 0 && first.stop === mid && second.start === mid && second.stop === count;
 }
 
 function saveSnapshot(
@@ -121,12 +153,18 @@ export async function applySplitLook(
       }
       const mid = Math.floor(count / 2);
       if (!saved) {
-        saveSnapshot(
-          db,
-          controllerId,
-          espnEventId,
-          state.seg.map((segment) => ({ id: segment.id, start: segment.start, stop: segment.stop }))
-        );
+        const bounds = state.seg.map((segment) => ({ id: segment.id, start: segment.start, stop: segment.stop }));
+        const owner = loadSnapshotOwner(db, controllerId);
+        const ownerActive =
+          !!owner && createGameTriggerRepository(db).get(owner.espnEventId)?.status === 'active';
+        // A later overlapping split must not replace the pre-game bounds with
+        // the halves this function just wrote. Keep that row and point it at
+        // the new event. Never store the produced two-segment layout.
+        if (owner && ownerActive) {
+          rekeySnapshot(db, controllerId, espnEventId);
+        } else if (!isProducedSplitLayout(bounds, count)) {
+          saveSnapshot(db, controllerId, espnEventId, bounds);
+        }
         saved = true;
       }
       const extras = state.seg
